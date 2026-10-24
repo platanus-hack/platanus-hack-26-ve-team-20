@@ -3,8 +3,8 @@
 import { z } from "zod";
 import { db } from "../../../lib/db.ts";
 import { listOfficerAlerts } from "../../../lib/alerts/officers.ts";
+import { requireOfficer } from "../../_lib/auth.ts";
 import { ApiError, handler, sendOk } from "../../_lib/respond.ts";
-import { domainErrors, requireOfficer } from "../_session.ts";
 
 const QuerySchema = z.object({
   id: z.string().min(1),
@@ -12,8 +12,8 @@ const QuerySchema = z.object({
 });
 
 export default handler(["GET"], async (req, res) => {
-  const officerId = requireOfficer(req);
+  const { officerId } = requireOfficer(req);
   const query = QuerySchema.parse(req.query);
   if (query.id !== officerId) throw new ApiError("UNAUTHORIZED", "Solo puede ver sus propias alertas");
-  sendOk(res, { items: await domainErrors(() => listOfficerAlerts(db, officerId, query.since)) });
+  sendOk(res, { items: await listOfficerAlerts(db, officerId, query.since) });
 });

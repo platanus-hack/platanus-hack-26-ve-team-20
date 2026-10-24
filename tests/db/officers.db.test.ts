@@ -4,7 +4,7 @@ import alerts from '../../api/officers/[id]/alerts.ts'
 import location from '../../api/officers/location.ts'
 import session from '../../api/officers/session.ts'
 import { db } from '../../lib/db.ts'
-import { call, sessionCookieFrom } from './_http.ts'
+import { call, clearTestAttempts, sessionCookieFrom } from './_http.ts'
 
 // APIs del oficial contra la base real (`pnpm test:db`), llamando a los handlers con peticiones simuladas.
 const RUN = `test_ofc_${Date.now().toString(36)}`
@@ -17,6 +17,7 @@ let otherAlertId = ''
 
 
 beforeAll(async () => {
+  await clearTestAttempts(db)
   previousPass = process.env.OFFICER_PASSCODE
   process.env.OFFICER_PASSCODE = PASS
   if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) throw new Error('Falta el seed: corre `pnpm db:seed`')
@@ -41,6 +42,7 @@ afterAll(async () => {
   await db.officer.deleteMany({ where: { id: { startsWith: RUN } } })
   await db.vehicle.deleteMany({ where: { id: { startsWith: RUN } } })
   await db.person.deleteMany({ where: { id: { startsWith: RUN } } })
+  await clearTestAttempts(db)
   await db.$disconnect()
 })
 

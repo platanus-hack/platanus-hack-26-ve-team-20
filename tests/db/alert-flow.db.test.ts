@@ -7,7 +7,7 @@ import { createDispatcher } from '../../lib/alerts/dispatch.ts'
 import { db } from '../../lib/db.ts'
 import { createNotifier } from '../../lib/notify/notifier.ts'
 import { createPrismaNotificationRepo } from '../../lib/notify/prisma-repo.ts'
-import { call, sessionCookieFrom } from './_http.ts'
+import { call, clearTestAttempts, sessionCookieFrom } from './_http.ts'
 
 // E2E de HU-06 a nivel API + DB (lo que hará tests/e2e/officer-alert.spec.ts cuando existan /oficial
 // de P4, /api/sightings de P2 y Playwright de P1): el oficial inicia sesión y comparte ubicación, una
@@ -44,6 +44,7 @@ const sight = async (vehicleId: string, plate: string) =>
   (await db.sighting.create({ data: { id: `${RUN}_s${++n}`, cameraId: 'seed_cam_1', vehicleId, plateRead: plate, seenAt: new Date() } })).id
 
 beforeAll(async () => {
+  await clearTestAttempts(db)
   previousPass = process.env.OFFICER_PASSCODE
   process.env.OFFICER_PASSCODE = PASS
   if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) throw new Error('Falta el seed: corre `pnpm db:seed`')
@@ -64,6 +65,7 @@ afterAll(async () => {
   await db.violation.deleteMany({ where: { id: { startsWith: RUN } } })
   await db.vehicle.deleteMany({ where: { id: { startsWith: RUN } } })
   await db.person.deleteMany({ where: { id: { startsWith: RUN } } })
+  await clearTestAttempts(db)
   await db.$disconnect()
 })
 

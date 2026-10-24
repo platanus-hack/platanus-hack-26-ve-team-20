@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import c2p from '../../api/payments/c2p.ts'
 import { db } from '../../lib/db.ts'
-import { call } from './_http.ts'
+import { call, clearTestAttempts } from './_http.ts'
 
 // POST /api/payments/c2p a través del handler real contra la base (`pnpm test:db`). Respuestas HTTP de
 // docs/04 §5. NOTIFY_DRY_RUN=true: la confirmación por WhatsApp se registra pero no se envía.
@@ -26,6 +26,7 @@ const body = (fineToken: string, idempotencyKey: string, c2pKey = '123456') => (
 })
 
 beforeAll(async () => {
+  await clearTestAttempts(db)
   previousDryRun = process.env.NOTIFY_DRY_RUN
   process.env.NOTIFY_DRY_RUN = 'true'
   if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) throw new Error('Falta el seed: corre `pnpm db:seed`')
@@ -41,6 +42,7 @@ afterAll(async () => {
   await db.payment.deleteMany({ where: { fineId: fines } })
   await db.fine.deleteMany({ where: { id: fines } })
   await db.violation.deleteMany({ where: { id: { startsWith: RUN } } })
+  await clearTestAttempts(db)
   await db.$disconnect()
 })
 

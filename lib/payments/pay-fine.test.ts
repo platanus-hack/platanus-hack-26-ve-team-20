@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { C2PRequestSchema, type ChargeC2P, type FineStatus } from '../contracts/index.ts'
 import { createC2PSimulator } from './c2p.ts'
 import { payFine, type NewPayment, type PaymentStore, type StoredPayment } from './pay-fine.ts'
-import { createRateLimiter } from './rate-limit.ts'
 
 const ACTOR = { type: 'CITIZEN' as const, ip: '203.0.113.7' }
 
@@ -143,14 +142,5 @@ describe('payFine (docs/04 §5)', () => {
     const r = await payFine(request({ c2pKey: key }), ACTOR, s.deps)
     expect(JSON.stringify(r)).not.toContain(key)
     expect(JSON.stringify(s.payments)).not.toContain(key)
-  })
-})
-
-describe('createRateLimiter', () => {
-  it('permite hasta el límite dentro de la ventana y libera después', () => {
-    const limiter = createRateLimiter({ limit: 2, windowMs: 1000 })
-    expect([limiter.hit('ip', 0), limiter.hit('ip', 10), limiter.hit('ip', 20)]).toEqual([true, true, false])
-    expect(limiter.hit('otra-ip', 20)).toBe(true)
-    expect(limiter.hit('ip', 1001)).toBe(true)
   })
 })

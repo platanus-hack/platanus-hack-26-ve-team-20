@@ -1,30 +1,36 @@
 // POST /api/officers/session { passcode, badge } → cookie de oficial (docs/04 §6). DELETE cierra la sesión.
-// Mismo 401 para placa o passcode incorrectos, para no revelar qué placas existen.
+// La cookie la firma api/_lib/auth.ts (P1, SESSION_SECRET). Mismo 401 para placa o código incorrectos,
+// para no revelar qué placas existen; los intentos fallidos se registran y se limitan por IP.
 import { OfficerSessionRequestSchema } from "../../lib/contracts/index.ts";
-import { audit } from "../../lib/domain/audit.ts";
+import { clearCookie } from "../../lib/auth/session.ts";
 import { db } from "../../lib/db.ts";
+import { audit } from "../../lib/domain/audit.ts";
+import { assertUnderLimit } from "../../lib/domain/rate-limit.ts";
 import { findOfficerByBadge } from "../../lib/alerts/officers.ts";
-import { clearSessionCookie, createSessionToken, passcodeMatches, sessionCookie } from "../../lib/alerts/officer-session.ts";
-import { createRateLimiter } from "../../lib/payments/rate-limit.ts";
-import { handler, sendError, sendOk } from "../_lib/respond.ts";
-import { clientIp, isHttps, officerPasscode } from "./_session.ts";
+import { assertSameOrigin, getClientIp, issueOfficerSession, safeEqual } from "../_lib/auth.ts";
+import { ApiError, handler, sendOk } from "../_lib/respond.ts";
 
-const limiter = createRateLimiter({ limit: 10, windowMs: 10 * 60_000 });
+const FAILED = "OFFICER_LOGIN_FAILED";
 
 export default handler(["POST", "DELETE"], async (req, res) => {
+  assertSameOrigin(req);
   if (req.method === "DELETE") {
-    res.setHeader("Set-Cookie", clearSessionCookie({ secure: isHttps(req) }));
+    res.setHeader("Set-Cookie", clearCookie("officer"));
     return sendOk(res, { loggedOut: true });
   }
 
-  const ip = clientIp(req);
-  if (!limiter.hit(ip)) return sendError(res, "RATE_LIMITED", "Demasiados intentos. Espere unos minutos.");
+  const { passcode, badge } = OfficerSessionRequestSchema.parse(req.body);
+  const ip = getClientIp(req);
+  await assertUnderLimit(db, { action: FAILED, ip, max: 10, windowMs: 10 * 60_000 });
 
-  const body = OfficerSessionRequestSchema.parse(req.body);
-  const officer = passcodeMatches(body.passcode, officerPasscode()) ? await findOfficerByBadge(db, body.badge.trim().toUpperCase()) : null;
-  if (!officer) return sendError(res, "UNAUTHORIZED", "Placa de oficial o código incorrectos");
+  const expected = process.env.OFFICER_PASSCODE ?? "";
+  const officer = expected && safeEqual(passcode, expected) ? await findOfficerByBadge(db, badge.trim().toUpperCase()) : null;
+  if (!officer) {
+    await audit(db, { actor: { type: "OFFICER", ip }, action: FAILED, entity: "Officer" });
+    throw new ApiError("UNAUTHORIZED", "Placa de oficial o código incorrectos");
+  }
 
   await audit(db, { actor: { type: "OFFICER", id: officer.id, ip }, action: "OFFICER_LOGIN", entity: "Officer", entityId: officer.id });
-  res.setHeader("Set-Cookie", sessionCookie(createSessionToken(officer.id, officerPasscode()), { secure: isHttps(req) }));
+  issueOfficerSession(res, officer.id);
   sendOk(res, officer);
 });

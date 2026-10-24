@@ -3,13 +3,13 @@
 import { z } from "zod";
 import { db } from "../../../lib/db.ts";
 import { acknowledgeAlert } from "../../../lib/alerts/officers.ts";
+import { requireOfficer } from "../../_lib/auth.ts";
 import { handler, sendOk } from "../../_lib/respond.ts";
-import { domainErrors, requireOfficer } from "../../officers/_session.ts";
 
 const QuerySchema = z.object({ id: z.string().min(1) });
 
 export default handler(["POST"], async (req, res) => {
-  const officerId = requireOfficer(req);
+  const { officerId } = requireOfficer(req);
   const { id } = QuerySchema.parse(req.query);
-  sendOk(res, await domainErrors(() => acknowledgeAlert(db, officerId, id)));
+  sendOk(res, await acknowledgeAlert(db, officerId, id));
 });
