@@ -72,7 +72,7 @@
     </div>
     <div class="controles">
       <label>Lente <select id="lente"></select></label>
-      <label>Zoom <input id="zoom" type="range" min="1" max="4" step="0.1" value="1"> <span id="zoomValor">1.0×</span></label>
+      <label>Zoom <input id="zoom" type="range" min="1" max="10" step="0.1" value="1"> <span id="zoomValor">1.0×</span></label>
       <label>Línea de pare <input id="linea" type="range" min="0.1" max="0.9" step="0.02" value="0.6"></label>
       <label><input id="haciaCamara" type="checkbox"> los carros vienen hacia la cámara</label>
     </div>
@@ -131,16 +131,24 @@ async function listarLentes() {
   const camaras = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
   sel.innerHTML = '';
   camaras.forEach((d, i) => {
-    const o = document.createElement('option');
-    o.value = d.deviceId; o.textContent = d.label || 'Cámara ' + (i + 1); o.selected = d.deviceId === actual;
+    const o = document.createElement('option'), tele = esTele(d.label);
+    o.value = d.deviceId; o.textContent = (d.label || 'Cámara ' + (i + 1)) + (tele ? ' · zoom óptico' : ''); o.selected = d.deviceId === actual;
     sel.append(o);
   });
+  return camaras;
 }
+// iOS los nombra "Back Telephoto Camera" / "Cámara trasera con teleobjetivo".
+const esTele = (label) => /tele/i.test(label || '');
+const lenteActual = () => $('lente').selectedOptions[0]?.textContent || 'cámara';
 $('lente').onchange = async () => { try { await abrirCamara($('lente').value); } catch (e) { $('estadoConexion').textContent = 'No se pudo cambiar de lente: ' + e.message; } };
 
 $('entrar').onclick = async () => {
   const { clave, camara } = datos();
-  try { await abrirCamara(); await listarLentes(); }
+  try {
+    await abrirCamara();
+    const tele = (await listarLentes()).find((d) => esTele(d.label));
+    if (tele && stream?.getVideoTracks()[0]?.getSettings().deviceId !== tele.deviceId) { await abrirCamara(tele.deviceId); await listarLentes(); }
+  }
   catch (e) { $('vacio').textContent = 'No se pudo abrir la cámara: ' + e.message; return; }
   $('vacio').hidden = true; conectar(clave, camara);
 };
@@ -181,7 +189,7 @@ function conectar(clave, camara) {
       respuestas++; const ahora = performance.now();
       if (ahora - ultimo > 1000) {
         const v = $('video');
-        $('fps').textContent = `detección ${(respuestas * 1000 / (ahora - ultimo)).toFixed(1)} cuadros/s · cámara ${v.videoWidth}×${v.videoHeight}`;
+        $('fps').textContent = `detección ${(respuestas * 1000 / (ahora - ultimo)).toFixed(1)} cuadros/s · ${lenteActual()} ${v.videoWidth}×${v.videoHeight}`;
         respuestas = 0; ultimo = ahora;
       }
     }
@@ -300,13 +308,15 @@ async function aplicarZoom() {
   const z = Number($('zoom').value), v = $('video');
   $('zoomValor').textContent = z.toFixed(1) + '×';
   const pista = v.srcObject?.getVideoTracks?.()[0], cap = pista?.getCapabilities?.() || {};
-  zoomDigital = z;
-  if (cap.zoom && z > 1) {
+  let optico = 1;
+  if (cap.zoom) {
     try {
-      await pista.applyConstraints({ advanced: [{ zoom: Math.min(cap.zoom.max, Math.max(cap.zoom.min, z)) }] });
-      zoomDigital = 1;
-    } catch {}
+      optico = Math.min(cap.zoom.max, Math.max(cap.zoom.min, z));
+      await pista.applyConstraints({ advanced: [{ zoom: optico }] });
+    } catch { optico = 1; }
   }
+  zoomDigital = z / optico;  // lo que la cámara no alcanza se completa recortando
+  $('zoomValor').textContent = z.toFixed(1) + '× ' + (optico > 1 && zoomDigital > 1.05 ? `(óptico ${optico.toFixed(1)}× + digital)` : optico > 1 ? '(óptico)' : z > 1 ? '(digital)' : '');
   v.style.transform = zoomDigital > 1 ? `scale(${zoomDigital})` : '';
   dibujar();
 }
