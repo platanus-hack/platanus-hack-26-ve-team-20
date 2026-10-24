@@ -25,6 +25,8 @@ EVIDENCE_DIR = Path(os.getenv("ML_EVIDENCE_DIR", ML_DIR / "evidencias"))
 # Sin vehiculos.pt: YOLO genérico de COCO (se descarga solo). Sin placas.pt la placa sale "NO LEIDA".
 USAR_COCO = os.getenv("ML_USAR_COCO", "false") == "true"
 MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "vc-0.1") + ("-coco" if USAR_COCO else "")
+# Apagada por defecto: en video real dio solo falsas alarmas (un vehículo de cerca o desde arriba). ML_CHOQUES=true la activa.
+CHOQUES_ACTIVOS = os.getenv("ML_CHOQUES", "false") == "true"
 # Umbral sugerido por el notebook de choques (INTEGRACION_CAPA_CHOQUES.md §8); calibrar en el sitio de la demo.
 CONF_CHOQUES = float(os.getenv("ML_CONF_CHOQUES", "0.3"))
 MAX_CLIP_BYTES = 100 * 1024 * 1024
@@ -66,7 +68,7 @@ def crear_motor(**kwargs: Any) -> Any:
         lector_placas=lector,
         pesos_senales=str(senales) if senales.exists() and not en_mps else None,
         # choques.pt corre en el hilo principal del motor: sirve también con mps.
-        pesos_choques=str(choques) if choques.exists() else None,
+        pesos_choques=str(choques) if CHOQUES_ACTIVOS and choques.exists() else None,
         conf_choques=CONF_CHOQUES,
         usar_coco=USAR_COCO,
         device=device,
