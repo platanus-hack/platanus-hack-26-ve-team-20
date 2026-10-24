@@ -17,6 +17,7 @@ import authLogout from "./_p1/auth-logout.ts";
 import authMe from "./_p1/auth-me.ts";
 import citizenAppeal from "./_p1/citizen-appeal.ts";
 import citizenFine from "./_p1/citizen-fine.ts";
+import citizenFineResend from "./_p1/citizen-fine-resend.ts";
 import citizenFines from "./_p1/citizen-fines.ts";
 import citizenLogin from "./_p1/citizen-login.ts";
 import citizenLogout from "./_p1/citizen-logout.ts";
@@ -53,6 +54,7 @@ export const P1_ROUTES: Record<string, Handler> = {
   "citizen-password": citizenPassword, // POST /api/citizen/password
   "citizen-fines": citizenFines, // GET  /api/citizen/fines
   "citizen-fine": citizenFine, // GET  /api/citizen/fines/:id
+  "citizen-fine-resend": citizenFineResend, // POST /api/citizen/fines/:id/resend
   "citizen-appeal": citizenAppeal, // POST /api/citizen/fines/:id/appeal
   "citizen-vehicles": citizenVehicles, // GET  /api/citizen/vehicles
   "officer-fines": officerFines, // GET  /api/officer/fines

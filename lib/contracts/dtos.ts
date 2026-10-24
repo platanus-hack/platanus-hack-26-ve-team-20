@@ -92,6 +92,8 @@ export interface OfficerFineDetailDTO extends OfficerFineDTO {
   appealedAt: string | null;
   audit: OfficerAuditEntryDTO[];
 }
+/** Resultado de reenviarse a uno mismo el WhatsApp de una multa propia. */
+export interface CitizenResendDTO { status: "SENT" | "DRY_RUN" | "FAILED"; telefono: string }
 export interface OfficerFinePageDTO { items: OfficerFineDTO[]; nextCursor: string | null }
 /** Resultado de reenviar la notificación de una multa al titular. */
 export interface OfficerResendDTO {

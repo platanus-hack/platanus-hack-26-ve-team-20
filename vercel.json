@@ -83,6 +83,10 @@
       "destination": "/api/p1?route=citizen-fines"
     },
     {
+      "source": "/api/citizen/fines/:id/resend",
+      "destination": "/api/p1?route=citizen-fine-resend&id=:id"
+    },
+    {
       "source": "/api/citizen/fines/:id/appeal",
       "destination": "/api/p1?route=citizen-appeal&id=:id"
     },
