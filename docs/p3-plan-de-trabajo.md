@@ -93,14 +93,14 @@ La respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Un err
 
 ## 5. Pasos
 
-**Paso actual: 2.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
+**Paso actual: 3.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
 
 Cada paso es **un commit** en la rama `Edwjon` (§6). Columna "Necesita": `—` = se puede hacer ya; **E** = el esqueleto de P1 ya está en `main` y traído a esta rama (Vite, `package.json`, Vitest, Prisma, `lib/db.ts`, `lib/contracts`, `lib/domain`); **S** = además el seed con oficiales y teléfonos demo; **Prod** = hay deploy en Vercel.
 
 | # | Paso | Archivos | Necesita | Hecho cuando | Commit |
 |---|---|---|---|---|---|
 | [x] 1 | Documentar el cambio de Kapso a Meta en el resto del repo | `AGENTS.md`, `CLAUDE.md`, `docs/00`–`09`, `README.md`, `project-description.md`, `platanus-hack-project.jsonc`, `.env.example` | — | `grep -ri kapso` solo encuentra la nota histórica de este plan; `.env.example` trae las `WHATSAPP_*` de §3.3 | `docs: switch WhatsApp from Kapso to Meta Cloud API` |
-| [ ] 2 | Montar WhatsApp en Meta (manual): app, número de prueba, destinatarios verificados, token permanente, clave secreta y verify token (§3.1) | sin código; solo la casilla de este plan | — | `hello_world` llega a los teléfonos de demo; el token responde contra Meta; las variables están en `.env.local` (las de Vercel van en el paso 10) | `docs(p3): mark Meta setup done` |
+| [x] 2 | Montar WhatsApp en Meta (manual): app, número de prueba, destinatarios verificados, token permanente, clave secreta y verify token (§3.1) | sin código; solo la casilla de este plan | — | `hello_world` llega a los teléfonos de demo; el token responde contra Meta; las variables están en `.env.local` (las de Vercel van en el paso 10) | `docs(p3): mark Meta setup done` |
 | [ ] 3 | Mocks de P3 con las firmas de `lib/contracts` | `lib/notify/mock.ts`, `lib/alerts/mock.ts`, `lib/payments/mock.ts` | E | `pnpm typecheck` verde; P1 los importa con `USE_MOCKS=true` | `feat(notify): add P3 mocks` |
 | [ ] 4 | Textos de los 3 mensajes (`04` §7), fechas en Caracas, placa y montos formateados | `lib/notify/templates.ts` + test | E | test de los 3 textos en verde | `feat(notify): add message templates` |
 | [ ] 5 | Cliente de WhatsApp Cloud API: mensajes de texto, `NOTIFY_DRY_RUN`, errores de Meta tipados (incluido ventana cerrada) | `lib/notify/whatsapp.ts` + test con `fetch` simulado | E | test verde; un script local envía un mensaje real al teléfono de demo | `feat(notify): add WhatsApp Cloud API client` |
