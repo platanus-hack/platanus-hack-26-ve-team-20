@@ -1,7 +1,5 @@
-import { Stack } from 'expo-router';
-
-import { color } from '@/theme';
+import { StackDeRol } from '@/lib/guardia';
 
 export default function CiudadanoLayout() {
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.fondo } }} />;
+  return <StackDeRol modo="ciudadano" protegidas={['ciudadano/(tabs)', 'ciudadano/multa/[id]', 'ciudadano/pago', 'ciudadano/comprobante']} />;
 }
