@@ -14,6 +14,7 @@ from typing import Any
 
 import cv2
 
+from .ocr_placas import OCR, con_ocr_de_placas
 from .realce import con_realce
 from .schemas import (
     Box, Calibracion, ClipInfo, CruceLinea, Incidente, KeyFrame, Placa, PredictRequest, PredictResponse, Track,
@@ -71,8 +72,16 @@ def crear_motor(**kwargs: Any) -> Any:
     plantillas = {**PLANTILLAS_VE, "antigua": "LLLDDL"}
     # El lector se arma aquí (no en el motor), así que su umbral se le pasa directo.
     conf_placas = kwargs.pop("conf_placas", 0.30)
-    lector = (LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas,
-                                       conf=conf_placas) if placas.exists() else None)
+    lector = None
+    if placas.exists() and OCR == "fast-plate-ocr":
+        from ultralytics import YOLO
+
+        # Sin EasyOCR: placas.pt encuentra la placa y fast-plate-ocr la lee (app/ocr_placas.py).
+        lector = con_ocr_de_placas(LectorPlacas(YOLO(str(placas)), None, conf=conf_placas,
+                                                device="cpu" if en_mps else device, plantillas=plantillas))
+    elif placas.exists():
+        lector = LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas,
+                                          conf=conf_placas)
     if lector is not None and REALCE:
         lector = con_realce(lector)  # placas borrosas: el OCR lee también la versión realzada
     return MotorInfracciones(
