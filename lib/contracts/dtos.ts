@@ -133,6 +133,8 @@ export interface CitizenFineDTO {
   paymentReference: string | null;
   voidReason: string | null;
   appealedAt: string | null;
+  /** Fotos de la infracción (escena, vehículo, placa) para mostrarlas en el detalle. */
+  evidence: Array<{ kind: EvidenceKind; url: string; capturedAt: string }>;
 }
 
 export interface CitizenVehicleDTO { plate: string; brand: string; model: string; color: string; year: number | null }
