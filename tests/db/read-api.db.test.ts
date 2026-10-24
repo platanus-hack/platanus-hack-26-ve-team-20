@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import fineHandler from '../../api/fines/[token].ts'
-import violationsHandler from '../../api/violations/index.ts'
+import violationsHandler from '../../api/_p1/violations-list.ts'
 import { hashPassword } from '../../lib/auth/password.ts'
 import { COOKIE_NAMES, passwordFingerprint, signSession } from '../../lib/auth/session.ts'
 import type { ViolationListDTO, FinePublicDTO } from '../../lib/contracts/index.ts'

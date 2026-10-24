@@ -164,3 +164,16 @@ Orden de ejecución: F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F10
 3. **Linter**: `oxlint` (viene con Vite); `docs/09` ya no menciona ESLint.
 4. **Componentes**: `src/components/**` (no en la raíz); actualizado en `AGENTS.md`, `docs/05` y `docs/09`.
 5. **Orden**: F10 (lectura) antes que F9 (auth).
+
+## F15 — Cuenta del ciudadano (cédula + contraseña)
+**Decisión (del equipo)**: el ciudadano entra con su cédula y una contraseña que crea al registrarse (la pantalla `/registro` del front ya lo pedía).
+**Alcance**: modelos `CitizenAccount` y `CitizenRegistration` (+ migración con RLS); `lib/domain/citizen.ts` (registro, reenvío, verificación, login, cambio de contraseña) y `citizen-data.ts` (perfil, multas, vehículos, apelación); sesión `vc_citizen` de 30 min con renovación; 11 rutas `/api/citizen/*` dentro del router `api/p1.ts`; consolidación de las rutas de P1 en **una** función de Vercel (11 → 6) para dejar sitio a P2.
+**Criterios de aceptación**
+- [x] Registro con código por WhatsApp al teléfono que el sistema tiene para la cédula; el servidor solo devuelve el teléfono enmascarado.
+- [x] El código no se guarda en claro; vence a los 10 min; 5 intentos; 30 s entre envíos; límites por IP y por cédula.
+- [x] Login con un único error para cédula desconocida, contraseña errónea y cuenta desactivada; bloqueo tras 5 fallos por cédula / 10 por IP.
+- [x] Sesión de 30 min renovable; cambiar la contraseña o desactivar la cuenta cierra las sesiones abiertas; las cookies de admin y oficial no valen.
+- [x] Un ciudadano solo ve y apela sus multas (una ajena es 404, igual que una inexistente).
+- [x] Ninguna respuesta filtra hashes de contraseña ni HMAC de códigos; los POST rechazan un `Origin` ajeno.
+- [x] Probado empaquetado como función de Vercel contra la base real.
+**Commit**: `feat(auth): citizen accounts with cedula and password`

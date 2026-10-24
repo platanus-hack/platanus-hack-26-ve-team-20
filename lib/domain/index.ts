@@ -6,6 +6,9 @@ import { db } from "../db.ts";
 import { dispatchAlert } from "../alerts/index.ts";
 import { notifyFineIssued } from "../notify/index.ts";
 import type { MarkFinePaid, RegisterDetection, RegisterSighting } from "../contracts/index.ts";
+import { normalizeCedula } from "../contracts/index.ts";
+import { createCitizenService } from "./citizen.ts";
+import { createCodeSender } from "./citizen-sender.ts";
 import { createMarkFinePaid } from "./payments.ts";
 import { createReviewViolation, type ReviewViolation } from "./review.ts";
 import { createRegisterSighting } from "./sightings.ts";
@@ -20,6 +23,20 @@ export const registerDetection: RegisterDetection = createRegisterDetection({
   dispatchAlert,
 });
 export const reviewViolation: ReviewViolation = createReviewViolation({ db, notifyFineIssued });
+
+/**
+ * Cuenta del ciudadano. `CITIZEN_DEMO_CODE` + `DEMO_CEDULA` (ambas, solo para demos) hacen válido ese código para
+ * esa cédula sin enviar nada por WhatsApp; sin ellas la verificación exige el código real.
+ */
+export const citizen = createCitizenService({
+  db,
+  sendCode: createCodeSender(),
+  demo: () => {
+    const code = process.env["CITIZEN_DEMO_CODE"] ?? "";
+    const cedula = normalizeCedula(process.env["DEMO_CEDULA"] ?? "");
+    return /^\d{6}$/.test(code) && /^[VE]\d{5,9}$/.test(cedula) ? { cedula, code } : undefined;
+  },
+});
 
 export { audit, SYSTEM_ACTOR, type Actor } from "./audit.ts";
 export { DomainError, InvalidTransitionError, NotFoundError } from "./errors.ts";

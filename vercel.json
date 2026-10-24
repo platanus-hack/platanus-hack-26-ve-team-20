@@ -2,11 +2,97 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/payments/c2p", "destination": "/api/p3?route=payments-c2p" },
-    { "source": "/api/officers/session", "destination": "/api/p3?route=officer-session" },
-    { "source": "/api/officers/location", "destination": "/api/p3?route=officer-location" },
-    { "source": "/api/officers/:id/alerts", "destination": "/api/p3?route=officer-alerts&id=:id" },
-    { "source": "/api/alerts/:id/ack", "destination": "/api/p3?route=alert-ack&id=:id" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/payments/c2p",
+      "destination": "/api/p3?route=payments-c2p"
+    },
+    {
+      "source": "/api/officers/session",
+      "destination": "/api/p3?route=officer-session"
+    },
+    {
+      "source": "/api/officers/location",
+      "destination": "/api/p3?route=officer-location"
+    },
+    {
+      "source": "/api/officers/:id/alerts",
+      "destination": "/api/p3?route=officer-alerts&id=:id"
+    },
+    {
+      "source": "/api/alerts/:id/ack",
+      "destination": "/api/p3?route=alert-ack&id=:id"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/p1?route=auth-login"
+    },
+    {
+      "source": "/api/auth/logout",
+      "destination": "/api/p1?route=auth-logout"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "/api/p1?route=auth-me"
+    },
+    {
+      "source": "/api/violations",
+      "destination": "/api/p1?route=violations-list"
+    },
+    {
+      "source": "/api/violations/:id/review",
+      "destination": "/api/p1?route=violation-review&id=:id"
+    },
+    {
+      "source": "/api/violations/:id",
+      "destination": "/api/p1?route=violation-detail&id=:id"
+    },
+    {
+      "source": "/api/citizen/register/verify",
+      "destination": "/api/p1?route=citizen-verify"
+    },
+    {
+      "source": "/api/citizen/register/resend",
+      "destination": "/api/p1?route=citizen-resend"
+    },
+    {
+      "source": "/api/citizen/register",
+      "destination": "/api/p1?route=citizen-register"
+    },
+    {
+      "source": "/api/citizen/login",
+      "destination": "/api/p1?route=citizen-login"
+    },
+    {
+      "source": "/api/citizen/logout",
+      "destination": "/api/p1?route=citizen-logout"
+    },
+    {
+      "source": "/api/citizen/me",
+      "destination": "/api/p1?route=citizen-me"
+    },
+    {
+      "source": "/api/citizen/password",
+      "destination": "/api/p1?route=citizen-password"
+    },
+    {
+      "source": "/api/citizen/vehicles",
+      "destination": "/api/p1?route=citizen-vehicles"
+    },
+    {
+      "source": "/api/citizen/fines",
+      "destination": "/api/p1?route=citizen-fines"
+    },
+    {
+      "source": "/api/citizen/fines/:id/appeal",
+      "destination": "/api/p1?route=citizen-appeal&id=:id"
+    },
+    {
+      "source": "/api/citizen/fines/:id",
+      "destination": "/api/p1?route=citizen-fine&id=:id"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

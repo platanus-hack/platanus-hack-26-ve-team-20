@@ -123,6 +123,8 @@ model Person {
   email     String?
   vehicles  Vehicle[]
   createdAt DateTime @default(now())
+  citizenAccount      CitizenAccount?
+  citizenRegistration CitizenRegistration?
 }
 
 model Vehicle {
@@ -301,4 +303,32 @@ model AdminUser {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+}
+
+// Cuenta del ciudadano (cédula + contraseña). Una cuenta por titular (Person). La contraseña se guarda con
+// hash scrypt (lib/auth/password.ts). Se crea al verificar el código de WhatsApp enviado al teléfono que
+// el sistema ya tiene para esa cédula (docs/04 §0c).
+model CitizenAccount {
+  id           String    @id @default(cuid())
+  personId     String    @unique
+  person       Person    @relation(fields: [personId], references: [id])
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+// Registro pendiente de verificar: la contraseña elegida y el código (solo su HMAC) hasta que el
+// ciudadano lo confirma. Una fila por titular; al confirmarse se borra.
+model CitizenRegistration {
+  id           String   @id @default(cuid())
+  personId     String   @unique
+  person       Person   @relation(fields: [personId], references: [id])
+  passwordHash String
+  email        String?
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  lastSentAt   DateTime
+  createdAt    DateTime @default(now())
 }

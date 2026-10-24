@@ -4,11 +4,14 @@ import type { ErrorCode, ViolationStatus } from "../contracts/index.ts";
 
 export class DomainError extends Error {
   readonly code: ErrorCode;
+  /** Causa legible por máquina dentro de un mismo `code` (p. ej. YA_REGISTRADA, CODIGO_VENCIDO). */
+  readonly reason: string | undefined;
 
-  constructor(code: ErrorCode, message: string) {
+  constructor(code: ErrorCode, message: string, reason?: string) {
     super(message);
     this.name = new.target.name;
     this.code = code;
+    this.reason = reason;
   }
 }
 

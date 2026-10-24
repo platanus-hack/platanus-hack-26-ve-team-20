@@ -5,20 +5,22 @@
 // huella del hash de la contraseña (`ph`), así que cambiar la contraseña o desactivar la cuenta la invalida.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-export type SessionRole = "admin" | "officer";
+export type SessionRole = "admin" | "officer" | "citizen";
 
 export interface SessionPayload {
   r: SessionRole;
   /** Sujeto: id del AdminUser o del Officer. */
   s: string;
-  /** Huella de la contraseña (solo admin). */
+  /** Huella de la contraseña (admin y ciudadano). */
   ph?: string;
   iat: number;
   exp: number;
 }
 
-export const COOKIE_NAMES: Record<SessionRole, string> = { admin: "vc_admin", officer: "vc_officer" };
-export const SESSION_TTL_S: Record<SessionRole, number> = { admin: 8 * 3600, officer: 12 * 3600 };
+// El ciudadano tiene sesión corta (30 min) que se renueva con cada llamada autenticada (sliding), como en la
+// cuenta del front; admin y oficial duran lo mismo desde que entran.
+export const COOKIE_NAMES: Record<SessionRole, string> = { admin: "vc_admin", officer: "vc_officer", citizen: "vc_citizen" };
+export const SESSION_TTL_S: Record<SessionRole, number> = { admin: 8 * 3600, officer: 12 * 3600, citizen: 30 * 60 };
 export const MIN_SECRET_LENGTH = 32;
 
 function secret(): string | null {

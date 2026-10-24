@@ -12,9 +12,9 @@ export const MIN_PASSWORD_LENGTH = 10;
 
 const maxmem = (N: number, r: number) => 128 * N * r * 2;
 
-export async function hashPassword(password: string): Promise<string> {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`);
+export async function hashPassword(password: string, minLength: number = MIN_PASSWORD_LENGTH): Promise<string> {
+  if (password.length < minLength) {
+    throw new Error(`La contraseña debe tener al menos ${minLength} caracteres`);
   }
   const salt = randomBytes(16);
   const { N, r, p, keylen } = PARAMS;
