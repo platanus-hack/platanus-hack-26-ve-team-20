@@ -8,9 +8,12 @@ import { Pantalla } from '@/components/extra';
 import { Boton, Campo, Enlace, Pressy, T } from '@/components/ui';
 import { OFICIAL, entrarConGoogle, entrarOficial } from '@/demo/policia';
 import { guardarSesion } from '@/lib/dispositivo';
-import { color, radio, tipo } from '@/theme';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { radio, tipo } from '@/theme';
 
 export default function LoginPolicia() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const [correo, setCorreo] = useState(OFICIAL.correo);
   const [clave, setClave] = useState('demo1234');
   const [error, setError] = useState(false);
@@ -52,18 +55,18 @@ export default function LoginPolicia() {
             <Boton titulo="Entrar" cargando={cargando} onPress={entrar} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={s.linea} />
-              <T style={[tipo.caption, { color: color.texto2 }]}>o</T>
+              <T style={[tipo.caption, { color: c.texto2 }]}>o</T>
               <View style={s.linea} />
             </View>
             {/* Botón según la guía de marca de Google: fondo blanco, borde #747775, texto #1F1F1F. El logotipo oficial va desde el kit de Google. */}
             <Pressy accessibilityRole="button" accessibilityLabel="Continuar con Google" onPress={conGoogle} style={s.google}>
               <View style={s.logo}>
-                <T style={{ fontSize: 8, lineHeight: 18, color: color.texto2, fontFamily: tipo.caption.fontFamily }}>logo</T>
+                <T style={{ fontSize: 8, lineHeight: 18, color: c.texto2, fontFamily: tipo.caption.fontFamily }}>logo</T>
               </View>
               <T style={{ fontFamily: 'Geist_500Medium', fontSize: 15, color: '#1F1F1F' }}>Continuar con Google</T>
             </Pressy>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <T style={[tipo.pequeno, { color: color.texto2 }]}>¿Primera vez?</T>
+              <T style={[tipo.pequeno, { color: c.texto2 }]}>¿Primera vez?</T>
               <Enlace titulo="Registrarse" onPress={() => router.push('/policia/registro')} />
             </View>
           </>
@@ -74,6 +77,8 @@ export default function LoginPolicia() {
 }
 
 function Conectando() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const rm = useReducedMotion();
   const p = useSharedValue(0);
   useEffect(() => {
@@ -83,19 +88,20 @@ function Conectando() {
   return (
     <View accessibilityLiveRegion="polite" style={{ alignItems: 'center', gap: 16, paddingVertical: 48 }}>
       <View style={[s.logo, { width: 56, height: 56, borderRadius: 12 }]}>
-        <T style={{ fontSize: 11, color: color.texto2, fontFamily: tipo.caption.fontFamily }}>logo</T>
+        <T style={{ fontSize: 11, color: c.texto2, fontFamily: tipo.caption.fontFamily }}>logo</T>
       </View>
       <T style={tipo.cuerpoFuerte}>Conectando con su cuenta de Google…</T>
       <View style={s.pista}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.tinta, borderRadius: 999, transformOrigin: 'left' }, barra]} />
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: c.texto, borderRadius: 999, transformOrigin: 'left' }, barra]} />
       </View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  linea: { flex: 1, height: 1, backgroundColor: color.borde },
+const estilos = ({ c }: Tema) =>
+  StyleSheet.create({
+  linea: { flex: 1, height: 1, backgroundColor: c.borde },
   google: { height: 48, borderWidth: 1, borderColor: '#747775', borderRadius: radio.control, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   logo: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderStyle: 'dashed', borderColor: '#747775', alignItems: 'center', justifyContent: 'center' },
-  pista: { width: 200, height: 6, borderRadius: 999, backgroundColor: color.suave, overflow: 'hidden' },
+  pista: { width: 200, height: 6, borderRadius: 999, backgroundColor: c.suave, overflow: 'hidden' },
 });

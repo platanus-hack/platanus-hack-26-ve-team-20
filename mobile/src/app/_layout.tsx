@@ -10,7 +10,8 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { leerSesion } from '@/lib/dispositivo';
-import { color } from '@/theme';
+import { TemaProvider, leerModoTema, useTema } from '@/lib/tema';
+import type { ModoTema } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -24,27 +25,36 @@ export default function RootLayout() {
     JetBrainsMono_700Bold,
   });
 
-  // La guardia de rutas (lib/guardia) necesita la sesión leída antes de montar los grupos.
-  const [sesionLista, setSesionLista] = useState(false);
+  // La guardia de rutas (lib/guardia) necesita la sesión leída antes de montar los grupos; el tema, antes del primer pintado.
+  const [modoTema, setModoTema] = useState<ModoTema | null>(null);
   useEffect(() => {
-    leerSesion().catch(() => null).finally(() => setSesionLista(true));
+    Promise.all([leerSesion().catch(() => null), leerModoTema()]).then(([, modo]) => setModoTema(modo));
   }, []);
 
   useEffect(() => {
-    if ((listas || error) && sesionLista) SplashScreen.hideAsync().catch(() => {});
-  }, [listas, error, sesionLista]);
+    if ((listas || error) && modoTema) SplashScreen.hideAsync().catch(() => {});
+  }, [listas, error, modoTema]);
 
   useEffect(() => {
     // Ciudadano y policía van en vertical; la pantalla de cámara fija su propia orientación.
     if (Platform.OS !== 'web') ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
   }, []);
 
-  if ((!listas && !error) || !sesionLista) return null;
+  if ((!listas && !error) || !modoTema) return null;
 
   return (
+    <TemaProvider inicial={modoTema}>
+      <Raiz />
+    </TemaProvider>
+  );
+}
+
+function Raiz() {
+  const { c, esquema } = useTema();
+  return (
     <>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.fondo } }}>
+      <StatusBar style={esquema === 'oscuro' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.fondo } }}>
         <Stack.Screen name="camara" options={{ contentStyle: { backgroundColor: '#0A0F18' }, animation: 'fade' }} />
       </Stack>
     </>

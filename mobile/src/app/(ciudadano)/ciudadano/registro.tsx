@@ -7,9 +7,11 @@ import { CabeceraTinta, Pasos, Titulo } from '@/components/auth';
 import { Pantalla } from '@/components/extra';
 import { Aviso, Boton, Campo, Enlace, SW, T, TipoCedula } from '@/components/ui';
 import { enviarCodigo, type ErrorRegistro } from '@/demo/ciudadano';
-import { color, tipo } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { tipo } from '@/theme';
 
 export default function Registro() {
+  const { c } = useTema();
   const [tipoCed, setTipoCed] = useState<'V' | 'E'>('V');
   const [ced, setCed] = useState('99000001');
   const [tel, setTel] = useState('04120000001');
@@ -41,9 +43,9 @@ export default function Registro() {
         {error === 'yaRegistrada' ? (
           <Aviso tono="rojo">
             <View style={{ gap: 4 }}>
-              <T style={[tipo.pequenoFuerte, { color: color.rojoTexto }]}>Esta cédula ya tiene una cuenta.</T>
-              <T style={[tipo.pequeno, { color: color.rojoTexto }]}>Entre con su contraseña o recupérela desde «¿Olvidó su contraseña?».</T>
-              <Enlace titulo="Ir a Entrar" colorTexto={color.rojoTexto} onPress={irAEntrar} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
+              <T style={[tipo.pequenoFuerte, { color: c.rojoTexto }]}>Esta cédula ya tiene una cuenta.</T>
+              <T style={[tipo.pequeno, { color: c.rojoTexto }]}>Entre con su contraseña o recupérela desde «¿Olvidó su contraseña?».</T>
+              <Enlace titulo="Ir a Entrar" colorTexto={c.rojoTexto} onPress={irAEntrar} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
             </View>
           </Aviso>
         ) : null}
@@ -68,7 +70,7 @@ export default function Registro() {
         <Campo
           etiqueta={
             <T style={tipo.pequenoFuerte}>
-              Correo <T style={[tipo.pequeno, { color: color.texto2 }]}>(opcional)</T>
+              Correo <T style={[tipo.pequeno, { color: c.texto2 }]}>(opcional)</T>
             </T>
           }
           accessibilityLabel="Correo (opcional)"
@@ -88,17 +90,17 @@ export default function Registro() {
               <Campo etiqueta="Confirmar" secureTextEntry autoComplete="new-password" value={c2} onChangeText={setC2} error={claveMal ? ' ' : null} />
             </View>
           </View>
-          {claveMal ? <T style={[tipo.caption, { color: color.rojoTexto }]}>{claveMal}</T> : null}
+          {claveMal ? <T style={[tipo.caption, { color: c.rojoTexto }]}>{claveMal}</T> : null}
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <MessageCircle size={16} color={color.texto2} strokeWidth={SW} style={{ marginTop: 1 }} />
-          <T style={[tipo.caption, { flex: 1, color: color.texto2 }]}>
+          <MessageCircle size={16} color={c.texto2} strokeWidth={SW} style={{ marginTop: 1 }} />
+          <T style={[tipo.caption, { flex: 1, color: c.texto2 }]}>
             El código llega por WhatsApp al teléfono que el sistema tiene registrado para su cédula, para que nadie abra una cuenta a su nombre.
           </T>
         </View>
         <Boton titulo="Enviar código por WhatsApp" cargando={cargando} onPress={enviar} />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          <T style={[tipo.pequeno, { color: color.texto2 }]}>¿Ya tiene cuenta?</T>
+          <T style={[tipo.pequeno, { color: c.texto2 }]}>¿Ya tiene cuenta?</T>
           <Enlace titulo="Entrar" onPress={irAEntrar} />
         </View>
       </View>

@@ -7,10 +7,12 @@ import { Pantalla } from '@/components/extra';
 import { Boton, Campo, T, Tarjeta } from '@/components/ui';
 import { OFICIAL, institucionValida, soloCodigo } from '@/demo/policia';
 import { guardarSesion } from '@/lib/dispositivo';
-import { color, tipo } from '@/theme';
+import { useTema } from '@/lib/tema';
+import { tipo } from '@/theme';
 
 // Primer acceso con Google: se confirma la institución antes de recibir alertas.
 export default function CodigoInstitucion() {
+  const { c } = useTema();
   const [placa, setPlaca] = useState(OFICIAL.placaOficial);
   const [inst, setInst] = useState('');
   const [error, setError] = useState(false);
@@ -30,12 +32,12 @@ export default function CodigoInstitucion() {
       <CabeceraTinta grande marca="SmartTraffic · Policía" titulo="Primer acceso" sub="Confirme su institución para recibir alertas." />
       <View style={{ gap: 16, paddingTop: 24, paddingHorizontal: 20, paddingBottom: 32 }}>
         <Tarjeta style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: color.suave, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.suave, alignItems: 'center', justifyContent: 'center' }}>
             <T style={[tipo.mono, { fontSize: 13 }]}>{OFICIAL.iniciales}</T>
           </View>
           <View>
             <T style={tipo.cuerpoFuerte}>{OFICIAL.nombre}</T>
-            <T style={[tipo.pequeno, { color: color.texto2 }]}>{OFICIAL.correo}</T>
+            <T style={[tipo.pequeno, { color: c.texto2 }]}>{OFICIAL.correo}</T>
           </View>
         </Tarjeta>
         <Campo etiqueta="Número de placa de oficial" mono autoCapitalize="characters" value={placa} onChangeText={(t) => setPlaca(soloCodigo(t))} />

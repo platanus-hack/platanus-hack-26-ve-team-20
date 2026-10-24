@@ -7,16 +7,17 @@ import { Pantalla } from '@/components/extra';
 import { Boton, PlacaChip } from '@/components/ui';
 import { VEHICULOS } from '@/demo/ciudadano';
 import { guardarSesion } from '@/lib/dispositivo';
-import { color } from '@/theme';
+import { useTema } from '@/lib/tema';
 
 export default function Creada() {
+  const { c } = useTema();
   return (
     <Pantalla>
       <CabeceraTinta marca="SmartTraffic" titulo="La multa llega con la prueba, y se paga en un minuto." />
       <View style={{ gap: 20, paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32 }}>
         <Pasos paso={3} />
-        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: color.tinta, alignItems: 'center', justifyContent: 'center' }}>
-          <Check size={34} color={color.lima} strokeWidth={2.5} />
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: c.tinta, alignItems: 'center', justifyContent: 'center' }}>
+          <Check size={34} color={c.lima} strokeWidth={2.5} />
         </View>
         <Titulo titulo="Cuenta creada" sub="Encontramos 2 vehículos a su nombre. Ya puede ver sus multas y pagarlas." />
         <View style={{ flexDirection: 'row', gap: 8 }}>

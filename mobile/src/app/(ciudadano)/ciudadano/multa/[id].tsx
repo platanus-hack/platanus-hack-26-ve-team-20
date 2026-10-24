@@ -5,13 +5,16 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { FRAMES, EscenaEvidencia } from '@/components/escenas';
 import { Pantalla, Pie } from '@/components/extra';
-import { Badge, Boton, ESTADO, Placa, PlacaChip, Pressy, SW, T, Tarjeta } from '@/components/ui';
+import { Badge, Boton, Placa, PlacaChip, Pressy, SW, T, Tarjeta, estados } from '@/components/ui';
 import { VEHICULOS, apelar, esPendiente, useCiudadano } from '@/demo/ciudadano';
 import { bs } from '@/demo/format';
 import { irAPagar } from '@/lib/nav';
-import { color, radio, sombra, tipo } from '@/theme';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { radio, tipo } from '@/theme';
 
 export default function DetalleMulta() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { multas } = useCiudadano();
   const m = multas.find((x) => x.id === id) ?? multas[0];
@@ -72,7 +75,7 @@ export default function DetalleMulta() {
         ) : null
       }>
       <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/ciudadano'))} style={s.volver}>
-        <ChevronLeft size={18} color={color.tinta} strokeWidth={2} />
+        <ChevronLeft size={18} color={c.texto} strokeWidth={2} />
         <T style={tipo.pequenoFuerte}>Volver</T>
       </Pressable>
       <View style={{ gap: 8 }}>
@@ -80,7 +83,7 @@ export default function DetalleMulta() {
         <T accessibilityRole="header" style={tipo.display}>
           {m.tipo}
         </T>
-        <T style={{ color: color.texto2 }}>
+        <T style={{ color: c.texto2 }}>
           <T style={tipo.mono}>
             {m.fecha} · {m.hora}
           </T>{' '}
@@ -88,27 +91,27 @@ export default function DetalleMulta() {
         </T>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <PlacaChip placa={m.placa} alto={26} />
-          <T style={[tipo.pequeno, { flex: 1, color: color.texto2 }]}>{vehiculo}</T>
+          <T style={[tipo.pequeno, { flex: 1, color: c.texto2 }]}>{vehiculo}</T>
         </View>
       </View>
 
       <Tarjeta style={{ gap: 6, padding: 16 }}>
-        <T style={[tipo.caption, { color: color.texto2 }]}>Monto de ejemplo</T>
-        <T style={[tipo.montoG, m.estado === 'ANULADA' ? { textDecorationLine: 'line-through', color: color.texto2 } : null]}>{bs(m.amountCents)}</T>
-        <T style={[tipo.pequeno, { color: color.texto2 }]}>{venceTxt}</T>
+        <T style={[tipo.caption, { color: c.texto2 }]}>Monto de ejemplo</T>
+        <T style={[tipo.montoG, m.estado === 'ANULADA' ? { textDecorationLine: 'line-through', color: c.texto2 } : null]}>{bs(m.amountCents)}</T>
+        <T style={[tipo.pequeno, { color: c.texto2 }]}>{venceTxt}</T>
       </Tarjeta>
 
       <View accessibilityLabel="Evidencia" style={{ gap: 10 }}>
         <View style={s.evidencia}>
           <EscenaEvidencia frame={frame} placa={m.placa} alt={`Fotograma ${frame + 1} de 3, ${FRAMES[frame].momento} de la línea`} />
           <View style={[s.chipTinta, { left: 10 }]}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color.rojo }} />
-            <T style={[tipo.captionFuerte, { fontSize: 12, color: color.tarjeta }]}>
-              ROJO · <T style={[tipo.mono, { fontSize: 12, color: color.tarjeta }]}>{m.hora + FRAMES[frame].seg}</T>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.rojo }} />
+            <T style={[tipo.captionFuerte, { fontSize: 12, color: c.tintaTexto }]}>
+              ROJO · <T style={[tipo.mono, { fontSize: 12, color: c.tintaTexto }]}>{m.hora + FRAMES[frame].seg}</T>
             </T>
           </View>
           <View style={[s.chipTinta, { right: 10 }]}>
-            <T style={[tipo.mono, { fontSize: 12, color: color.tarjeta }]}>{m.cam}</T>
+            <T style={[tipo.mono, { fontSize: 12, color: c.tintaTexto }]}>{m.cam}</T>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -123,36 +126,36 @@ export default function DetalleMulta() {
                 setJugando(false);
                 setFrame(i);
               }}
-              style={[s.frameBtn, frame === i ? { backgroundColor: color.suave, borderWidth: 2, borderColor: color.tinta } : null]}>
+              style={[s.frameBtn, frame === i ? { backgroundColor: c.suave, borderWidth: 2, borderColor: c.texto } : null]}>
               <T style={[tipo.mono, { fontSize: 13 }]}>{f.corta}</T>
               <T style={{ fontSize: 12, lineHeight: 16, fontFamily: tipo.caption.fontFamily }}>{f.momento}</T>
             </Pressy>
           ))}
           <Pressy accessibilityRole="button" onPress={reproducir} style={s.clip}>
-            <Play size={16} color={color.tarjeta} strokeWidth={SW} />
-            <T style={[tipo.pequenoFuerte, { color: color.tarjeta }]}>{jugando ? 'Reproduciendo…' : 'Ver clip'}</T>
+            <Play size={16} color={c.tintaTexto} strokeWidth={SW} />
+            <T style={[tipo.pequenoFuerte, { color: c.tintaTexto }]}>{jugando ? 'Reproduciendo…' : 'Ver clip'}</T>
           </Pressy>
         </View>
         <Tarjeta style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 }}>
           <Placa placa={m.placa} tam={22} />
           <View style={{ flex: 1 }}>
             <T style={tipo.pequenoFuerte}>Recorte de placa</T>
-            <T style={[tipo.pequeno, { color: color.texto2 }]}>Ampliado del fotograma 2.</T>
+            <T style={[tipo.pequeno, { color: c.texto2 }]}>Ampliado del fotograma 2.</T>
           </View>
         </Tarjeta>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <BadgeCheck size={18} color={color.verde} strokeWidth={SW} />
+          <BadgeCheck size={18} color={c.verde} strokeWidth={SW} />
           <T style={tipo.pequenoFuerte}>{m.verif}</T>
         </View>
       </View>
 
       <Tarjeta>
         <Acordeon titulo="Cómo se detectó" abierto={acc.como} onToggle={() => setAcc({ ...acc, como: !acc.como })}>
-          <T style={[tipo.pequeno, { color: color.texto2 }]}>
+          <T style={[tipo.pequeno, { color: c.texto2 }]}>
             La cámara {m.cam} grabó el cruce. El modelo leyó la placa y la regla de la línea de pare confirmó la luz en el momento del cruce.
           </T>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <T style={[tipo.pequeno, { color: color.texto2 }]}>Confianza del modelo</T>
+            <T style={[tipo.pequeno, { color: c.texto2 }]}>Confianza del modelo</T>
             <T style={[tipo.mono, { fontSize: 14 }]}>{m.conf}</T>
           </View>
         </Acordeon>
@@ -160,7 +163,7 @@ export default function DetalleMulta() {
           {auditoria.map((a) => (
             <View key={a.que} style={{ flexDirection: 'row', gap: 10 }}>
               <T style={[tipo.mono, { fontSize: 14, width: 104 }]}>{a.cuando}</T>
-              <T style={[tipo.pequeno, { flex: 1, color: color.texto2 }]}>{a.que}</T>
+              <T style={[tipo.pequeno, { flex: 1, color: c.texto2 }]}>{a.que}</T>
             </View>
           ))}
         </Acordeon>
@@ -168,8 +171,8 @@ export default function DetalleMulta() {
 
       {pagable ? <Boton titulo="Apelar esta multa" variante="borde" onPress={() => setDialogo(true)} /> : null}
       {nota ? (
-        <View style={[s.nota, { backgroundColor: ESTADO[m.estado === 'PAGADA' ? 'PAGADA' : m.estado === 'APELADA' ? 'APELADA' : 'ANULADA'].bg }]}>
-          <T style={[tipo.pequenoFuerte, { color: ESTADO[m.estado === 'PAGADA' ? 'PAGADA' : m.estado === 'APELADA' ? 'APELADA' : 'ANULADA'].fg }]}>{nota}</T>
+        <View style={[s.nota, { backgroundColor: estados(c)[m.estado === 'PAGADA' ? 'PAGADA' : m.estado === 'APELADA' ? 'APELADA' : 'ANULADA'].bg }]}>
+          <T style={[tipo.pequenoFuerte, { color: estados(c)[m.estado === 'PAGADA' ? 'PAGADA' : m.estado === 'APELADA' ? 'APELADA' : 'ANULADA'].fg }]}>{nota}</T>
         </View>
       ) : null}
 
@@ -179,7 +182,7 @@ export default function DetalleMulta() {
             <T accessibilityRole="header" style={{ fontFamily: tipo.h2.fontFamily, fontSize: 24, lineHeight: 30 }}>
               ¿Desea apelar esta multa?
             </T>
-            <T style={{ color: color.texto2 }}>Su apelación congela el cobro hasta que un operador la revise. Le avisaremos por WhatsApp.</T>
+            <T style={{ color: c.texto2 }}>Su apelación congela el cobro hasta que un operador la revise. Le avisaremos por WhatsApp.</T>
             <Boton
               titulo="Confirmar apelación"
               onPress={() => {
@@ -196,25 +199,28 @@ export default function DetalleMulta() {
 }
 
 function Acordeon({ titulo, abierto, onToggle, borde, children }: { titulo: string; abierto: boolean; onToggle: () => void; borde?: boolean; children: ReactNode }) {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   return (
-    <View style={borde ? { borderTopWidth: 1, borderTopColor: color.borde } : null}>
+    <View style={borde ? { borderTopWidth: 1, borderTopColor: c.borde } : null}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: abierto }} onPress={onToggle} style={s.acordeon}>
         <T style={[tipo.cuerpoFuerte, { flex: 1 }]}>{titulo}</T>
-        <ChevronDown size={20} color={color.tinta} strokeWidth={SW} style={{ transform: [{ rotate: abierto ? '180deg' : '0deg' }] }} />
+        <ChevronDown size={20} color={c.texto} strokeWidth={SW} style={{ transform: [{ rotate: abierto ? '180deg' : '0deg' }] }} />
       </Pressable>
       {abierto ? <View style={{ gap: 8, paddingHorizontal: 16, paddingBottom: 16 }}>{children}</View> : null}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const estilos = ({ c, sombra }: Tema) =>
+  StyleSheet.create({
   volver: { alignSelf: 'flex-start', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 8 },
-  evidencia: { borderRadius: radio.tarjeta, overflow: 'hidden', backgroundColor: color.tinta2 },
-  chipTinta: { position: 'absolute', top: 10, flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: radio.pastilla, backgroundColor: color.tinta },
-  frameBtn: { flex: 1, minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: color.tarjeta, borderWidth: 1, borderColor: color.borde },
-  clip: { flex: 1.2, minHeight: 52, borderRadius: 12, backgroundColor: color.tinta, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  evidencia: { borderRadius: radio.tarjeta, overflow: 'hidden', backgroundColor: c.tinta2 },
+  chipTinta: { position: 'absolute', top: 10, flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: radio.pastilla, backgroundColor: c.tinta },
+  frameBtn: { flex: 1, minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: c.tarjeta, borderWidth: 1, borderColor: c.borde },
+  clip: { flex: 1.2, minHeight: 52, borderRadius: 12, backgroundColor: c.tinta, borderWidth: 1, borderColor: c.tintaBorde, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   acordeon: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16 },
   nota: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: radio.control },
-  velo: { flex: 1, backgroundColor: 'rgba(14,23,38,.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  dialogo: { width: '100%', maxWidth: 420, gap: 14, padding: 24, backgroundColor: color.tarjeta, borderRadius: radio.tarjeta, boxShadow: sombra.modal },
+  velo: { flex: 1, backgroundColor: c.velo, alignItems: 'center', justifyContent: 'center', padding: 16 },
+  dialogo: { width: '100%', maxWidth: 420, gap: 14, padding: 24, backgroundColor: c.tarjeta, borderRadius: radio.tarjeta, boxShadow: sombra.modal },
 });

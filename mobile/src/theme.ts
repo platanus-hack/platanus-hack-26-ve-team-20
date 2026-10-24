@@ -1,16 +1,21 @@
 // Tokens de "Asfalto y Señal" (Dirección C). El lima vive solo sobre tinta.
 import type { TextStyle } from 'react-native';
 
-export const color = {
+export const temaClaro = {
   fondo: '#F3F5F8',
   tarjeta: '#FCFDFE',
   suave: '#EEF1F5',
+  // Superficies de tinta (cabeceras, botón principal, pastillas). También es la tinta sobre lima y ámbar.
   tinta: '#0E1726',
   tinta2: '#151C28',
   tinta3: '#2A3446',
+  tintaBorde: '#0E1726',
+  tintaTexto: '#FCFDFE',
+  texto: '#0E1726',
   texto2: '#4B5565',
   texto3: '#667085',
   sobreTinta: '#A9B4C4',
+  sobreAcento: '#FCFDFE',
   lima: '#C6F24E',
   borde: '#DDE2E9',
   bordeInput: '#7D8797',
@@ -28,7 +33,53 @@ export const color = {
   azulTexto: '#1A4FB0',
   azulFondo: '#E8F0FD',
   grisFondo: '#ECEFF3',
-} as const;
+  velo: 'rgba(14,23,38,.4)',
+};
+
+export type Colores = typeof temaClaro;
+
+export const temaOscuro: Colores = {
+  fondo: '#0A0F18',
+  tarjeta: '#151C28',
+  suave: '#1C2638',
+  tinta: '#1C2638',
+  tinta2: '#2A3446',
+  tinta3: '#4B5565',
+  tintaBorde: '#4B5565',
+  tintaTexto: '#F2F5F9',
+  texto: '#F2F5F9',
+  texto2: '#A9B4C4',
+  texto3: '#7D8797',
+  sobreTinta: '#A9B4C4',
+  sobreAcento: '#0A0F18',
+  lima: '#C6F24E',
+  borde: '#2A3446',
+  bordeInput: '#606B7A',
+  rojo: '#FF6B5E',
+  rojoHover: '#FF8A80',
+  rojoTexto: '#FF8A80',
+  rojoFondo: '#2A1618',
+  verde: '#3DD68C',
+  verdeTexto: '#5FE3A3',
+  verdeFondo: '#0F2A1C',
+  ambar: '#FFB224',
+  ambarTexto: '#FFD27A',
+  ambarFondo: '#2A2410',
+  azul: '#7AB0FF',
+  azulTexto: '#9CC3FF',
+  azulFondo: '#14213A',
+  grisFondo: '#1C2638',
+  velo: 'rgba(0,0,0,.6)',
+};
+
+// Compatibilidad: los tokens claros. Las pantallas usan `useTema()` para cambiar en caliente.
+export const color = temaClaro;
+
+export type ModoTema = 'claro' | 'oscuro' | 'sistema';
+export type Esquema = 'claro' | 'oscuro';
+
+export const esquemaDe = (modo: ModoTema, sistema: 'light' | 'dark' | null | undefined): Esquema =>
+  modo === 'sistema' ? (sistema === 'dark' ? 'oscuro' : 'claro') : modo;
 
 // Modo cámara (oscuro)
 export const cam = {
@@ -56,6 +107,27 @@ export const sombra = {
   flotante: '0 8px 24px -6px rgba(14,23,38,.14), 0 0 0 1px rgba(14,23,38,.06)',
   modal: '0 24px 48px -12px rgba(14,23,38,.22)',
 } as const;
+
+export type Sombras = Record<keyof typeof sombra, string>;
+
+// En oscuro la sombra no se ve: el borde de 1 px separa la superficie.
+export const sombraOscura: Sombras = {
+  tarjeta: '0 0 0 1px #2A3446',
+  sheet: '0 -1px 0 #2A3446, 0 8px 24px -6px rgba(0,0,0,.5)',
+  flotante: '0 0 0 1px #2A3446, 0 8px 24px -6px rgba(0,0,0,.6)',
+  modal: '0 0 0 1px #2A3446, 0 24px 48px -12px rgba(0,0,0,.7)',
+};
+
+export const estiloInput = (c: Colores): TextStyle => ({
+  height: 48,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderColor: c.bordeInput,
+  borderRadius: radio.control,
+  backgroundColor: c.tarjeta,
+  fontSize: 16,
+  color: c.texto,
+});
 
 // Una familia por peso: en RN el peso de una fuente cargada va en el nombre.
 export const fuente = {
