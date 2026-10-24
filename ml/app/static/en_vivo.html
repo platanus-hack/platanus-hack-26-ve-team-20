@@ -12,16 +12,15 @@
   header h1 { font-size:17px; margin:0; } .demo { background:var(--ambar); color:#000; border-radius:4px; padding:2px 8px; font-size:12px; font-weight:700; }
   #estadoConexion { margin-left:auto; color:var(--suave); font-size:13px; }
   main { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; padding:16px; }
-  @media (max-width:860px) { main { grid-template-columns:1fr; } }
-  .vista { background:#000; border-radius:10px; overflow:hidden; position:relative; aspect-ratio:9/16; max-height:78vh; margin:0 auto; width:100%; }
-  @media (orientation:landscape) { .vista { aspect-ratio:16/9; } }
-  .vista img { width:100%; height:100%; object-fit:contain; display:block; }
+  @media (max-width:860px) { main { grid-template-columns:1fr; padding:10px; } }
+  .vista { background:#000; border-radius:10px; overflow:hidden; position:relative; height:70vh; }
+  .vista video, .vista canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .vista video { object-fit:contain; }
   .vista .vacio { position:absolute; inset:0; display:grid; place-items:center; color:var(--suave); text-align:center; padding:24px; }
-  video, canvas { display:none; }
+  #lienzo { display:none; }
   .controles { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center; }
-  button { font:inherit; border:1px solid var(--borde); background:var(--panel); color:var(--texto); border-radius:8px; padding:10px 16px; cursor:pointer; }
-  button:disabled { opacity:.5; cursor:default; }
-  .semaforo button { min-width:110px; font-weight:800; font-size:18px; padding:14px 18px; }
+  button, select { font:inherit; border:1px solid var(--borde); background:var(--panel); color:var(--texto); border-radius:8px; padding:10px 16px; cursor:pointer; }
+  .semaforo button { flex:1; min-width:110px; font-weight:800; font-size:18px; padding:14px 18px; }
   .semaforo .rojo.on { background:var(--rojo); border-color:var(--rojo); }
   .semaforo .verde.on { background:var(--verde); border-color:var(--verde); }
   label { color:var(--suave); font-size:13px; display:flex; gap:6px; align-items:center; }
@@ -32,10 +31,11 @@
   .placa { font:700 20px/1 ui-monospace,Menlo,monospace; letter-spacing:1px; }
   .placa.nula { color:var(--suave); font-size:15px; }
   .meta { color:var(--suave); font-size:12px; margin-top:4px; }
-  .chip { display:inline-block; border-radius:999px; padding:1px 8px; font-size:12px; margin-top:6px; border:1px solid var(--borde); }
-  .chip.ok { border-color:var(--verde); color:var(--verde); } .chip.rev { border-color:var(--ambar); color:var(--ambar); } .chip.err { border-color:var(--rojo); color:var(--rojo); }
-  .login { max-width:360px; margin:12vh auto; background:var(--panel); border:1px solid var(--borde); border-radius:12px; padding:20px; }
+  .chip { display:inline-block; border-radius:999px; padding:1px 8px; font-size:12px; margin-top:6px; border:1px solid var(--borde); color:var(--suave); }
+  .chip.ok { border-color:var(--verde); color:var(--verde); } .chip.rev { border-color:var(--ambar); color:var(--ambar); }
+  .login { max-width:380px; margin:10vh auto; background:var(--panel); border:1px solid var(--borde); border-radius:12px; padding:20px; }
   .login input { width:100%; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--borde); background:var(--bg); color:var(--texto); margin:6px 0 12px; }
+  .login button { width:100%; margin-top:8px; }
 </style>
 </head>
 <body>
@@ -50,13 +50,19 @@
   <input id="clave" type="password" autocomplete="off">
   <label for="camara">Código de cámara</label>
   <input id="camara" value="CAM-001">
-  <button id="entrar" style="width:100%">Abrir cámara</button>
-  <p class="meta">La cámara del navegador solo funciona con HTTPS (ngrok) o en localhost.</p>
+  <button id="entrar">Abrir cámara</button>
+  <button id="usarVideo">Usar un video grabado</button>
+  <input id="archivo" type="file" accept="video/*" hidden>
+  <p class="meta">La cámara del navegador solo funciona con HTTPS (ngrok) o en localhost. Un video grabado funciona en cualquiera; en la Mac (localhost) va más rápido.</p>
 </section>
 
 <main id="app" hidden>
   <div>
-    <div class="vista"><img id="salida" alt="Vista anotada por el modelo"><div class="vacio" id="vacio">Esperando cámara…</div></div>
+    <div class="vista" id="vista">
+      <video id="video" playsinline muted></video>
+      <canvas id="capa"></canvas>
+      <div class="vacio" id="vacio">Esperando cámara…</div>
+    </div>
     <div class="controles semaforo">
       <button class="rojo" data-estado="rojo">ROJO</button>
       <button class="verde on" data-estado="verde">VERDE</button>
@@ -64,6 +70,7 @@
     <div class="controles">
       <label>Línea de pare <input id="linea" type="range" min="0.1" max="0.9" step="0.02" value="0.6"></label>
       <label><input id="haciaCamara" type="checkbox"> los carros vienen hacia la cámara</label>
+      <label>Envío <select id="resolucion"><option value="720">720 px (rápido)</option><option value="960" selected>960 px</option><option value="1280">1280 px (mejores placas)</option></select></label>
       <span class="meta" id="fps"></span>
     </div>
   </div>
@@ -74,73 +81,127 @@
   </aside>
 </main>
 
-<video id="video" playsinline muted></video>
 <canvas id="lienzo"></canvas>
 
 <script>
 const $ = (id) => document.getElementById(id);
-const ANCHO_ENVIO = 1280; // el motor lee la placa del recorte: no bajar mucho la resolución
-let ws, enVuelo = false, total = 0, ultimo = performance.now(), cuadros = 0, errorServidor = '';
+const MAX_EN_VUELO = 3;        // cuadros en camino a la vez: con VPN/ngrok la latencia manda
+const INTERVALO_MIN_MS = 66;   // como mucho ~15 cuadros/s al servidor
+let ws, enVuelo = 0, ultimoEnvio = 0, total = 0, ultimo = performance.now(), respuestas = 0, errorServidor = '';
+let cajas = [], estado = 'verde';
 const tarjetas = new Map();
 
 try { $('clave').value = localStorage.getItem('vc_clave') || ''; $('camara').value = localStorage.getItem('vc_camara') || 'CAM-001'; } catch {}
 
-$('entrar').onclick = async () => {
+function datos() {
   const clave = $('clave').value.trim(), camara = $('camara').value.trim() || 'CAM-001';
   try { localStorage.setItem('vc_clave', clave); localStorage.setItem('vc_camara', camara); } catch {}
   $('login').hidden = true; $('app').hidden = false;
+  return { clave, camara };
+}
+
+$('entrar').onclick = async () => {
+  const { clave, camara } = datos();
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
     $('video').srcObject = stream; await $('video').play();
   } catch (e) { $('vacio').textContent = 'No se pudo abrir la cámara: ' + e.message; return; }
-  conectar(clave, camara);
+  $('vacio').hidden = true; conectar(clave, camara);
+};
+
+// Video grabado (p. ej. en la calle con la cámara del iPhone): se procesa como si fuera en vivo.
+$('usarVideo').onclick = () => $('archivo').click();
+$('archivo').onchange = async () => {
+  const f = $('archivo').files[0]; if (!f) return;
+  const { clave, camara } = datos();
+  const v = $('video'); v.srcObject = null; v.src = URL.createObjectURL(f); v.loop = true;
+  try { await v.play(); } catch (e) { $('vacio').textContent = 'No se pudo reproducir: ' + e.message; return; }
+  $('vacio').hidden = true; conectar(clave, camara);
 };
 
 function conectar(clave, camara) {
-  const url = location.origin.replace(/^http/, 'ws') + '/en-vivo/ws';
-  ws = new WebSocket(url);
+  ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/en-vivo/ws');
   ws.onopen = () => ws.send(JSON.stringify({ tipo: 'auth', clave, camara }));
   ws.onclose = () => { $('estadoConexion').textContent = (errorServidor || 'Desconectado') + ' — recarga para reconectar'; };
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
     if (m.tipo === 'error') { errorServidor = m.mensaje; $('estadoConexion').textContent = m.mensaje; return; }
-    if (m.tipo === 'listo') { $('estadoConexion').textContent = 'Conectado · ' + m.modelVersion; enviarLinea(); enviarCuadro(); return; }
+    if (m.tipo === 'listo') { $('estadoConexion').textContent = 'Conectado · ' + m.modelVersion; enviarLinea(); bucle(); return; }
     if (m.tipo === 'cuadro') {
-      enVuelo = false;
-      if (m.jpg) { $('salida').src = 'data:image/jpeg;base64,' + m.jpg; $('vacio').hidden = true; }
+      enVuelo = Math.max(0, enVuelo - 1);
+      cajas = m.cajas || []; estado = m.estado || estado; dibujar();
       m.multas.forEach(agregarMulta);
       m.registros.forEach(actualizarRegistro);
-      cuadros++; const ahora = performance.now();
-      if (ahora - ultimo > 1000) { $('fps').textContent = (cuadros * 1000 / (ahora - ultimo)).toFixed(1) + ' cuadros/s'; cuadros = 0; ultimo = ahora; }
-      enviarCuadro();
+      respuestas++; const ahora = performance.now();
+      if (ahora - ultimo > 1000) { $('fps').textContent = 'detección ' + (respuestas * 1000 / (ahora - ultimo)).toFixed(1) + ' cuadros/s'; respuestas = 0; ultimo = ahora; }
     }
   };
 }
 
-// Un cuadro a la vez: el siguiente sale cuando vuelve la respuesta (el ritmo se adapta al modelo).
-function enviarCuadro() {
-  const v = $('video');
-  if (!ws || ws.readyState !== 1 || enVuelo || !v.videoWidth) { setTimeout(enviarCuadro, 50); return; }
-  const escala = Math.min(1, ANCHO_ENVIO / Math.max(v.videoWidth, v.videoHeight));
-  const c = $('lienzo'); c.width = Math.round(v.videoWidth * escala); c.height = Math.round(v.videoHeight * escala);
-  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-  enVuelo = true;
-  c.toBlob((b) => { if (b) ws.send(b); else enVuelo = false; }, 'image/jpeg', 0.8);
+// Envía cuadros sin esperar cada respuesta (hasta MAX_EN_VUELO en camino); el video se ve a su velocidad nativa.
+function bucle() {
+  const v = $('video'), ahora = performance.now();
+  if (ws && ws.readyState === 1 && enVuelo < MAX_EN_VUELO && v.videoWidth && ahora - ultimoEnvio >= INTERVALO_MIN_MS) {
+    ultimoEnvio = ahora;
+    const lado = Number($('resolucion').value);
+    const escala = Math.min(1, lado / Math.max(v.videoWidth, v.videoHeight));
+    const c = $('lienzo'); c.width = Math.round(v.videoWidth * escala); c.height = Math.round(v.videoHeight * escala);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    enVuelo++;
+    c.toBlob((b) => { if (b && ws.readyState === 1) ws.send(b); else enVuelo = Math.max(0, enVuelo - 1); }, 'image/jpeg', 0.7);
+  }
+  requestAnimationFrame(bucle);
 }
+
+// Rectángulo donde se ve el video dentro de la vista (object-fit: contain deja franjas).
+function rectVideo() {
+  const v = $('video'), W = v.clientWidth, H = v.clientHeight;
+  if (!v.videoWidth) return { x: 0, y: 0, w: W, h: H };
+  const s = Math.min(W / v.videoWidth, H / v.videoHeight), w = v.videoWidth * s, h = v.videoHeight * s;
+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };
+}
+
+function dibujar() {
+  const c = $('capa'), dpr = window.devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.clientWidth, c.clientHeight);
+  const r = rectVideo(), rojo = estado === 'rojo';
+  // línea de pare
+  const ly = r.y + Number($('linea').value) * r.h;
+  g.lineWidth = 3; g.strokeStyle = rojo ? '#e5383b' : '#2fb344';
+  g.beginPath(); g.moveTo(r.x, ly); g.lineTo(r.x + r.w, ly); g.stroke();
+  // cajas de los vehículos
+  g.font = '600 13px system-ui, sans-serif';
+  for (const k of cajas) {
+    const x = r.x + k.x * r.w, y = r.y + k.y * r.h, w = k.w * r.w, h = k.h * r.h;
+    const color = k.multa ? '#e5383b' : '#29b6f6';
+    g.lineWidth = k.multa ? 3 : 2; g.strokeStyle = color; g.strokeRect(x, y, w, h);
+    const texto = (k.multa ? 'MULTA · ' : '') + k.clase + ' #' + k.id, tw = g.measureText(texto).width + 8;
+    g.fillStyle = color; g.fillRect(x, Math.max(0, y - 18), tw, 18);
+    g.fillStyle = '#fff'; g.fillText(texto, x + 4, Math.max(13, y - 5));
+  }
+  // semáforo
+  const sx = r.x + r.w - 30, sy = r.y + 12;
+  g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(sx - 4, sy - 4, 26, 48);
+  g.fillStyle = rojo ? '#e5383b' : '#333'; g.beginPath(); g.arc(sx + 9, sy + 9, 8, 0, 7); g.fill();
+  g.fillStyle = rojo ? '#333' : '#2fb344'; g.beginPath(); g.arc(sx + 9, sy + 30, 8, 0, 7); g.fill();
+}
+window.addEventListener('resize', dibujar);
 
 document.querySelectorAll('.semaforo button').forEach((b) => b.onclick = () => {
   document.querySelectorAll('.semaforo button').forEach((x) => x.classList.toggle('on', x === b));
-  ws?.send(JSON.stringify({ tipo: 'semaforo', estado: b.dataset.estado }));
+  estado = b.dataset.estado; dibujar();
+  ws?.send(JSON.stringify({ tipo: 'semaforo', estado }));
 });
-const enviarLinea = () => ws?.readyState === 1 && ws.send(JSON.stringify({ tipo: 'linea', y: Number($('linea').value), haciaCamara: $('haciaCamara').checked }));
-$('linea').onchange = enviarLinea; $('haciaCamara').onchange = enviarLinea;
+const enviarLinea = () => { dibujar(); if (ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'linea', y: Number($('linea').value), haciaCamara: $('haciaCamara').checked })); };
+$('linea').oninput = dibujar; $('linea').onchange = enviarLinea; $('haciaCamara').onchange = enviarLinea;
 
 function agregarMulta(m) {
   total++;
   $('resumen').textContent = total + (total === 1 ? ' multa' : ' multas') + ' en esta sesión';
   const el = document.createElement('div'); el.className = 'multa';
   const foto = m.fotoPlaca || m.fotoVehiculo;
-  el.innerHTML = `<img alt="Vehículo multado"><div><div class="placa"></div><div class="meta"></div><span class="chip">Registrando…</span></div>`;
+  el.innerHTML = `<img alt="Vehículo multado"><div><div class="placa"></div><div class="meta"></div><span class="chip">Detectada</span></div>`;
   if (foto) el.querySelector('img').src = 'data:image/jpeg;base64,' + foto;
   const p = el.querySelector('.placa');
   p.textContent = m.placa || 'Placa no leída'; p.classList.toggle('nula', !m.placa);
@@ -148,9 +209,10 @@ function agregarMulta(m) {
   $('lista').prepend(el); tarjetas.set(m.ref, el);
 }
 
+// Si el registro en el sistema no está configurado, la multa queda como "Detectada" (sin error en pantalla).
 function actualizarRegistro(r) {
   const chip = tarjetas.get(r.ref)?.querySelector('.chip'); if (!chip) return;
-  if (!r.ok) { chip.className = 'chip err'; chip.textContent = 'Sin registrar: ' + r.error; return; }
+  if (!r.ok) { chip.title = r.error || ''; return; }
   const revision = r.status === 'NEEDS_REVIEW';
   chip.className = 'chip ' + (revision ? 'rev' : 'ok');
   chip.textContent = revision ? 'A revisión humana' : (r.fineId ? 'Multa emitida' : 'Registrada');

@@ -1,4 +1,5 @@
 import time
+from types import SimpleNamespace
 from pathlib import Path
 from typing import Any
 
@@ -75,7 +76,7 @@ def test_multa_solo_en_rojo_y_se_registra(sesion: tuple[Sesion, list[dict[str, A
     s.procesar(_jpg())
     r = s.procesar(_jpg())
     assert motores[0].estados == ["verde", "rojo", "rojo"]  # el color real llega al motor en cada cuadro
-    assert r["tipo"] == "cuadro" and r["jpg"]
+    assert r["tipo"] == "cuadro" and "jpg" not in r  # solo datos: la página dibuja sobre su propio video
     assert r["cruces"] == [{"id": 5, "clase": "car"}]
     assert [(m["placa"], m["votos"]) for m in r["multas"]] == [("XYZ12K", 4)]
     _esperar(lambda: bool(enviados) and (bool(r["registros"]) or s.registros.qsize() > 0))
@@ -128,3 +129,43 @@ def test_ws_rechaza_clave_invalida(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_pagina_en_vivo() -> None:
     r = TestClient(app).get("/en-vivo")
     assert r.status_code == 200 and "Multas en vivo" in r.text
+
+
+class Tensor:
+    """Imita lo que usa el motor de los tensores de ultralytics."""
+
+    def __init__(self, v: Any) -> None:
+        self.v = np.array(v)
+
+    def cpu(self) -> "Tensor":
+        return self
+
+    def numpy(self) -> Any:
+        return self.v
+
+    def int(self) -> "Tensor":
+        return Tensor(self.v.astype(int))
+
+    def tolist(self) -> Any:
+        return self.v.tolist()
+
+
+def test_cajas_salen_del_tracker_normalizadas(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]],
+                                              monkeypatch: pytest.MonkeyPatch) -> None:
+    s, _, _ = sesion
+    boxes = SimpleNamespace(xyxy=Tensor([[16, 9, 80, 45], [0, 0, 10, 10]]), id=Tensor([5, 9]), cls=Tensor([0, 4]))
+
+    class ConTracker(MotorVivo):
+        def __init__(self, **kw: Any) -> None:
+            super().__init__(**kw)
+            self.nombres = {0: "car"}  # la clase 4 (p. ej. accidente) no es un vehículo
+            self.pistas = {5: {"tipos": {"semaforo_rojo"}}}
+            self.modelo = SimpleNamespace(track=lambda frame, **k: [SimpleNamespace(boxes=boxes)])
+
+        def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
+            self.modelo.track(frame)
+            return super().procesar_frame(frame, estado, t)
+
+    s.fabrica = ConTracker
+    r = s.procesar(_jpg())  # cuadro de 160x90
+    assert r["cajas"] == [{"id": 5, "clase": "car", "x": 0.1, "y": 0.1, "w": 0.4, "h": 0.4, "multa": True}]
