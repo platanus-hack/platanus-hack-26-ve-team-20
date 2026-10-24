@@ -12,7 +12,7 @@ export {
   CLAVE_OFICIAL_MIN, CORREO_DEMO, INVITACION_DEMO, MOTIVO_MIN, accionesPermitidas, alVencerSesionOficial, getSesionOficial,
   reiniciarOficial, sesionOficialVencio, telefonoValido,
 } from './demo.ts'
-export type { Accion, Auditoria, Filtros, Invitacion, MultaDetalle, MultaOficial, PaginaMultas, SesionOficial } from './demo.ts'
+export type { Accion, Auditoria, Filtros, Invitacion, MultaDetalle, MultaOficial, PaginaMultas, ReenvioOficial, SesionOficial } from './demo.ts'
 
 export const USA_AUTH_REAL = import.meta.env?.MODE !== 'test' && import.meta.env?.VITE_CUENTA_API !== 'demo'
 const acceso: typeof auth = USA_AUTH_REAL ? auth : demo
@@ -28,6 +28,7 @@ const datos: typeof real = USA_API_REAL ? real : demo
 export const listarMultas = datos.listarMultas
 export const getMulta = datos.getMulta
 export const cambiarEstado = datos.cambiarEstado
+export const reenviarNotificacion = datos.reenviarNotificacion
 
 /** Todas las páginas de un filtro (para exportar el resultado completo, no solo lo cargado). */
 export async function listarTodas(f: { cedula?: string; placa?: string }): Promise<MultaOficial[]> {

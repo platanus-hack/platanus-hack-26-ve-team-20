@@ -165,6 +165,15 @@ export function ajustarACalle(p: Punto): Punto {
   return distancia(p, h) <= distancia(p, v) ? h : v
 }
 
+/** Calle donde aparecen todos los teléfonos de la red en vivo (Calle 2), uno junto al otro. */
+export const CALLE_DEMO_Y = CALLES_Y[1]
+const SEPARACION_M = 45
+
+/** Puesto `i` en la calle de la demo: el primero en x = 260 y los demás cada 45 m hacia el este. */
+export function puestoEnCalle(i: number): Punto {
+  return { x: acotar(260 + i * SEPARACION_M, X_MIN, X_MAX), y: CALLE_DEMO_Y }
+}
+
 /** "Calle 2 con Av. 3" o "Av. 1, entre Calle 1 y Calle 2". */
 export function lugar(p: Punto): string {
   const av = (x: number) => `Av. ${CALLES_X.indexOf(cercana(CALLES_X, x) as (typeof CALLES_X)[number]) + 1}`

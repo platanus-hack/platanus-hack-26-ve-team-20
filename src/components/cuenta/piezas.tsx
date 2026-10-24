@@ -1,12 +1,13 @@
 import { Check, ChevronRight, WifiOff } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router'
-import type { Multa } from '@/lib/demo/api.ts'
+import { esPagable, reenviarNotificacion, type Multa } from '@/lib/demo/api.ts'
 import { TIPO, estadoTexto } from '@/lib/etiquetas.ts'
 import { formatBs, formatFecha } from '@/lib/format.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { EstadoTile, Monto } from '@/components/vc/index.tsx'
+import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 import { EST } from '@/components/vc/estados.ts'
 
 /** Contenedor de cada pantalla: máx. 1160, margen 16 en móvil y 48 en desktop. */
@@ -98,6 +99,11 @@ export function MultaFila({ m, i, desde }: { m: Multa; i: number; desde: 'inicio
         </span>
         <ChevronRight size={18} strokeWidth={2} aria-hidden="true" className="flex-none text-texto-3 transition-transform duration-150 group-hover:translate-x-0.5" />
       </Link>
+      {esPagable(m) && (
+        <div className="px-4 pb-2 pl-[68px]">
+          <BotonReenviar compacto enviar={() => reenviarNotificacion(m.id)} descripcion={`${m.plate} del ${formatFecha(m.occurredAt)}`} />
+        </div>
+      )}
     </li>
   )
 }

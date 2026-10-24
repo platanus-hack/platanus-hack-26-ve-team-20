@@ -17,6 +17,8 @@ export type DemoErrorCode =
   | 'SIN_TITULAR' | 'ENVIO_FALLIDO' | 'ESPERAR' | 'LIMITE' | 'CODIGO_AGOTADO'
   // Historial del oficial (`lib/oficial`): la transición pedida no vale desde el estado actual.
   | 'TRANSICION'
+  // Reenviar la notificación de una multa (ciudadano y oficial).
+  | 'NO_REENVIABLE' | 'SIN_TELEFONO'
 
 export class DemoError extends Error {
   code: DemoErrorCode
@@ -191,6 +193,17 @@ export const getMulta = (id: string) => protegido((s) => {
 })
 
 export const getVehiculos = () => protegido((s) => (s.cedula === CEDULA_DEMO ? VEHICULOS_DEMO : []))
+
+/** Resultado de reenviar el WhatsApp de una multa (`status`: `SENT`, `DRY_RUN` si el servidor no envía, o `FAILED`). */
+export interface Reenvio { status: 'SENT' | 'DRY_RUN' | 'FAILED'; telefono: string }
+
+/** Demo: el reenvío "sale" al instante a tu propio teléfono; solo las multas por pagar se reenvían. */
+export const reenviarNotificacion = (id: string) => protegido((s): Reenvio => {
+  const m = multasDe(s.cedula).find((x) => x.id === id)
+  if (!m) throw new DemoError('NO_ENCONTRADA')
+  if (!esPagable(m)) throw new DemoError('NO_REENVIABLE')
+  return { status: 'SENT', telefono: `${s.telefono.slice(0, 4)}-***${s.telefono.slice(-4)}` }
+})
 
 export const getPerfil = () => protegido((s) => ({ cedula: s.cedula, telefono: s.telefono, correo: s.correo }))
 

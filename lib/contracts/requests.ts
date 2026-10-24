@@ -137,6 +137,21 @@ export type OfficerLoginRequest = z.infer<typeof OfficerLoginSchema>;
 
 export const OfficerActiveSchema = z.object({ active: z.boolean() });
 
+// ---- historial de multas del oficial (P1, docs/12)
+export const OfficerFinesQuerySchema = z.object({
+  cedula: z.string().trim().min(1).max(20).transform(normalizeCedula).optional(),
+  plate: z.string().trim().min(1).max(10).transform(normalizePlate).optional(),
+  cursor: z.string().min(1).max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+export type OfficerFinesQuery = z.infer<typeof OfficerFinesQuerySchema>;
+
+export const OfficerFineStatusSchema = z.object({
+  action: z.enum(["VOID", "APPEAL_ACCEPT", "APPEAL_REJECT"]),
+  reason: z.string().trim().min(10).max(500),
+});
+export type OfficerFineStatusRequest = z.infer<typeof OfficerFineStatusSchema>;
+
 // ---- §2 revisión (P1)
 export const ReviewRequestSchema = z.discriminatedUnion("action", [
   z.object({

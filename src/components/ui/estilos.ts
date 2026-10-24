@@ -1,14 +1,12 @@
 export const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(' ')
 
 // Botones: 48 px, radio 12, presionar .98 · 120 ms.
-// 'pay' y 'primary' son la acción principal (tinta en claro, lima en oscuro); 'lima' va sobre paneles tinta;
-// 'acceso' es el botón de entrar y crear cuenta: azul tinta del panel en claro y azul de confianza en oscuro (blanco ≥ 6,7:1).
-export type Variante = 'pay' | 'primary' | 'lima' | 'acceso' | 'outline'
+// 'pay' y 'primary' son la acción principal (tinta en claro, lima en oscuro); 'lima' va sobre paneles tinta.
+export type Variante = 'pay' | 'primary' | 'lima' | 'outline'
 const VARIANTE: Record<Variante, string> = {
   pay: 'bg-primario text-sobre-primario hover:opacity-90',
   primary: 'bg-primario text-sobre-primario hover:opacity-90',
   lima: 'bg-brand text-[#0e1726] hover:bg-[#b4e035]',
-  acceso: 'bg-acceso text-white shadow-[0_1px_2px_rgba(14,23,38,.18)] hover:bg-acceso-hover',
   outline: 'border border-borde bg-card text-tinta hover:bg-suave',
 }
 export const boton = (v: Variante = 'primary', extra?: string) =>

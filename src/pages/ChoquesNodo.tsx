@@ -3,7 +3,7 @@ import { CheckCircle2, CloudUpload, LogOut, RotateCw, Siren, TriangleAlert, Vide
 import { useEffect, useRef, useState } from 'react'
 import { conReloj, latir, marcarPerdida, reportar, subirClip, verRed } from '@/lib/choques/api.ts'
 import { Grabadora, type ClipReal } from '@/lib/choques/grabadora.ts'
-import { CALLES_X, CALLES_Y, MUNDO, ajustarACalle, formatM, normalizar, type Punto } from '@/lib/choques/sim.ts'
+import { CALLES_X, CALLES_Y, MUNDO, ajustarACalle, formatM, normalizar, puestoEnCalle, type Punto } from '@/lib/choques/sim.ts'
 import { Boton, Campo } from '@/components/ui/index.tsx'
 import { cx, input, tarjeta } from '@/components/ui/estilos.ts'
 import { Logo, PastillaTinta } from '@/components/vc/index.tsx'
@@ -85,6 +85,8 @@ export default function ChoquesNodo() {
   const urls = useRef<string[]>([])
   const pantalla = useRef<WakeLockSentinel | null>(null)
   const datos = useRef({ nodoId, nombre, pos, rumbo })
+  /** Ya tiene punto elegido (a mano, o junto a los demás al cargar la red). */
+  const ubicado = useRef(false)
 
   useEffect(() => {
     datos.current = { nodoId, nombre, pos, rumbo }
@@ -155,7 +157,18 @@ export default function ChoquesNodo() {
     let vivo = true
     const traer = () => {
       if (document.hidden) return
-      conReloj(verRed).then(({ data }) => { if (vivo) setRed(data) }, () => undefined)
+      conReloj(verRed).then(({ data }) => {
+        if (!vivo) return
+        setRed(data)
+        // La primera vez, ponerse en la misma calle que los demás, en el siguiente puesto libre, mirando al este:
+        // así todos caen en el radio de la misma alerta.
+        if (!ubicado.current) {
+          ubicado.current = true
+          const otros = data.nodes.filter((n) => n.recording && n.id !== datos.current.nodoId).length
+          setPos(puestoEnCalle(otros))
+          setRumbo(0)
+        }
+      }, () => undefined)
     }
     traer()
     const t = setInterval(traer, RED_MS)
@@ -198,6 +211,7 @@ export default function ChoquesNodo() {
   }
 
   const mover = (p: Punto) => {
+    ubicado.current = true
     const nuevo = ajustarACalle(p)
     setPos(nuevo)
     setRumbo((r) => alinear(nuevo, r))

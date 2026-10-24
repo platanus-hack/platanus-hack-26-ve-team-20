@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
-import { accionesPermitidas, getMulta, type Accion, type MultaDetalle as Detalle } from '@/lib/oficial/api.ts'
+import { accionesPermitidas, getMulta, reenviarNotificacion, type Accion, type MultaDetalle as Detalle } from '@/lib/oficial/api.ts'
 import { ACCION, AUDITORIA, LUZ, TIPO } from '@/lib/etiquetas.ts'
 import { formatFecha, formatHora } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
@@ -10,6 +10,7 @@ import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Vacio, display, h2 } from '@/components/cuenta/piezas.tsx'
 import { CambioEstado } from '@/components/oficial/CambioEstado.tsx'
 import { EstadoBadge, Fotograma, Monto, PastillaTinta, Placa } from '@/components/vc/index.tsx'
+import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 
 const fechaHora = (iso: string) => `${formatFecha(iso)} ${formatHora(iso)}`
 
@@ -77,6 +78,7 @@ export default function MultaDetalle() {
           {acciones.includes('VOID') && <Boton variante="pay" onClick={() => setAccion('VOID')} aria-haspopup="dialog">{ACCION.VOID}</Boton>}
           {acciones.includes('APPEAL_ACCEPT') && <Boton onClick={() => setAccion('APPEAL_ACCEPT')} aria-haspopup="dialog">{ACCION.APPEAL_ACCEPT}</Boton>}
           {acciones.includes('APPEAL_REJECT') && <Boton variante="outline" onClick={() => setAccion('APPEAL_REJECT')} aria-haspopup="dialog">{ACCION.APPEAL_REJECT}</Boton>}
+          {(m.status === 'PENDING' || m.status === 'OVERDUE') && <BotonReenviar enviar={() => reenviarNotificacion(m.id)} onHecho={(r) => setCambiada(r.fine)} />}
           {!acciones.length && <span className="rounded-control bg-gris-bg px-3.5 py-3 text-sm font-semibold text-texto-2">Estado final: no admite cambios.</span>}
         </aside>
 

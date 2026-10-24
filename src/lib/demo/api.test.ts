@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { formatBs, formatFecha, formatHora, formatMes } from '../format.ts'
 import {
   DemoError, calcularEstadisticas, getMultas, getSesion, iniciarSesion, pagarMultas, reiniciarDemo,
-  solicitarCodigo, verificarCodigo,
+  reenviarNotificacion, solicitarCodigo, verificarCodigo,
 } from './api.ts'
 import { MULTAS_DEMO } from './datos.ts'
 
@@ -110,5 +110,18 @@ describe('estadísticas', () => {
 
   it('sin multas no hay días ni fecha de inicio', () => {
     expect(calcularEstadisticas([])).toMatchObject({ total: 0, diasSinInfracciones: null, desde: null })
+  })
+})
+
+describe('reenviar notificación', () => {
+  it('reenvía las multas por pagar al teléfono de la cuenta (enmascarado) y no las demás', async () => {
+    await iniciarSesion('V99000001', 'demo1234')
+    const porPagar = (await getMultas()).find((m) => m.status === 'PENDING' || m.status === 'OVERDUE')!
+    const r = await reenviarNotificacion(porPagar.id)
+    expect(r.status).toBe('SENT')
+    expect(r.telefono).toMatch(/^04\d\d-\*\*\*\d{4}$/)
+    const cerrada = (await getMultas()).find((m) => m.status === 'PAID' || m.status === 'VOID')!
+    expect(await codigo(reenviarNotificacion(cerrada.id))).toBe('NO_REENVIABLE')
+    expect(await codigo(reenviarNotificacion('no-existe'))).toBe('NO_ENCONTRADA')
   })
 })

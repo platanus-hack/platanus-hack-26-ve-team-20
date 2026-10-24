@@ -3,7 +3,7 @@ import { CircleCheck, Download, SearchX } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { DemoError } from '@/lib/demo/api.ts'
-import { accionesPermitidas, listarMultas, listarTodas, type MultaOficial } from '@/lib/oficial/api.ts'
+import { accionesPermitidas, listarMultas, listarTodas, reenviarNotificacion, type MultaOficial } from '@/lib/oficial/api.ts'
 import { descargarCsv } from '@/lib/oficial/csv.ts'
 import { TIPO } from '@/lib/etiquetas.ts'
 import { formatFecha, formatHora } from '@/lib/format.ts'
@@ -13,6 +13,7 @@ import { cx, enlace, input, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Titulo, Vacio } from '@/components/cuenta/piezas.tsx'
 import { CambioEstado } from '@/components/oficial/CambioEstado.tsx'
 import { EstadoBadge, Monto, Placa } from '@/components/vc/index.tsx'
+import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 
 export default function MultasOficial() {
   // Los filtros viven en la URL (?cedula=&placa=): se pueden compartir y sobreviven a "volver".
@@ -150,6 +151,10 @@ function Resultado({ cedula, placa }: { cedula: string; placa: string }) {
     </button>
   )
 
+  const reenviar = (m: MultaOficial) => (m.status === 'PENDING' || m.status === 'OVERDUE') && (
+    <BotonReenviar compacto enviar={() => reenviarNotificacion(m.id)} descripcion={`${m.plate} del ${formatFecha(m.occurredAt)}`} />
+  )
+
   return (
     <section aria-label="Resultado" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -183,6 +188,7 @@ function Resultado({ cedula, placa }: { cedula: string; placa: string }) {
                   <span className="flex flex-col items-start">
                     <Link to={`/oficial/multas/${m.id}`} state={volver} aria-label={`Ver detalle de la multa de ${m.plate} del ${formatFecha(m.occurredAt)}`} className={enlace}>Ver detalle</Link>
                     {cambiar(m)}
+                    {reenviar(m)}
                   </span>
                 </td>
               </tr>
@@ -207,7 +213,7 @@ function Resultado({ cedula, placa }: { cedula: string; placa: string }) {
               </span>
             </Link>
             {accionesPermitidas(m.status).length > 0 && (
-              <div className="border-t border-borde px-3">{cambiar(m)}</div>
+              <div className="flex flex-wrap items-start gap-x-4 border-t border-borde px-3">{cambiar(m)}{reenviar(m)}</div>
             )}
           </li>
         ))}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BUFFER_MS, CALLES_X, CALLES_Y, DETECCION_MS, POST_MS, PRE_MS, RUMBO,
-  ajustarACalle, avanzar, bitacora, choqueAlAzar, conPropio, crearRed, detectar, distancia, estadoCaptura,
+  ajustarACalle, avanzar, puestoEnCalle, bitacora, choqueAlAzar, conPropio, crearRed, detectar, distancia, estadoCaptura,
   finIncidente, formatT, normalizar, resumen, simularChoque, vista, type Estado, type Nodo,
 } from './sim.ts'
 
@@ -32,6 +32,14 @@ describe('geometría', () => {
     expect(ajustarACalle({ x: 305, y: 150 })).toEqual({ x: 300, y: 150 })
     expect(ajustarACalle({ x: 420, y: 236 })).toEqual({ x: 420, y: 240 })
     expect(ajustarACalle({ x: 0, y: 0 })).toEqual({ x: 100, y: 80 })
+  })
+
+  it('puestoEnCalle pone a todos en la misma calle, uno junto al otro y dentro del mapa', () => {
+    const puestos = [0, 1, 2, 3, 30].map(puestoEnCalle)
+    expect(new Set(puestos.map((p) => p.y)).size).toBe(1)
+    expect(puestos.slice(0, 4).map((p) => p.x)).toEqual([260, 305, 350, 395])
+    expect(puestos.at(-1)?.x).toBe(CALLES_X.at(-1))
+    for (const p of puestos) expect(ajustarACalle(p)).toEqual(p)
   })
 
   it('formatea tiempos relativos al choque', () => {
