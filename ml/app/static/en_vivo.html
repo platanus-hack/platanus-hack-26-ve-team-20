@@ -375,10 +375,10 @@ function agregarMulta(m) {
   tarjetas.set(m.ref, el);
 }
 
-// Si el registro en el sistema no está configurado, la multa queda como "Detectada" (sin error en pantalla).
+// Si no se pudo guardar en el sistema, la tarjeta lo dice (ámbar) y el motivo queda en el title.
 function actualizarRegistro(r) {
   const chip = tarjetas.get(r.ref)?.querySelector('.chip'); if (!chip) return;
-  if (!r.ok) { chip.title = r.error || ''; return; }
+  if (!r.ok) { chip.className = 'chip rev'; chip.textContent = 'No se guardó'; chip.title = r.error || ''; return; }
   const revision = r.status === 'NEEDS_REVIEW';
   chip.className = 'chip ' + (revision ? 'rev' : 'ok');
   chip.textContent = revision ? 'A revisión humana' : (r.fineId ? 'Multa emitida' : 'Registrada');

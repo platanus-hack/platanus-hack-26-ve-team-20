@@ -4,7 +4,7 @@ import { assignDemoOwner, demoOwnerCedulas, ownerFor } from './demo-owners.ts'
 // Cédulas inventadas (las reales van solo en DEMO_DUENOS_CEDULAS, fuera del repo).
 const DUENOS = ['V11111111', 'V22222222']
 
-function fakeDb(opts: { existe?: boolean; persona?: boolean; choque?: boolean } = {}) {
+function fakeDb(opts: { existe?: boolean; persona?: boolean; choque?: boolean; reciente?: boolean } = {}) {
   return {
     vehicle: {
       findUnique: vi.fn(async () => (opts.existe ? { id: 'veh_x' } : null)),
@@ -14,7 +14,7 @@ function fakeDb(opts: { existe?: boolean; persona?: boolean; choque?: boolean } 
       }),
     },
     person: { findUnique: vi.fn(async ({ where }: { where: { cedula: string } }) => (opts.persona === false ? null : { id: `per_${where.cedula}` })) },
-    auditLog: { create: vi.fn(async () => ({})) },
+    auditLog: { create: vi.fn(async () => ({})), findFirst: vi.fn(async () => (opts.reciente ? { id: 'aud_1' } : null)) },
   }
 }
 
@@ -51,9 +51,29 @@ describe('assignDemoOwner', () => {
     ['la placa ya está registrada', { existe: true }, DUENOS],
     ['el dueño no existe en la base', { persona: false }, DUENOS],
     ['otra multa la registró al mismo tiempo', { choque: true }, DUENOS],
+    ['ese dueño ya recibió una placa nueva hace menos de 2 minutos (tope anti-spam)', { reciente: true }, DUENOS],
   ] as const)('no asigna si %s', async (_caso, opts, duenos) => {
     const db = fakeDb(opts)
     expect(await assignDemoOwner(db as never, 'AB123CD', duenos)).toBeNull()
     expect(db.auditLog.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('tope anti-spam', () => {
+  it('busca la última asignación de ESE dueño dentro de la ventana', async () => {
+    const db = fakeDb()
+    const antes = Date.now()
+    await assignDemoOwner(db as never, 'AB123CD', DUENOS, 120_000)
+    const where = (db.auditLog.findFirst.mock.calls[0] as unknown as [{ where: { action: string; after: unknown; createdAt: { gt: Date } } }])[0].where
+    expect(where.action).toBe('DEMO_VEHICLE_ASSIGNED')
+    expect(where.after).toEqual({ path: ['ownerId'], equals: `per_${ownerFor('AB123CD', DUENOS)}` })
+    expect(antes - where.createdAt.gt.getTime()).toBeGreaterThanOrEqual(119_000)
+  })
+
+  it('la espera se configura en minutos con DEMO_ESPERA_MIN (2 por defecto)', async () => {
+    const { esperaEntreAsignacionesMs } = await import('./demo-owners.ts')
+    expect(esperaEntreAsignacionesMs({})).toBe(120_000)
+    expect(esperaEntreAsignacionesMs({ DEMO_ESPERA_MIN: '5' })).toBe(300_000)
+    expect(esperaEntreAsignacionesMs({ DEMO_ESPERA_MIN: '0' })).toBe(0)
   })
 })
