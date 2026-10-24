@@ -282,6 +282,11 @@ function dibujarLupas(g, r) {
     // recuadro ampliado
     g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(ix - 4, iy - 4, iw + 8, alto + 8);
     g.drawImage(img, ix, iy, iw, ih);
+    if (rel.realce) {  // transparencia: la imagen de la lupa fue realzada (la evidencia guarda la original)
+      g.font = '600 11px system-ui, sans-serif'; const t = 'realce', tw = g.measureText(t).width + 8;
+      g.fillStyle = 'rgba(242,183,5,.9)'; g.fillRect(ix + iw - tw, iy + ih - 15, tw, 15);
+      g.fillStyle = '#000'; g.fillText(t, ix + iw - tw + 4, iy + ih - 4);
+    }
     g.strokeStyle = '#39ff6a'; g.lineWidth = 4; const e = 12;
     for (const [cx, cy, dx, dy] of [[ix - 4, iy - 4, 1, 1], [ix + iw + 4, iy - 4, -1, 1], [ix - 4, iy + ih + 4, 1, -1], [ix + iw + 4, iy + ih + 4, -1, -1]]) {
       g.beginPath(); g.moveTo(cx + dx * e, cy); g.lineTo(cx, cy); g.lineTo(cx, cy + dy * e); g.stroke();

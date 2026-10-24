@@ -23,6 +23,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
 from . import pipeline
+from .realce import NITIDEZ_MIN, nitidez, puntaje, realzar
 from .schemas import Calibracion
 
 router = APIRouter()
@@ -84,6 +85,7 @@ class Sesion:
         self.detector_placas = detector_placas
         self.lupa, self.n = True, 0
         self._lupa_ultimo: dict[int, int] = {}  # id de tracking → cuadro del último refresco
+        self._placa_mejor: dict[int, tuple[float, Any]] = {}  # id → (puntaje, recorte ORIGINAL más nítido)
         self.registrar = registrar if registrar is not None else registrar_en_vercel
         self.estado, self.linea_y, self.hacia_camara = "verde", 0.6, False
         self.motor: Any = None
@@ -168,13 +170,24 @@ class Sesion:
             recorte = frame[max(0, int(y1 + py1 - my)):int(y1 + py2 + my), max(0, int(x1 + px1 - mx)):int(x1 + px2 + mx)]
             if recorte.size == 0:
                 continue
-            escala = LUPA_ALTO_PX / recorte.shape[0]
-            mini = cv2.resize(recorte, (max(1, round(recorte.shape[1] * escala)), LUPA_ALTO_PX), interpolation=cv2.INTER_CUBIC)
+            # Mejor cuadro: solo se reemplaza si este recorte es más nítido/grande que el guardado.
+            pts, mejor = puntaje(recorte), self._placa_mejor.get(c["id"])
+            if mejor is not None and pts <= mejor[0]:
+                continue
+            self._placa_mejor[c["id"]] = (pts, recorte.copy())
+            while len(self._placa_mejor) > 300:  # sesiones largas: se olvidan los vehículos más viejos
+                self._placa_mejor.pop(next(iter(self._placa_mejor)))
+            # Si ni el mejor cuadro es nítido (carro rápido), se muestra realzado y marcado como tal.
+            con_realce = nitidez(recorte) < NITIDEZ_MIN
+            vista = realzar(recorte) if con_realce else recorte
+            escala = LUPA_ALTO_PX / vista.shape[0]
+            mini = cv2.resize(vista, (max(1, round(vista.shape[1] * escala)), LUPA_ALTO_PX), interpolation=cv2.INTER_CUBIC)
             ok, jpg = cv2.imencode(".jpg", mini, [cv2.IMWRITE_JPEG_QUALITY, 85])
             if ok:
                 vw, vh = x2 - x1, y2 - y1
                 c["placa"] = {"x": round(px1 / vw, 4), "y": round(py1 / vh, 4), "w": round((px2 - px1) / vw, 4),
-                              "h": round((py2 - py1) / vh, 4), "jpg": base64.b64encode(jpg.tobytes()).decode()}
+                              "h": round((py2 - py1) / vh, 4), "jpg": base64.b64encode(jpg.tobytes()).decode(),
+                              "realce": con_realce}
 
     def procesar(self, jpg: bytes) -> dict[str, Any]:
         frame = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
@@ -207,12 +220,20 @@ class Sesion:
                 "confianza": float(m.get("confianza_placa", 0)), "votos": int(m.get("lecturas_validas", 0)),
                 "crudas": [str(x) for x in m.get("lecturas_crudas", [])],
                 "fotoVehiculo": pipeline._b64(carpeta / "vehiculo.jpg", 480),
-                "fotoPlaca": pipeline._b64(carpeta / "placa.jpg"),
+                # La foto de la placa es el mejor cuadro ORIGINAL de ese vehículo (sin realce); si no hay, la del motor.
+                "fotoPlaca": self._foto_placa(int(m["id"])) or pipeline._b64(carpeta / "placa.jpg"),
             }
             listas.append(multa)
             escena = pipeline._b64(carpeta / "escena.jpg", pipeline.ESCENA_MAX_ANCHO)
             threading.Thread(target=self._registrar, args=(multa, escena), daemon=True).start()
         return listas
+
+    def _foto_placa(self, track_id: int) -> str | None:
+        mejor = self._placa_mejor.get(track_id)
+        if mejor is None:
+            return None
+        ok, jpg = cv2.imencode(".jpg", mejor[1], [cv2.IMWRITE_JPEG_QUALITY, 92])
+        return base64.b64encode(jpg.tobytes()).decode() if ok else None
 
     def _registrar(self, multa: dict[str, Any], escena: str | None) -> None:
         try:

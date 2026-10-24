@@ -14,6 +14,7 @@ from typing import Any
 
 import cv2
 
+from .realce import con_realce
 from .schemas import (
     Box, Calibracion, ClipInfo, CruceLinea, Incidente, KeyFrame, Placa, PredictRequest, PredictResponse, Track,
     VehiculoIncidente,
@@ -26,6 +27,10 @@ EVIDENCE_DIR = Path(os.getenv("ML_EVIDENCE_DIR", ML_DIR / "evidencias"))
 # Sin vehiculos.pt: YOLO genérico de COCO (se descarga solo). Sin placas.pt la placa sale "NO LEIDA".
 USAR_COCO = os.getenv("ML_USAR_COCO", "false") == "true"
 MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "vc-0.1") + ("-coco" if USAR_COCO else "")
+# Realce de placas borrosas antes del OCR (app/realce.py), apagado por defecto: medido en 11 clips del puente
+# no mejoró la lectura (cambió lecturas por otras igual de erradas); el límite es el OCR, no la nitidez.
+# ML_REALCE=true lo activa. El realce sí se usa en la lupa en vivo (marcado como "realce").
+REALCE = os.getenv("ML_REALCE", "false") == "true"
 # Apagada por defecto: en video real dio solo falsas alarmas (un vehículo de cerca o desde arriba). ML_CHOQUES=true la activa.
 CHOQUES_ACTIVOS = os.getenv("ML_CHOQUES", "false") == "true"
 # Umbral sugerido por el notebook de choques (INTEGRACION_CAPA_CHOQUES.md §8); calibrar en el sitio de la demo.
@@ -68,6 +73,8 @@ def crear_motor(**kwargs: Any) -> Any:
     conf_placas = kwargs.pop("conf_placas", 0.30)
     lector = (LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas,
                                        conf=conf_placas) if placas.exists() else None)
+    if lector is not None and REALCE:
+        lector = con_realce(lector)  # placas borrosas: el OCR lee también la versión realzada
     return MotorInfracciones(
         pesos_vehiculos="yolo11n.pt" if USAR_COCO else str(WEIGHTS_DIR / "vehiculos.pt"),
         lector_placas=lector,

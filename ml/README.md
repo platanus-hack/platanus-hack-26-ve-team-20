@@ -69,6 +69,7 @@ El código del motor (`ml/motor/`) ya está en el repo, extraído de `deteccion_
 | `ML_SERVICE_TOKEN` | — (obligatoria) | Bearer que envía `lib/vision/ml-client.ts`. Sin ella todo `/predict` da 401 |
 | `ML_DEVICE` | `cpu` | `0`, `mps` o `cpu` |
 | `ML_USAR_COCO` | `false` | `true` = YOLO de COCO sin `vehiculos.pt` (pruebas) |
+| `ML_REALCE` | `false` | `true` = realza las placas borrosas antes del OCR (medido: no mejora con EasyOCR) |
 | `ML_CHOQUES` | `false` | `true` = activa `weights/choques.pt` (dio falsas alarmas en video real; apagada para la demo) |
 | `ML_MODEL_VERSION` | `vc-0.1` | Va en cada `VisionResult` |
 | `ML_MOTOR_DIR`, `ML_WEIGHTS_DIR`, `ML_EVIDENCE_DIR` | `ml/motor`, `ml/weights`, `ml/evidencias` | Rutas |
