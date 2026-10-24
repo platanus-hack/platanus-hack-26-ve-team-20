@@ -129,9 +129,9 @@ Referencia de horas de `07`: pasos 1–2 en h0–1, 3 antes de h2, 4–5 en h1�
 2. Haz solo lo del paso (skill `incremental-implementation`). Zod en todo borde; respuesta `{ ok, data }` o `{ ok: false, error }`; dinero en `amountCents`; sin `any`; solo archivos de P3 (salvo el paso 1, que es de docs).
 3. Verifica lo de la columna "Hecho cuando" y corre `pnpm lint && pnpm typecheck && pnpm test` (desde el paso 3).
 4. Marca la casilla, sube "Paso actual" y haz **un commit** con el mensaje de la tabla (Conventional Commits, en inglés como el resto del historial).
-5. `git push origin Edwjon`: el doble push lo sube a la org y al espejo, y el espejo genera el Preview de Vercel de esta rama.
+5. `git push origin Edwjon`: sube **solo** a `daniel-morillo/PlatanusHack`, que genera el Preview de Vercel de esta rama. `Edwjon` no va al repo de la org (`platanus-hack/platanus-hack-26-ve-team-20`); lo que llega a `main` en `daniel-morillo/PlatanusHack` se lleva a la org desde ahí.
 6. Los pasos con **Prod** se prueban en el Preview o en prod, no solo en local. El webhook de Meta apunta a una sola URL: déjalo en prod.
-7. **Llevar a `main`**: lo que usan los demás no les llega si solo está en esta rama. Abrir PR de `Edwjon` a `main` al menos después del paso 3 (P1 necesita los mocks antes de h2), del 9 y del 15. P1 mergea.
+7. **Llevar a `main`**: lo que usan los demás no les llega si solo está en esta rama. Abrir PR de `Edwjon` a `main` en `daniel-morillo/PlatanusHack` al menos después del paso 3 (P1 necesita los mocks antes de h2), del 9 y del 15. P1 mergea.
 8. Antes de marcar un paso: skill `superpowers-verification-before-completion`.
 
 ## 7. Decisiones a cerrar en la reunión de contratos (h1)
