@@ -7,6 +7,7 @@
 <style>
   :root { --bg:#0b0f14; --panel:#141a22; --borde:#253040; --texto:#e8eef5; --suave:#8b98a8; --rojo:#e5383b; --verde:#2fb344; --ambar:#f2b705; }
   * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
   body { margin:0; background:var(--bg); color:var(--texto); font:15px/1.4 system-ui,-apple-system,sans-serif; }
   header { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--borde); flex-wrap:wrap; }
   header h1 { font-size:17px; margin:0; } .demo { background:var(--ambar); color:#000; border-radius:4px; padding:2px 8px; font-size:12px; font-weight:700; }
@@ -15,11 +16,13 @@
   @media (max-width:860px) { main { grid-template-columns:1fr; padding:10px; } }
   .vista { background:#000; border-radius:10px; overflow:hidden; position:relative; height:70vh; }
   .vista video, .vista canvas { position:absolute; inset:0; width:100%; height:100%; }
-  .vista video { object-fit:contain; }
+  .vista video { object-fit:contain; transform-origin:50% 50%; }
+  .vista.sincronizada video { visibility:hidden; }
   .vista .vacio { position:absolute; inset:0; display:grid; place-items:center; color:var(--suave); text-align:center; padding:24px; }
   #lienzo { display:none; }
   .controles { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center; }
   button, select { font:inherit; border:1px solid var(--borde); background:var(--panel); color:var(--texto); border-radius:8px; padding:10px 16px; cursor:pointer; }
+  select { padding:8px 10px; max-width:220px; }
   .semaforo button { flex:1; min-width:110px; font-weight:800; font-size:18px; padding:14px 18px; }
   .semaforo .rojo.on { background:var(--rojo); border-color:var(--rojo); }
   .semaforo .verde.on { background:var(--verde); border-color:var(--verde); }
@@ -58,7 +61,7 @@
 
 <main id="app" hidden>
   <div>
-    <div class="vista" id="vista">
+    <div class="vista sincronizada" id="vista">
       <video id="video" playsinline muted></video>
       <canvas id="capa"></canvas>
       <div class="vacio" id="vacio">Esperando cámara…</div>
@@ -68,9 +71,15 @@
       <button class="verde on" data-estado="verde">VERDE</button>
     </div>
     <div class="controles">
+      <label>Lente <select id="lente"></select></label>
+      <label>Zoom <input id="zoom" type="range" min="1" max="4" step="0.1" value="1"> <span id="zoomValor">1.0×</span></label>
       <label>Línea de pare <input id="linea" type="range" min="0.1" max="0.9" step="0.02" value="0.6"></label>
       <label><input id="haciaCamara" type="checkbox"> los carros vienen hacia la cámara</label>
-      <label>Envío <select id="resolucion"><option value="720">720 px (rápido)</option><option value="960" selected>960 px</option><option value="1280">1280 px (mejores placas)</option></select></label>
+    </div>
+    <div class="controles">
+      <label>Envío <select id="resolucion"><option value="720">720 px (rápido)</option><option value="960">960 px</option><option value="1280" selected>1280 px (mejores placas)</option><option value="1920">1920 px (máxima, ideal en la Mac)</option></select></label>
+      <label><input id="lupa" type="checkbox" checked> lupa de placas</label>
+      <label><input id="fluida" type="checkbox"> vista fluida (cajas con retraso)</label>
       <span class="meta" id="fps"></span>
     </div>
   </div>
@@ -88,8 +97,14 @@ const $ = (id) => document.getElementById(id);
 const MAX_EN_VUELO = 3;        // cuadros en camino a la vez: con VPN/ngrok la latencia manda
 const INTERVALO_MIN_MS = 66;   // como mucho ~15 cuadros/s al servidor
 let ws, enVuelo = 0, ultimoEnvio = 0, total = 0, ultimo = performance.now(), respuestas = 0, errorServidor = '';
-let cajas = [], estado = 'verde';
+let cajas = [], estado = 'verde', zoomDigital = 1, cuadroMostrado = null, stream = null;
+const lupas = new Map();        // id de tracking → { rel, img, visto }: última placa ampliada de cada vehículo
+let nRespuesta = 0;
+const pendientes = [];         // un cuadro capturado por cada envío: el servidor responde en el mismo orden
 const tarjetas = new Map();
+
+// En la Mac (localhost) no hay red de por medio: se manda a máxima resolución, que lee mejor las placas.
+if (['localhost', '127.0.0.1'].includes(location.hostname)) $('resolucion').value = '1920';
 
 try { $('clave').value = localStorage.getItem('vc_clave') || ''; $('camara').value = localStorage.getItem('vc_camara') || 'CAM-001'; } catch {}
 
@@ -100,12 +115,33 @@ function datos() {
   return { clave, camara };
 }
 
+// Cámara en la mayor resolución que entregue el teléfono (4K si puede): el zoom digital recorta de ahí.
+async function abrirCamara(deviceId) {
+  stream?.getTracks().forEach((t) => t.stop());
+  const video = { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } };
+  if (deviceId) video.deviceId = { exact: deviceId }; else video.facingMode = { ideal: 'environment' };
+  stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });
+  const v = $('video'); v.srcObject = stream; await v.play();
+  await aplicarZoom();
+}
+
+// Lentes traseros (gran angular, teleobjetivo, ultra gran angular…): el teleobjetivo es zoom óptico real.
+async function listarLentes() {
+  const sel = $('lente'), actual = stream?.getVideoTracks()[0]?.getSettings().deviceId;
+  const camaras = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+  sel.innerHTML = '';
+  camaras.forEach((d, i) => {
+    const o = document.createElement('option');
+    o.value = d.deviceId; o.textContent = d.label || 'Cámara ' + (i + 1); o.selected = d.deviceId === actual;
+    sel.append(o);
+  });
+}
+$('lente').onchange = async () => { try { await abrirCamara($('lente').value); } catch (e) { $('estadoConexion').textContent = 'No se pudo cambiar de lente: ' + e.message; } };
+
 $('entrar').onclick = async () => {
   const { clave, camara } = datos();
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
-    $('video').srcObject = stream; await $('video').play();
-  } catch (e) { $('vacio').textContent = 'No se pudo abrir la cámara: ' + e.message; return; }
+  try { await abrirCamara(); await listarLentes(); }
+  catch (e) { $('vacio').textContent = 'No se pudo abrir la cámara: ' + e.message; return; }
   $('vacio').hidden = true; conectar(clave, camara);
 };
 
@@ -115,6 +151,7 @@ $('archivo').onchange = async () => {
   const f = $('archivo').files[0]; if (!f) return;
   const { clave, camara } = datos();
   const v = $('video'); v.srcObject = null; v.src = URL.createObjectURL(f); v.loop = true;
+  $('lente').parentElement.hidden = true;
   try { await v.play(); } catch (e) { $('vacio').textContent = 'No se pudo reproducir: ' + e.message; return; }
   $('vacio').hidden = true; conectar(clave, camara);
 };
@@ -123,41 +160,73 @@ function conectar(clave, camara) {
   ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/en-vivo/ws');
   ws.onopen = () => ws.send(JSON.stringify({ tipo: 'auth', clave, camara }));
   ws.onclose = () => { $('estadoConexion').textContent = (errorServidor || 'Desconectado') + ' — recarga para reconectar'; };
-  ws.onmessage = (ev) => {
+  ws.onmessage = async (ev) => {
     const m = JSON.parse(ev.data);
     if (m.tipo === 'error') { errorServidor = m.mensaje; $('estadoConexion').textContent = m.mensaje; return; }
     if (m.tipo === 'listo') { $('estadoConexion').textContent = 'Conectado · ' + m.modelVersion; enviarLinea(); bucle(); return; }
     if (m.tipo === 'cuadro') {
       enVuelo = Math.max(0, enVuelo - 1);
-      cajas = m.cajas || []; estado = m.estado || estado; dibujar();
+      const cuadro = await pendientes.shift();   // el cuadro exacto que analizó el servidor
+      if (cuadro) { cuadroMostrado?.close?.(); cuadroMostrado = cuadro; }
+      cajas = m.cajas || []; estado = m.estado || estado; nRespuesta++;
+      for (const k of cajas) {
+        const l = lupas.get(k.id);
+        if (k.placa) { const img = new Image(); img.src = 'data:image/jpeg;base64,' + k.placa.jpg; lupas.set(k.id, { rel: k.placa, img, visto: nRespuesta }); }
+        else if (l) l.visto = nRespuesta;
+      }
+      for (const [id, l] of lupas) if (nRespuesta - l.visto > 30) lupas.delete(id);
+      dibujar();
       m.multas.forEach(agregarMulta);
       m.registros.forEach(actualizarRegistro);
       respuestas++; const ahora = performance.now();
-      if (ahora - ultimo > 1000) { $('fps').textContent = 'detección ' + (respuestas * 1000 / (ahora - ultimo)).toFixed(1) + ' cuadros/s'; respuestas = 0; ultimo = ahora; }
+      if (ahora - ultimo > 1000) {
+        const v = $('video');
+        $('fps').textContent = `detección ${(respuestas * 1000 / (ahora - ultimo)).toFixed(1)} cuadros/s · cámara ${v.videoWidth}×${v.videoHeight}`;
+        respuestas = 0; ultimo = ahora;
+      }
     }
   };
 }
 
-// Envía cuadros sin esperar cada respuesta (hasta MAX_EN_VUELO en camino); el video se ve a su velocidad nativa.
+// Recorte que se manda: el centro del video según el zoom digital.
+function recorte() {
+  const v = $('video'), sw = v.videoWidth / zoomDigital, sh = v.videoHeight / zoomDigital;
+  return { sx: (v.videoWidth - sw) / 2, sy: (v.videoHeight - sh) / 2, sw, sh };
+}
+
+// Envía cuadros sin esperar cada respuesta (hasta MAX_EN_VUELO en camino).
 function bucle() {
   const v = $('video'), ahora = performance.now();
   if (ws && ws.readyState === 1 && enVuelo < MAX_EN_VUELO && v.videoWidth && ahora - ultimoEnvio >= INTERVALO_MIN_MS) {
     ultimoEnvio = ahora;
-    const lado = Number($('resolucion').value);
-    const escala = Math.min(1, lado / Math.max(v.videoWidth, v.videoHeight));
-    const c = $('lienzo'); c.width = Math.round(v.videoWidth * escala); c.height = Math.round(v.videoHeight * escala);
-    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    const { sx, sy, sw, sh } = recorte(), lado = Number($('resolucion').value);
+    const escala = Math.min(1, lado / Math.max(sw, sh));
+    const c = $('lienzo'); c.width = Math.round(sw * escala); c.height = Math.round(sh * escala);
+    c.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
     enVuelo++;
-    c.toBlob((b) => { if (b && ws.readyState === 1) ws.send(b); else enVuelo = Math.max(0, enVuelo - 1); }, 'image/jpeg', 0.7);
+    pendientes.push(createImageBitmap(c));  // copia del cuadro para mostrarlo con SUS cajas
+    c.toBlob((b) => {
+      if (b && ws.readyState === 1) ws.send(b);
+      else { enVuelo = Math.max(0, enVuelo - 1); pendientes.pop(); }
+    }, 'image/jpeg', 0.75);
   }
-  requestAnimationFrame(bucle);
+  // setTimeout y no requestAnimationFrame: rAF se detiene si la ventana no está a la vista.
+  setTimeout(bucle, 15);
 }
 
-// Rectángulo donde se ve el video dentro de la vista (object-fit: contain deja franjas).
-function rectVideo() {
-  const v = $('video'), W = v.clientWidth, H = v.clientHeight;
-  if (!v.videoWidth) return { x: 0, y: 0, w: W, h: H };
-  const s = Math.min(W / v.videoWidth, H / v.videoHeight), w = v.videoWidth * s, h = v.videoHeight * s;
+const sincronizada = () => !$('fluida').checked;
+$('lupa').onchange = () => { ws?.send(JSON.stringify({ tipo: 'lupa', activa: $('lupa').checked })); if (!$('lupa').checked) lupas.clear(); dibujar(); };
+$('fluida').onchange = () => { $('vista').classList.toggle('sincronizada', sincronizada()); dibujar(); };
+
+// Dónde se ve la imagen dentro de la vista (contain deja franjas). En vista fluida, el video escalado por el
+// zoom digital ocupa el mismo rectángulo que el recorte: las cajas (normalizadas al recorte) calzan igual.
+function rectImagen() {
+  const c = $('capa'), W = c.clientWidth, H = c.clientHeight;
+  let iw, ih;
+  if (sincronizada() && cuadroMostrado) { iw = cuadroMostrado.width; ih = cuadroMostrado.height; }
+  else { const v = $('video'); iw = v.videoWidth; ih = v.videoHeight; }
+  if (!iw) return { x: 0, y: 0, w: W, h: H };
+  const s = Math.min(W / iw, H / ih), w = iw * s, h = ih * s;
   return { x: (W - w) / 2, y: (H - h) / 2, w, h };
 }
 
@@ -165,7 +234,8 @@ function dibujar() {
   const c = $('capa'), dpr = window.devicePixelRatio || 1;
   c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
   const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.clientWidth, c.clientHeight);
-  const r = rectVideo(), rojo = estado === 'rojo';
+  const r = rectImagen(), rojo = estado === 'rojo';
+  if (sincronizada() && cuadroMostrado) g.drawImage(cuadroMostrado, r.x, r.y, r.w, r.h);
   // línea de pare
   const ly = r.y + Number($('linea').value) * r.h;
   g.lineWidth = 3; g.strokeStyle = rojo ? '#e5383b' : '#2fb344';
@@ -180,6 +250,7 @@ function dibujar() {
     g.fillStyle = color; g.fillRect(x, Math.max(0, y - 18), tw, 18);
     g.fillStyle = '#fff'; g.fillText(texto, x + 4, Math.max(13, y - 5));
   }
+  if ($('lupa').checked) dibujarLupas(g, r);
   // semáforo
   const sx = r.x + r.w - 30, sy = r.y + 12;
   g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(sx - 4, sy - 4, 26, 48);
@@ -187,6 +258,54 @@ function dibujar() {
   g.fillStyle = rojo ? '#333' : '#2fb344'; g.beginPath(); g.arc(sx + 9, sy + 30, 8, 0, 7); g.fill();
 }
 window.addEventListener('resize', dibujar);
+
+// Lupa de placa: recuadro ampliado al costado del vehículo, esquinas verdes y líneas amarillas hasta la placa.
+function dibujarLupas(g, r) {
+  const ocupados = [];
+  const grandes = cajas.filter((k) => lupas.get(k.id)?.img.complete).sort((a, b) => b.w * b.h - a.w * a.h).slice(0, 3);
+  for (const k of grandes) {
+    const { rel, img } = lupas.get(k.id);
+    const vx = r.x + k.x * r.w, vy = r.y + k.y * r.h, vw = k.w * r.w, vh = k.h * r.h;
+    const px = vx + rel.x * vw, py = vy + rel.y * vh, pw = rel.w * vw, ph = rel.h * vh;
+    const iw = Math.min(170, r.w * 0.34), ih = Math.min(76, iw * img.height / Math.max(1, img.width));
+    // Sin texto: la placa ampliada se lee sola; la lectura del OCR va en la lista (puede venir de otro recorte).
+    const alto = ih;
+    let ix = vx - iw - 16 >= r.x ? vx - iw - 16 : Math.min(vx + vw + 16, r.x + r.w - iw);
+    let iy = Math.min(Math.max(r.y + 4, py - alto / 2), r.y + r.h - alto - 4);
+    for (const o of ocupados) if (Math.abs(o.y - iy) < alto && Math.abs(o.x - ix) < iw) iy = o.y + o.alto + 6;
+    ocupados.push({ x: ix, y: iy, alto });
+    // marco de la placa en el vehículo y líneas hasta la lupa
+    g.strokeStyle = '#39ff6a'; g.lineWidth = 2; g.strokeRect(px, py, pw, ph);
+    const lado = ix < px ? ix + iw : ix;
+    g.strokeStyle = '#ffe14d'; g.lineWidth = 2.5;
+    g.beginPath(); g.moveTo(lado, iy + 4); g.lineTo(px + pw / 2, py + ph / 2); g.lineTo(lado, iy + ih - 4); g.stroke();
+    // recuadro ampliado
+    g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(ix - 4, iy - 4, iw + 8, alto + 8);
+    g.drawImage(img, ix, iy, iw, ih);
+    g.strokeStyle = '#39ff6a'; g.lineWidth = 4; const e = 12;
+    for (const [cx, cy, dx, dy] of [[ix - 4, iy - 4, 1, 1], [ix + iw + 4, iy - 4, -1, 1], [ix - 4, iy + ih + 4, 1, -1], [ix + iw + 4, iy + ih + 4, -1, -1]]) {
+      g.beginPath(); g.moveTo(cx + dx * e, cy); g.lineTo(cx, cy); g.lineTo(cx, cy + dy * e); g.stroke();
+    }
+  }
+}
+
+// Zoom: óptico si la cámara lo permite (más nítido); si no, digital: se recorta el centro de la imagen en
+// máxima resolución, así los carros llegan más grandes al modelo (p. ej. desde un puente).
+async function aplicarZoom() {
+  const z = Number($('zoom').value), v = $('video');
+  $('zoomValor').textContent = z.toFixed(1) + '×';
+  const pista = v.srcObject?.getVideoTracks?.()[0], cap = pista?.getCapabilities?.() || {};
+  zoomDigital = z;
+  if (cap.zoom && z > 1) {
+    try {
+      await pista.applyConstraints({ advanced: [{ zoom: Math.min(cap.zoom.max, Math.max(cap.zoom.min, z)) }] });
+      zoomDigital = 1;
+    } catch {}
+  }
+  v.style.transform = zoomDigital > 1 ? `scale(${zoomDigital})` : '';
+  dibujar();
+}
+$('zoom').oninput = aplicarZoom;
 
 document.querySelectorAll('.semaforo button').forEach((b) => b.onclick = () => {
   document.querySelectorAll('.semaforo button').forEach((x) => x.classList.toggle('on', x === b));

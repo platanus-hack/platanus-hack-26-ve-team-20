@@ -1,8 +1,10 @@
 import { Check } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { esPagable, getMultas, getSesion } from '@/lib/demo/api.ts'
 import { formatBs, formatCedula } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
+import { useConteo } from '@/hooks/useConteo.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx, enlace, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, ListaMultas, Pagina, SkeletonLista, Titulo } from '@/components/cuenta/piezas.tsx'
@@ -22,6 +24,8 @@ export default function Inicio() {
   const pagadas = (multas ?? []).filter((m) => m.status === 'PAID')
   const total = pend.reduce((t, m) => t + m.amountCents, 0)
   const vencidas = pend.filter((m) => m.status === 'OVERDUE').length
+  // El total sube de 0 a su valor al llegar (700 ms); el lector de pantalla lee el monto final.
+  const totalVisible = useConteo(total)
 
   return (
     <Pagina>
@@ -35,15 +39,15 @@ export default function Inicio() {
       {multas && (
         <div className="grid gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
           {pend.length > 0 ? (
-            <section aria-label="Por pagar" className="tinta flex flex-col gap-6 rounded-card bg-tinta p-6 text-card shadow-card lg:col-span-5 lg:p-7">
+            <section aria-label="Por pagar" className="tinta entra flex flex-col gap-6 rounded-card bg-tinta p-6 text-card shadow-card lg:col-span-5 lg:p-7">
               <div className="flex flex-col gap-1">
                 <span className="text-sm text-niebla">Por pagar</span>
-                <span className="num font-mono text-[40px] leading-[44px] font-bold">{formatBs(total)}</span>
+                <span className="num font-mono text-[40px] leading-[44px] font-bold" aria-label={formatBs(total)}>{formatBs(totalVisible)}</span>
                 <span className="flex flex-wrap items-center gap-2 text-sm text-niebla">
                   {pend.length} {pend.length === 1 ? 'multa' : 'multas'}
                   {vencidas > 0 && (
                     <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-tinta-2 px-2.5 text-caption font-semibold text-card">
-                      <span aria-hidden="true" className="size-1.5 rounded-full bg-rojo" />
+                      <span aria-hidden="true" className="latido size-1.5 rounded-full bg-rojo" />
                       {vencidas === 1 ? '1 vencida' : `${vencidas} vencidas`}
                     </span>
                   )}
@@ -65,7 +69,7 @@ export default function Inicio() {
             </section>
           )}
 
-          <section aria-labelledby="lista-t" className="flex flex-col gap-3 lg:col-span-7">
+          <section aria-labelledby="lista-t" className="entra flex flex-col gap-3 lg:col-span-7" style={{ '--i': 2 } as CSSProperties}>
             <div className="flex items-center justify-between">
               <h2 id="lista-t" className="text-h3 font-semibold">{pend.length ? 'Pendientes' : 'Historial'}</h2>
               <Link to="/multas" className={enlace}>Ver todas</Link>

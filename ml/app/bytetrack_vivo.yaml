@@ -1,0 +1,10 @@
+# ByteTrack para el modo en vivo: por la red llegan pocos cuadros por segundo (5–10) y entre dos cuadros un
+# carro avanza mucho. Se mantiene vivo un vehículo perdido más tiempo y se asocia con más tolerancia, para
+# que no reaparezca con otro ID ya pasada la línea (y se pierda el cruce). Base: ultralytics bytetrack.yaml.
+tracker_type: bytetrack
+track_high_thresh: 0.25
+track_low_thresh: 0.1
+new_track_thresh: 0.3 # un poco más alto que el defecto (0.25): menos IDs nuevos falsos cuando se pierde uno
+track_buffer: 90 # defecto 30: a ~6 cuadros/s son ~15 s de memoria en vez de 5
+match_thresh: 0.9 # defecto 0.8: acepta asociar con menos solapamiento (el carro se movió más entre cuadros)
+fuse_score: True

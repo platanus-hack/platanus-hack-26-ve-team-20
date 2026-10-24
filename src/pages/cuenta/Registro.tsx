@@ -85,7 +85,7 @@ export default function Registro() {
           <Campo id="r-mail" label={<>Correo <span className="font-normal text-texto-2">(opcional)</span></>}>
             <input id="r-mail" type="email" autoComplete="email" placeholder="usted@correo.com" value={f.correo} onChange={set('correo')} className={input()} />
           </Campo>
-          <Boton type="submit">Continuar</Boton>
+          <Boton type="submit" variante="acceso">Continuar</Boton>
           <div className="flex items-center justify-center gap-1.5 text-sm text-texto-2">
             ¿Ya tiene cuenta?<Link to="/ingresar" className={enlace}>Entrar</Link>
           </div>
@@ -111,7 +111,7 @@ export default function Registro() {
           </Campo>
           {claveMal && <span id="r-clave-err" role="alert" className="-mt-2 text-caption text-rojo-osc">{claveTexto}</span>}
           {/* Neutro: según el servidor la cuenta se crea ya o se pide el código por WhatsApp (la pantalla siguiente lo dice). */}
-          <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Creando cuenta…' : 'Crear cuenta'}</Boton>
+          <Boton type="submit" variante="acceso" disabled={enviando} aria-busy={enviando}>{enviando ? 'Creando cuenta…' : 'Crear cuenta'}</Boton>
         </div>
       )}
     </form>
