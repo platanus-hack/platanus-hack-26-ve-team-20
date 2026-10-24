@@ -216,16 +216,16 @@
 /* Ilustración de acceso: un carro se aleja por el carril derecho y otro se acerca por el izquierdo.
    Las posiciones siguen la perspectiva de la carretera (punto de fuga en 320,360 del dibujo). */
 @keyframes se-aleja {
-  0% { transform: translate(470px, 548px) scale(1.15); opacity: 0; }
+  0% { transform: translate(480px, 560px) scale(1.5); opacity: 0; }
   6% { opacity: 1; }
   85% { opacity: 1; }
-  100% { transform: translate(333px, 363px) scale(0.04); opacity: 0; }
+  100% { transform: translate(333px, 363px) scale(0.052); opacity: 0; }
 }
 @keyframes se-acerca {
-  0% { transform: translate(308px, 363px) scale(0.04); opacity: 0; }
+  0% { transform: translate(308px, 363px) scale(0.052); opacity: 0; }
   12% { opacity: 1; }
   92% { opacity: 1; }
-  100% { transform: translate(140px, 560px) scale(1.25); opacity: 0; }
+  100% { transform: translate(130px, 580px) scale(1.62); opacity: 0; }
 }
 .carro-se-aleja { animation: se-aleja 9s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; opacity: 0; }
 .carro-se-acerca { animation: se-acerca 7s cubic-bezier(0.6, 0, 0.8, 0.4) 3.5s infinite; opacity: 0; }

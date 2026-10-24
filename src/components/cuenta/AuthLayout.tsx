@@ -80,8 +80,8 @@ export default function AuthLayout() {
                   <stop offset="1" stopColor="#F97316" stopOpacity=".16" />
                 </linearGradient>
                 <linearGradient id="asfalto" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#5A5B5F" />
-                  <stop offset="1" stopColor="#34363A" />
+                  <stop offset="0" stopColor="#3F4145" />
+                  <stop offset="1" stopColor="#24262A" />
                 </linearGradient>
                 {/* Grano muy suave para que el cielo no se vea plano. */}
                 <filter id="grano" x="0" y="0" width="100%" height="100%">
@@ -150,8 +150,8 @@ export default function AuthLayout() {
               <circle className="luz-verde" cx="473" cy="249" r="8" fill="#3DD68C" />
             </svg>
           </div>
-          <div className="px-10 pt-8 pb-10">
-            <span className="font-display text-display font-bold tracking-[-0.02em]">{LEMA}</span>
+          <div className="px-10 pt-6 pb-8">
+            <span className="font-display text-h1-m font-bold tracking-[-0.02em]">{LEMA}</span>
           </div>
         </div>
       </div>
