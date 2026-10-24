@@ -22,6 +22,7 @@ import Registro from './pages/cuenta/Registro.tsx'
 import RegistroCodigo from './pages/cuenta/RegistroCodigo.tsx'
 import Vehiculos from './pages/cuenta/Vehiculos.tsx'
 import IngresarOficial from './pages/oficial/Ingresar.tsx'
+import InvitacionOficial from './pages/oficial/Invitacion.tsx'
 import MultaOficial from './pages/oficial/MultaDetalle.tsx'
 import MultasOficial from './pages/oficial/Multas.tsx'
 
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/registro/codigo" element={<RegistroCodigo />} />
         <Route path="/oficial/ingresar" element={<IngresarOficial />} />
+        <Route path="/oficial/invitacion" element={<InvitacionOficial />} />
       </Route>
 
       {/* Historial de multas del policía (docs/12) */}

@@ -2,7 +2,7 @@ import { Clock } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { DemoError } from '@/lib/demo/api.ts'
-import { getSesionOficial, iniciarSesionOficial } from '@/lib/oficial/api.ts'
+import { CORREO_DEMO, USA_AUTH_REAL, getSesionOficial, iniciarSesionOficial } from '@/lib/oficial/api.ts'
 import { Boton, Campo } from '@/components/ui/index.tsx'
 import { input } from '@/components/ui/estilos.ts'
 import { display } from '@/components/cuenta/piezas.tsx'
@@ -12,7 +12,7 @@ const INICIO = '/oficial/multas'
 export default function Ingresar() {
   const navigate = useNavigate()
   const st = useLocation().state as { vencida?: boolean; desde?: string } | null
-  const [correo, setCorreo] = useState('oficial.a@example.com')
+  const [correo, setCorreo] = useState(USA_AUTH_REAL ? '' : CORREO_DEMO)
   const [clave, setClave] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +29,13 @@ export default function Ingresar() {
       // Solo rutas del oficial: no se reenvía a una ruta ajena que venga en el estado.
       navigate(st?.desde?.startsWith('/oficial/') ? st.desde : INICIO, { replace: true })
     } catch (err) {
-      setError(err instanceof DemoError && err.code === 'CREDENCIALES' ? 'Correo o contraseña incorrectos.' : 'No pudimos conectar. Intente de nuevo.')
+      const code = err instanceof DemoError ? err.code : 'RED'
+      // VALIDACION = correo mal escrito (400): para quien lo escribió es lo mismo que credenciales erróneas.
+      setError(
+        code === 'CREDENCIALES' || code === 'VALIDACION' ? 'Correo o contraseña incorrectos.'
+          : code === 'LIMITE' ? 'Demasiados intentos, espere unos minutos.'
+            : 'No pudimos conectar. Revise su conexión e intente de nuevo.',
+      )
       setEnviando(false)
     }
   }
@@ -63,7 +69,7 @@ export default function Ingresar() {
         {error && <span id="o-clave-err" role="alert" className="text-caption text-rojo-osc">{error}</span>}
       </Campo>
       <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</Boton>
-      <span className="text-center text-caption text-texto-3">Prototipo: oficial.a@example.com con la contraseña «demo1234»; «clave-mal» simula una clave incorrecta.</span>
+      {!USA_AUTH_REAL && <span className="text-center text-caption text-texto-3">Prototipo: oficial.a@example.com con la contraseña «demo1234»; «clave-mal» simula una clave incorrecta.</span>}
     </form>
   )
 }

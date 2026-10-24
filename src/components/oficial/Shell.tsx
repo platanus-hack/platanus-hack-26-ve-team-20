@@ -39,10 +39,10 @@ function Shell() {
             </Link>
           </nav>
           <div className="mt-auto flex items-center gap-2.5 rounded-control bg-tinta-2 p-3 text-card">
-            <span aria-hidden="true" className="flex size-9 flex-none items-center justify-center rounded-full bg-tinta-3 font-mono text-[13px] font-bold text-brand">OA</span>
+            <span aria-hidden="true" className="flex size-9 flex-none items-center justify-center rounded-full bg-tinta-3 font-mono text-[13px] font-bold text-brand">{iniciales(sesion?.name ?? '')}</span>
             <span className="flex min-w-0 flex-1 flex-col leading-[18px]">
-              <span className="truncate text-[13px] font-bold">{sesion?.nombre}</span>
-              <span className="text-xs text-niebla">Policía</span>
+              <span className="truncate text-[13px] font-bold">{sesion?.name}</span>
+              <span className="font-mono text-xs text-niebla">{sesion?.badge ?? 'Policía'}</span>
             </span>
             <button type="button" onClick={salir} aria-label="Cerrar sesión" className="flex size-11 items-center justify-center text-niebla hover:text-card">
               <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
@@ -72,3 +72,6 @@ function Shell() {
     </div>
   )
 }
+
+/** "Oficial Nuevo (ejemplo)" → "ON". */
+const iniciales = (nombre: string) => nombre.split(/\s+/).filter((p) => /^\p{L}/u.test(p)).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('')

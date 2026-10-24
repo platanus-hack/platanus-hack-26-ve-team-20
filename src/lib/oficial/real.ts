@@ -4,11 +4,6 @@ import { normalizeCedula, normalizePlate, type ApiResponse } from '@contracts'
 import { DemoError, type DemoErrorCode } from '../demo/demo.ts'
 import { getSesionOficial, vencerSesionOficial, type Accion, type Filtros, type MultaDetalle, type PaginaMultas } from './demo.ts'
 
-// shortcut: la sesión sigue siendo la de demo; se reemplaza cuando llegue el login del oficial por invitación.
-export {
-  alVencerSesionOficial, cerrarSesionOficial, getSesionOficial, iniciarSesionOficial, sesionOficialVencio,
-} from './demo.ts'
-
 const POR_CODE: Record<string, DemoErrorCode> = {
   UNAUTHORIZED: 'SESION', NOT_FOUND: 'NO_ENCONTRADA', INVALID_TRANSITION: 'TRANSICION', VALIDATION_ERROR: 'VALIDACION',
 }

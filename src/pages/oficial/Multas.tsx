@@ -1,5 +1,5 @@
 import { normalizeCedula, normalizePlate } from '@contracts'
-import { Download, SearchX } from 'lucide-react'
+import { CircleCheck, Download, SearchX } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { DemoError } from '@/lib/demo/api.ts'
@@ -21,9 +21,17 @@ export default function MultasOficial() {
   const placa = params.get('placa') ?? ''
   const clave = `${cedula}|${placa}`
   const aplicar = (c: string, p: string) => setParams(new URLSearchParams([...(c ? [['cedula', c]] : []), ...(p ? [['placa', p]] : [])]))
+  // Viene de aceptar la invitación (estado de la navegación, no de la URL).
+  const bienvenida = (useLocation().state as { bienvenida?: string } | null)?.bienvenida
 
   return (
     <Pagina>
+      {bienvenida && (
+        <div role="status" className="flex gap-2.5 rounded-control bg-verde-bg px-3.5 py-3 text-sm text-verde-osc">
+          <CircleCheck size={18} strokeWidth={1.75} aria-hidden="true" className="mt-px flex-none" />
+          Su cuenta está lista. Su placa es {bienvenida}.
+        </div>
+      )}
       <Titulo despues="La más reciente primero. Cédulas enmascaradas.">Historial de multas</Titulo>
       <Filtros key={`f${clave}`} cedula={cedula} placa={placa} onAplicar={aplicar} />
       <Resultado key={`r${clave}`} cedula={cedula} placa={placa} />

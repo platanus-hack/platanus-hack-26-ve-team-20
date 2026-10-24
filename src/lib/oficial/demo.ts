@@ -2,8 +2,8 @@
 // titulares ficticios. La REAL (`real.ts`, contrato en docs/12) tiene las mismas firmas; `api.ts` elige una u otra.
 // Los tipos son los DTO de docs/12: la cédula sale SIEMPRE enmascarada y nunca hay nombre ni teléfono (docs/08).
 import {
-  maskCedula, normalizeCedula, normalizePlate,
-  type ActorType, type EvidenceKind, type FineStatus, type LightState, type ViolationType,
+  maskCedula, normalizeCedula, normalizePlate, venezuelanPhone,
+  type ActorType, type EvidenceKind, type FineStatus, type LightState, type OfficerSessionDTO, type ViolationType,
 } from '@contracts'
 import { CEDULA_DEMO, MULTAS_DEMO, VEHICULOS_DEMO, type Multa, type Vehiculo } from '../demo/datos.ts'
 import { DemoError, borrar, esperar, guardar, leer } from '../demo/demo.ts'
@@ -49,14 +49,21 @@ export interface MultaDetalle extends MultaOficial {
 
 export interface PaginaMultas { items: MultaOficial[]; nextCursor: string | null }
 export interface Filtros { cedula?: string; placa?: string; cursor?: string | null; limit?: number }
-export interface SesionOficial { correo: string; nombre: string; expira: number }
+/** Copia local NO sensible de la sesión (la de verdad es la cookie HttpOnly `vc_officer`): nunca token ni contraseña. */
+export type SesionOficial = OfficerSessionDTO & { expira: number }
+export interface Invitacion { email: string; name: string; expiresAt: string }
+export interface Aceptacion { token: string; name?: string; phone: string; password: string }
 
 export const MOTIVO_MIN = 10
+export const CLAVE_OFICIAL_MIN = 10 // como OfficerInvitationAcceptSchema
+/** Mismo formato que el servidor (`venezuelanPhone`): 0412-123 4567, +58 412 1234567… */
+export const telefonoValido = (t: string) => venezuelanPhone.safeParse(t).success
 const SESION_MS = 12 * 3600_000 // igual que SESSION_TTL_S.officer (lib/auth/session.ts); no se renueva
 const POR_PAGINA = 25
 
 export const CORREO_DEMO = 'oficial.a@example.com'
 export const CLAVE_DEMO = 'demo1234'
+export const INVITACION_DEMO = 'demo-invitacion'
 
 // ---------------------------------------------------------------- datos de ejemplo (todos ficticios)
 const L = [
@@ -129,7 +136,7 @@ export function reiniciarOficial() {
   vencio = false
 }
 
-// ---------------------------------------------------------------- sesión de demo (la reemplaza el login por invitación)
+// ---------------------------------------------------------------- sesión local (la comparten la auth demo y la real)
 const oyentes = new Set<() => void>()
 /** Avisa cuando una llamada descubre que la sesión venció (la pantalla muestra el diálogo). */
 export function alVencerSesionOficial(cb: () => void) {
@@ -158,10 +165,29 @@ export function vencerSesionOficial() {
 export async function iniciarSesionOficial(correo: string, clave: string): Promise<SesionOficial> {
   await esperar()
   if (correo.trim().toLowerCase() !== CORREO_DEMO || clave !== CLAVE_DEMO) throw new DemoError('CREDENCIALES')
+  return abrirSesionOficial({ id: 'of_demo_a', badge: 'OF-0001', name: 'Oficial A (ejemplo)', email: CORREO_DEMO })
+}
+
+/** Guarda solo los campos del DTO: lo que venga de más en la respuesta no llega al storage. */
+export function abrirSesionOficial({ id, badge, name, email }: OfficerSessionDTO): SesionOficial {
   vencio = false
-  const s = { correo: CORREO_DEMO, nombre: 'Oficial A (ejemplo)', expira: Date.now() + SESION_MS }
+  const s = { id, badge, name, email, expira: Date.now() + SESION_MS }
   guardar(K.sesion, s)
   return s
+}
+
+/** Demo: solo `demo-invitacion` es válida (vence en 24 h); cualquier otro token es inválido, como el 404 del servidor. */
+export async function verificarInvitacion(token: string): Promise<Invitacion> {
+  await esperar()
+  if (token !== INVITACION_DEMO) throw new DemoError('NO_ENCONTRADA')
+  return { email: 'nuevo.oficial@example.com', name: 'Oficial Nuevo (ejemplo)', expiresAt: new Date(Date.now() + 24 * 3600_000).toISOString() }
+}
+
+export async function aceptarInvitacion({ token, name, phone, password }: Aceptacion): Promise<SesionOficial> {
+  const inv = await verificarInvitacion(token)
+  if (!telefonoValido(phone)) throw new DemoError('VALIDACION', 'Teléfono venezolano inválido')
+  if (password.length < CLAVE_OFICIAL_MIN) throw new DemoError('VALIDACION', `La contraseña debe tener al menos ${CLAVE_OFICIAL_MIN} caracteres`)
+  return abrirSesionOficial({ id: 'of_demo_nuevo', badge: 'OF-0042', name: name?.trim() || inv.name, email: inv.email })
 }
 
 export function cerrarSesionOficial() {
@@ -250,7 +276,7 @@ export const cambiarEstado = (id: string, accion: Accion, motivo: string) => pro
     ...r,
     status: to,
     voidReason: to === 'VOID' ? reason : r.voidReason,
-    audit: [...r.audit, { at: new Date().toISOString(), actor: { type: 'OFFICER', label: s.nombre }, action: accion, from, to, reason }],
+    audit: [...r.audit, { at: new Date().toISOString(), actor: { type: 'OFFICER', label: s.name }, action: accion, from, to, reason }],
   }
   guardar(K.multas, todas.map((x) => (x.id === id ? nuevo : x)))
   return aDetalle(nuevo)
