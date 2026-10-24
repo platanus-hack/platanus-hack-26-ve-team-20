@@ -1,5 +1,5 @@
 // Datos de ejemplo de la cuenta del ciudadano (todos ficticios). Sección "Datos de ejemplo" del brief C.
-import type { FineStatus, LightState, ViolationType } from '@contracts'
+import type { EvidenceKind, FineStatus, LightState, ViolationType } from '@contracts'
 
 export interface Multa {
   id: string
@@ -18,6 +18,8 @@ export interface Multa {
   paymentReference: string | null
   voidReason: string | null
   appealedAt: string | null
+  /** Solo en multas reales (API): fotos de la infracción. Los datos de ejemplo no traen. */
+  evidence?: Array<{ kind: EvidenceKind; url: string; capturedAt: string }>
 }
 
 export interface Vehiculo {
