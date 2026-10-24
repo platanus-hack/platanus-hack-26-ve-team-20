@@ -104,7 +104,7 @@ El ciudadano crea su propia contraseña al registrarse y entra con su cédula. S
 **Solo para demos.** `CITIZEN_DEMO_CODE` (6 dígitos) junto con `DEMO_CEDULA` hacen que ese código valga para esa cédula **sin enviar nada** (la presentación no depende de la ventana de 24 h). Sin esas dos variables no existe. No debe configurarse en un entorno con datos reales.
 
 ## 0d. Invitaciones de oficiales (P1; las pantallas son de P4)
-El admin invita por correo a un oficial; el oficial abre el enlace, elige teléfono y contraseña y nace su cuenta con una placa `OF-NNNN`. Token de 256 bits (43 caracteres base64url), solo se guarda su SHA-256; vence a las 72 h, un solo uso, revocable. Invitar de nuevo al mismo correo anula la pendiente. El correo sale por Resend (`RESEND_API_KEY`, `EMAIL_FROM`; en seco con `NOTIFY_DRY_RUN` ≠ `false`). Enlace del correo: `${APP_BASE_URL}/oficial/invitacion?token=…` (**ruta del SPA que debe crear P4**). La sesión del oficial es la misma cookie `vc_officer` que usa P3 (`/api/officers/*`).
+El admin invita por correo a un oficial; el oficial abre el enlace, elige teléfono y contraseña y nace su cuenta con una placa `OF-NNNN`. Token de 256 bits (43 caracteres base64url), solo se guarda su SHA-256; vence a las 72 h, un solo uso, revocable. Invitar de nuevo al mismo correo anula la pendiente. El correo sale por SMTP (`SMTP_HOST/PORT/USER/PASS`, p. ej. Gmail con contraseña de aplicación) o, si no hay SMTP, por Resend (`RESEND_API_KEY` + `EMAIL_FROM`); en seco con `NOTIFY_DRY_RUN` ≠ `false`. Enlace del correo: `${APP_BASE_URL}/oficial/invitacion?token=…` (**ruta del SPA que debe crear P4**). La sesión del oficial es la misma cookie `vc_officer` que usa P3 (`/api/officers/*`).
 
 | Endpoint | Auth | Descripción |
 |---|---|---|
