@@ -250,6 +250,7 @@ class Sesion:
             })
             self.registros.put({"ref": multa["ref"], "ok": True, **r})
         except Exception as e:  # sin Vercel la demo en pantalla sigue funcionando
+            print(f"[en-vivo] multa {multa['placa'] or 'sin placa'} NO se guardó en la base: {e}", flush=True)
             self.registros.put({"ref": multa["ref"], "ok": False, "error": str(e)[:200]})
 
     def cerrar(self) -> None:
