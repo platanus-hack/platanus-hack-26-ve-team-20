@@ -1,11 +1,12 @@
 import { ChevronDown, ChevronLeft, Play, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { apelarMulta, esPagable, getMulta, getVehiculos, type Multa } from '@/lib/demo/api.ts'
+import { apelarMulta, esPagable, getMulta, getVehiculos, reenviarNotificacion, type Multa } from '@/lib/demo/api.ts'
 import { LUZ, TIPO } from '@/lib/etiquetas.ts'
 import { formatBs, formatFecha, formatHora } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
 import { Boton, Hoja } from '@/components/ui/index.tsx'
+import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Vacio } from '@/components/cuenta/piezas.tsx'
 import { EST } from '@/components/vc/estados.ts'
@@ -210,6 +211,7 @@ export default function MultaDetalle() {
               </Acordeon>
             </div>
             <div className="lg:hidden">{apelarEl}</div>
+            {pagable && <div className="lg:hidden"><BotonReenviar enviar={() => reenviarNotificacion(m.id)} /></div>}
             {notaEl && <div className="lg:hidden">{notaEl}</div>}
           </div>
 
@@ -221,6 +223,7 @@ export default function MultaDetalle() {
             </div>
             {pagable && <Boton variante="pay" onClick={pagar}>Pagar {formatBs(m.amountCents)}</Boton>}
             {apelarEl}
+            {pagable && <BotonReenviar enviar={() => reenviarNotificacion(m.id)} />}
             {notaEl}
           </aside>
         </div>

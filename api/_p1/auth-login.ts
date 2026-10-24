@@ -6,7 +6,7 @@ import { LoginRequestSchema, type AdminSessionDTO } from "../../lib/contracts/in
 import { dummyHash, verifyPassword } from "../../lib/auth/password.ts";
 import { db } from "../../lib/db.ts";
 import { audit } from "../../lib/domain/audit.ts";
-import { assertUnderLimit } from "../../lib/domain/rate-limit.ts";
+import { assertUnderLimit, settleLoginAttempt } from "../../lib/domain/rate-limit.ts";
 import { assertSameOrigin, getClientIp, issueAdminSession } from "../_lib/auth.ts";
 import { ApiError, handler, sendOk } from "../_lib/respond.ts";
 
@@ -29,10 +29,17 @@ export default handler(["POST"], async (req, res) => {
   // Se verifica siempre (contra un hash falso si no existe) para no revelar qué correos existen.
   const passwordOk = await verifyPassword(password, user?.passwordHash ?? (await dummyHash()));
 
-  if (!user || !user.active || !passwordOk) {
-    await audit(db, { actor: { type: "OPERATOR", ip }, action: FAILED, entity: "AdminUser", entityId: emailKey });
-    throw new ApiError("UNAUTHORIZED", "Credenciales inválidas");
-  }
+  const good = Boolean(user && user.active && passwordOk);
+  // Contar y registrar bajo bloqueo: intentos simultáneos no pueden pasarse del máximo (ver settleLoginAttempt).
+  await settleLoginAttempt(
+    db,
+    [
+      { action: FAILED, ip, max: MAX_FAILURES_PER_IP, windowMs: WINDOW_MS, lockKey: `admin-login:ip:${ip ?? "unknown"}` },
+      { action: FAILED, entityId: emailKey, max: MAX_FAILURES_PER_EMAIL, windowMs: WINDOW_MS, lockKey: `admin-login:email:${emailKey}` },
+    ],
+    good ? null : { actor: { type: "OPERATOR", ip }, action: FAILED, entity: "AdminUser", entityId: emailKey },
+  );
+  if (!user || !good) throw new ApiError("UNAUTHORIZED", "Credenciales inválidas");
 
   await db.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await audit(db, { actor: { type: "OPERATOR", id: user.id, ip }, action: "ADMIN_LOGIN", entity: "AdminUser", entityId: user.id });

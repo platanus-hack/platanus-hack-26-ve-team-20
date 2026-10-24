@@ -1,4 +1,4 @@
-import { ChevronLeft, MessageSquare } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { DemoError, USA_API_REAL, getSesion, solicitarCodigo } from '@/lib/demo/api.ts'
@@ -45,14 +45,15 @@ export default function Registro() {
     if (enviando || claveTexto) return
     setEnviando(true)
     try {
-      await solicitarCodigo({ cedula: `${f.tipo}${f.ced}`, telefono: f.tel, correo: f.correo.trim() || null, clave: f.c1 })
-      navigate('/registro/codigo')
+      const r = await solicitarCodigo({ cedula: `${f.tipo}${f.ced}`, telefono: f.tel, correo: f.correo.trim() || null, clave: f.c1 })
+      // Sin código por WhatsApp la cuenta ya existe: se salta al paso 3.
+      navigate('/registro/codigo', r.vehiculos ? { state: { creada: r.vehiculos } } : undefined)
     } catch (err) {
       const ya = err instanceof DemoError && err.code === 'YA_REGISTRADA'
       setYaRegistrada(ya)
       // La cédula ya registrada se corrige en el paso de datos; cualquier otro fallo se muestra aquí.
       if (ya) setPaso('datos')
-      setFallo(ya ? null : err instanceof Error && err.message ? err.message : 'No pudimos enviar el código. Intente de nuevo.')
+      setFallo(ya ? null : err instanceof Error && err.message ? err.message : 'No pudimos crear la cuenta. Intente de nuevo.')
       setEnviando(false)
     }
   }
@@ -109,11 +110,8 @@ export default function Registro() {
             <input id="r-c2" type="password" autoComplete="new-password" value={f.c2} onChange={set('c2')} aria-invalid={claveMal} aria-describedby="r-clave-err" className={input(claveMal)} />
           </Campo>
           {claveMal && <span id="r-clave-err" role="alert" className="-mt-2 text-caption text-rojo-osc">{claveTexto}</span>}
-          <span className="flex gap-2 text-caption text-texto-2">
-            <MessageSquare size={16} strokeWidth={1.75} aria-hidden="true" className="mt-px flex-none" />
-            Le enviaremos un código por WhatsApp al teléfono registrado para su cédula, para que nadie abra una cuenta a su nombre.
-          </span>
-          <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Enviando código…' : 'Enviar código por WhatsApp'}</Boton>
+          {/* Neutro: según el servidor la cuenta se crea ya o se pide el código por WhatsApp (la pantalla siguiente lo dice). */}
+          <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Creando cuenta…' : 'Crear cuenta'}</Boton>
         </div>
       )}
     </form>
