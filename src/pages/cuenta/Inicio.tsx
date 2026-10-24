@@ -64,17 +64,17 @@ export default function Inicio() {
           <section aria-labelledby="total-t" className={cx(tarjeta, 'entra relative flex min-h-0 flex-col p-[18px_22px] lg:p-[24px_28px]')}>
             <p className="num font-mono text-[clamp(26px,2.9vw,44px)] leading-tight font-bold whitespace-nowrap" aria-label={formatBs(total)}>{formatBs(totalVisible)}</p>
             <h2 id="total-t" className="text-base font-normal text-texto-2">Total por pagar</h2>
-            <Link to="/multas" aria-label="Ver todas las multas" className="absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-suave text-tinta transition-colors duration-150 hover:bg-borde lg:top-6 lg:right-6">
-              <Maximize2 size={16} strokeWidth={2.4} aria-hidden="true" />
+            <Link to="/multas" aria-label="Ver todas las multas" className="group press absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-suave text-tinta transition-colors duration-150 hover:bg-borde lg:top-6 lg:right-6">
+              <Maximize2 size={16} strokeWidth={2.4} aria-hidden="true" className="transition-transform duration-200 ease-press group-hover:scale-115" />
             </Link>
             {pend.length ? (
-              <ul className="mt-auto flex min-h-0 flex-col overflow-y-auto pt-1">
+              <ul className="-mx-2 mt-auto flex min-h-0 flex-col overflow-y-auto pt-1">
                 {pend.slice(0, 2).map((m, i) => {
                   const vencida = m.status === 'OVERDUE'
                   return (
                     <li key={m.id} className={cx(i > 0 && 'hidden border-t border-borde md:block')}>
-                      <Link to={`/multas/${m.id}`} state={{ desde: 'inicio' }} className="flex items-center gap-4 py-2.5">
-                        <span className={cx('flex size-10 flex-none items-center justify-center rounded-full', vencida ? 'bg-rojo-bg text-rojo-osc' : 'bg-suave text-ambar-osc')}><IconoTipo m={m} /></span>
+                      <Link to={`/multas/${m.id}`} state={{ desde: 'inicio' }} className="press flex items-center gap-4 rounded-xl px-2 py-2.5 transition-colors duration-150 hover:bg-suave">
+                        <span className={cx('flex size-10 flex-none items-center justify-center rounded-full', vencida ? 'latido bg-rojo-bg text-rojo-osc' : 'bg-suave text-ambar-osc')}><IconoTipo m={m} /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block font-medium">{TIPO[m.type]}</span>
                           <span className={cx('block truncate text-[13px]', vencida ? 'text-rojo-osc' : 'text-texto-2')}><span className="font-mono">{m.plate}</span> · {vencida ? 'vencida el' : 'vence el'} {formatFecha(m.dueAt).slice(0, 5)}</span>
@@ -98,14 +98,16 @@ export default function Inicio() {
             <div className="relative min-h-0 flex-1">
               <svg role="img" aria-label={`Monto pagado acumulado por mes: ${formatBs(actual.cents)} en ${actual.nombre}`} viewBox="0 0 356 200" className="absolute inset-0 size-full">
               <defs><linearGradient id="barra-mes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--color-ambar)" stopOpacity=".9" /><stop offset="1" stopColor="var(--color-ambar)" stopOpacity="0" /></linearGradient></defs>
-              <rect x={actual.x - 7} y="62" width="14" height="96" rx="3" fill="url(#barra-mes)" />
-              <rect x={actual.x - 30} y="20" width="60" height="26" rx="13" fill="var(--color-ambar)" />
+              <rect className="crece" style={{ '--i': 4 } as CSSProperties} x={actual.x - 7} y="62" width="14" height="96" rx="3" fill="url(#barra-mes)" />
+              <g className="aparece" style={{ '--i': 7 } as CSSProperties}>
+                <rect x={actual.x - 30} y="20" width="60" height="26" rx="13" fill="var(--color-ambar)" />
               <text x={actual.x} y="38" textAnchor="middle" fontSize="13" fontWeight="700" fill="#0e1726" fontFamily="JetBrains Mono, monospace">{miles.format(actual.cents / 100)}</text>
               <path d={`M${actual.x - 6} 48 L${actual.x} 54 L${actual.x + 6} 48 Z`} fill="var(--color-ambar)" />
-              <polyline points={['0,' + puntos[0]!.y, ...puntos.slice(0, 6).map((p) => `${p.x},${p.y}`)].join(' ')} fill="none" stroke="var(--color-tinta)" strokeWidth="2" />
-              <polyline points={`${actual.x},${actual.y} ${puntos[6]!.x},${actual.y} 356,${actual.y}`} fill="none" stroke="var(--color-tinta)" strokeWidth="2" strokeDasharray="4 5" opacity=".45" />
-              {puntos.slice(0, 5).map((p) => <circle key={p.nombre} cx={p.x} cy={p.y} r="4" fill="var(--color-card)" stroke="var(--color-tinta)" strokeWidth="2" />)}
-              <circle cx={actual.x} cy={actual.y} r="5" fill="var(--color-tinta)" />
+              </g>
+              <polyline points={['0,' + puntos[0]!.y, ...puntos.slice(0, 6).map((p) => `${p.x},${p.y}`)].join(' ')} pathLength={1} className="traza" fill="none" stroke="var(--color-tinta)" strokeWidth="2" />
+              <polyline points={`${actual.x},${actual.y} ${puntos[6]!.x},${actual.y} 356,${actual.y}`} fill="none" stroke="var(--color-tinta)" strokeWidth="2" strokeDasharray="4 5" opacity=".45" className="aparece" style={{ '--i': 7 } as CSSProperties} />
+              {puntos.slice(0, 5).map((p, i) => <circle key={p.nombre} className="aparece" style={{ '--i': i + 1 } as CSSProperties} cx={p.x} cy={p.y} r="4" fill="var(--color-card)" stroke="var(--color-tinta)" strokeWidth="2" />)}
+              <circle className="aparece" style={{ '--i': 6 } as CSSProperties} cx={actual.x} cy={actual.y} r="5" fill="var(--color-tinta)" />
               {puntos.map((p, i) => <text key={p.nombre} x={p.x} y="188" textAnchor="middle" fontSize="12" fontWeight={i === 5 ? 600 : 400} fill={i === 5 ? 'var(--color-tinta)' : 'var(--color-texto-3)'}>{p.nombre}</text>)}
             </svg>
             </div>
@@ -120,9 +122,10 @@ export default function Inicio() {
                 <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-brand" />Multadas</span>
               </span>
             </div>
-            <div role="img" aria-label="Infracciones detectadas, en revisión y multadas por mes en su zona, con datos de ejemplo" className="mt-3 grid h-0 min-h-0 flex-1 grid-cols-12 items-end gap-1.5 sm:gap-3">
-              {ZONA.map(([mes, f, o, l]) => (
-                <div key={mes} className="relative flex h-full flex-col justify-end gap-1">
+            <div role="img" aria-label="Infracciones detectadas, en revisión y multadas por mes en su zona, con datos de ejemplo" className="columnas mt-3 grid h-0 min-h-0 flex-1 grid-cols-12 items-end gap-1.5 sm:gap-3">
+              {ZONA.map(([mes, f, o, l], i) => (
+                <div key={mes} className="columna crece relative flex h-full flex-col justify-end gap-1" style={{ '--i': i } as CSSProperties}>
+                  <span aria-hidden="true" className="pista absolute left-1/2 z-10 rounded-full bg-tinta px-2 py-0.5 font-mono text-[11px] font-bold whitespace-nowrap text-fondo" style={{ bottom: `calc(${pct(Math.min(196, o + l + 4 + Math.round(f / 4)))} + 6px)` }}>{l}</span>
                   <span className="rayado absolute inset-x-0 bottom-0 rounded-md bg-fantasma" style={{ height: pct(Math.min(196, o + l + 4 + Math.round(f / 4))) }} />
                   <span className="relative rounded-md bg-revision" style={{ height: pct(o) }} />
                   <span className="relative rounded-md bg-brand" style={{ height: pct(l) }} />

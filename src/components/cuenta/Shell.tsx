@@ -1,5 +1,5 @@
-import { Bell, Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, Search, User, Video, type LucideIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Bell, Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, User, Video, type LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
 import { formatCedula } from '@/lib/format.ts'
@@ -25,7 +25,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: riel de íconos + barra superior (buscador, tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos (con el logo) + barra superior (tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
@@ -45,12 +45,6 @@ function Shell() {
   useEffect(() => { main.current?.scrollTo(0, 0) }, [pathname])
 
   const salir = () => { cerrarSesion(); navigate('/ingresar') }
-  // El buscador lleva a Multas filtrado por la placa escrita.
-  const buscar = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const q = String(new FormData(e.currentTarget).get('q') ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase()
-    navigate(q ? `/multas?placa=${q}` : '/multas')
-  }
   const idx = ABAJO.indexOf(seccion as Seccion)
   const iAbajo = idx < 0 ? 4 : idx
 
@@ -70,7 +64,7 @@ function Shell() {
                   aria-current={on ? 'page' : undefined}
                   aria-label={id === 'multas' && pendientes > 0 ? `${label}, ${pendientes} por pagar` : label}
                   title={label}
-                  className={cx('relative flex size-11 items-center justify-center rounded-full transition-colors duration-150', on ? 'bg-brand text-[#0e1726]' : 'bg-suave text-tinta hover:bg-borde')}
+                  className={cx('press relative flex size-11 items-center justify-center rounded-full transition-colors duration-150', on ? 'bg-brand text-[#0e1726]' : 'bg-suave text-tinta hover:bg-borde')}
                 >
                   <Icono size={18} strokeWidth={on ? 2.2 : 1.9} aria-hidden="true" />
                   {id === 'multas' && pendientes > 0 && (
@@ -93,21 +87,16 @@ function Shell() {
             </Link>
           </header>
 
-          <header className="hidden flex-none items-center gap-5 pb-2 lg:flex">
-            <form role="search" onSubmit={buscar} className="flex h-[51px] w-[387px] items-center gap-3 rounded-full bg-suave px-5 text-texto-2">
-              <Search size={18} strokeWidth={2.2} aria-hidden="true" />
-              <label htmlFor="buscar" className="sr-only">Buscar por placa</label>
-              <input id="buscar" name="q" type="search" placeholder="Buscar por placa, fecha o cámara..." className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-texto-2" />
-            </form>
+          <header className="hidden min-h-11 flex-none items-center gap-5 pb-2 lg:flex">
             <div className="ml-auto flex items-center gap-5">
               <InterruptorTema />
               <Link to="/multas" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
                 <Bell size={20} strokeWidth={2} aria-hidden="true" />
                 {pendientes > 0 && <span aria-hidden="true" className="absolute top-2 right-2.5 size-2 rounded-full bg-rojo" />}
               </Link>
-              <Link to="/perfil" className="flex items-center gap-3 text-tinta">
+              <Link to="/perfil" className="group press flex min-h-11 items-center gap-2.5 text-tinta">
                 <span className="font-mono text-[15px] font-medium">{sesion && formatCedula(sesion.cedula)}</span>
-                <span aria-hidden="true" className="flex size-[51px] items-center justify-center rounded-full bg-brand font-mono text-lg font-bold text-[#0e1726]">{sesion?.cedula.charAt(0)}</span>
+                <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-brand font-mono text-sm font-bold text-[#0e1726] transition-transform duration-150 ease-press group-hover:scale-105">{sesion?.cedula.charAt(0)}</span>
               </Link>
             </div>
           </header>

@@ -6,7 +6,7 @@ import { TIPO, estadoTexto } from '@/lib/etiquetas.ts'
 import { formatBs, formatFecha } from '@/lib/format.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
-import { EstadoTile, Monto } from '@/components/vc/index.tsx'
+import { Monto } from '@/components/vc/index.tsx'
 import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 import { EST } from '@/components/vc/estados.ts'
 
@@ -76,31 +76,41 @@ export function Vacio({ titulo, texto, icono }: { titulo: string; texto: string;
 
 const diaMes = new Intl.DateTimeFormat('es-VE', { day: 'numeric', month: 'short', timeZone: 'America/Caracas' })
 
-/** Fila de multa: qué pasó, placa y fecha, monto y estado. El pago se hace desde el detalle. */
+/** Pendiente va en naranja y vencida en rojo (las demás usan el par de `EST`). */
+const ESTILO_FILA: Partial<Record<Multa['status'], { tile: string; txt: string }>> = {
+  PENDING: { tile: 'bg-ambar-bg text-ambar-osc', txt: 'text-ambar-osc' },
+  OVERDUE: { tile: 'bg-rojo-bg text-rojo-osc', txt: 'text-rojo-osc' },
+}
+
+/** Tarjeta de multa: qué pasó, placa y fecha, monto y estado; debajo, «Reenviar notificación» si hay algo por pagar. */
 export function MultaFila({ m, i, desde }: { m: Multa; i: number; desde: 'inicio' | 'multas' }) {
   const e = EST[m.status]
+  const estilo = ESTILO_FILA[m.status] ?? { tile: e.cls, txt: e.txt }
   return (
-    <li className="entra" style={{ '--i': i } as CSSProperties}>
-      {i > 0 && <span aria-hidden="true" className="ml-[68px] block h-px bg-borde" />}
+    <li className={cx(tarjeta, 'entra overflow-hidden')} style={{ '--i': i } as CSSProperties}>
       <Link
         to={`/multas/${m.id}`}
         state={{ desde }}
         aria-label={`${TIPO[m.type]}, ${m.plate}, ${formatFecha(m.occurredAt)}, ${estadoTexto(m.status)}, ${formatBs(m.amountCents)}. Ver detalle`}
-        className="group flex min-h-[68px] items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-suave"
+        className="group flex min-h-[72px] items-center gap-4 px-4 py-3.5 transition-colors duration-150 hover:bg-suave lg:px-5"
       >
-        <EstadoTile status={m.status} />
+        <span className={cx('flex size-11 flex-none items-center justify-center rounded-control', estilo.tile)}>
+          <e.Icono size={20} strokeWidth={1.75} aria-hidden="true" />
+        </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate font-semibold">{TIPO[m.type]}</span>
           <span className="text-caption text-texto-2"><span className="font-mono font-semibold">{m.plate}</span> · {diaMes.format(new Date(m.occurredAt)).replace('.', '').replace('sept', 'sep')}</span>
         </span>
         <span className="flex flex-none flex-col items-end gap-0.5">
-          <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[15px]" />
-          <span className={cx('text-caption font-semibold', e.txt)}>{estadoTexto(m.status)}</span>
+          <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[15px] lg:text-base" />
+          <span className={cx('flex items-center gap-1 text-caption font-semibold', estilo.txt)}>
+            <e.Icono size={13} strokeWidth={2} aria-hidden="true" />{estadoTexto(m.status)}
+          </span>
         </span>
         <ChevronRight size={18} strokeWidth={2} aria-hidden="true" className="flex-none text-texto-3 transition-transform duration-150 group-hover:translate-x-0.5" />
       </Link>
       {esPagable(m) && (
-        <div className="px-4 pb-2 pl-[68px]">
+        <div className="border-t border-borde px-4 py-1.5 pl-[76px] lg:px-5 lg:pl-[80px]">
           <BotonReenviar compacto enviar={() => reenviarNotificacion(m.id)} descripcion={`${m.plate} del ${formatFecha(m.occurredAt)}`} />
         </div>
       )}
@@ -110,7 +120,7 @@ export function MultaFila({ m, i, desde }: { m: Multa; i: number; desde: 'inicio
 
 export function ListaMultas({ multas, desde }: { multas: Multa[]; desde: 'inicio' | 'multas' }) {
   return (
-    <ul className={cx(tarjeta, 'overflow-hidden')}>
+    <ul className="flex flex-col gap-3">
       {multas.map((m, i) => <MultaFila key={m.id} m={m} i={i} desde={desde} />)}
     </ul>
   )
