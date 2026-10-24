@@ -14,7 +14,7 @@ export function PageShell({ children }: { children: ReactNode }) {
       <DemoBanner />
       <header className="border-b border-[#D9D4C7] bg-[#14213D] text-white">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
-          <span className="text-[18px] font-bold tracking-tight">VíaClara</span>
+          <span className="text-[18px] font-bold tracking-tight">SmartTraffic</span>
           <span className="text-[13px] text-white/75">Aviso de infracción de tránsito</span>
         </div>
       </header>
