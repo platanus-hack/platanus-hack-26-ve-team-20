@@ -1,3 +1,4 @@
+import { EvidenciaInfraccion, tieneFotos } from '@/components/evidencia/EvidenciaInfraccion.tsx'
 import { ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
@@ -84,6 +85,7 @@ export default function MultaDetalle() {
 
         <div className="flex min-w-0 flex-col gap-4 lg:order-1 lg:col-span-7">
           <section aria-label="Evidencia" className="flex flex-col gap-2.5">
+            {tieneFotos(m.evidence) ? <EvidenciaInfraccion items={m.evidence} camara={m.cameraCode} /> : (
             <div className="relative overflow-hidden rounded-card bg-tinta-2">
               {foto
                 ? <img src={foto.url} alt={`Fotograma de la infracción, ${m.cameraCode}`} className="block aspect-video w-full object-cover" />
@@ -93,6 +95,7 @@ export default function MultaDetalle() {
               </PastillaTinta>
               <PastillaTinta className="right-2.5 h-7 font-mono font-bold">{m.cameraCode}</PastillaTinta>
             </div>
+            )}
             <span className="flex items-center gap-2 text-sm font-semibold">
               <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" className="text-verde" />
               {m.verification === 'AUTO' ? 'Verificado automáticamente' : 'Verificado por operador'}

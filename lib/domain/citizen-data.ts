@@ -19,7 +19,7 @@ export function toProfile(person: Pick<Person, "cedula" | "phone" | "email">): C
 }
 
 const fineInclude = {
-  violation: { include: { camera: { include: { intersection: true } }, vehicle: true } },
+  violation: { include: { camera: { include: { intersection: true } }, vehicle: true, evidence: { orderBy: { capturedAt: "asc" } } } },
   payments: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 1 },
 } satisfies Prisma.FineInclude;
 type FineRow = Prisma.FineGetPayload<{ include: typeof fineInclude }>;
@@ -46,6 +46,7 @@ export function toCitizenFine(f: FineRow, appealedAt: Date | null, now: Date = n
     paymentReference: f.payments[0]?.reference ?? null,
     voidReason: v.voidReason,
     appealedAt: appealedAt?.toISOString() ?? null,
+    evidence: v.evidence.map((e) => ({ kind: e.kind, url: e.url, capturedAt: e.capturedAt.toISOString() })),
   };
 }
 
