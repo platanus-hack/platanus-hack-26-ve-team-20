@@ -34,6 +34,12 @@
   --color-primario: light-dark(#0e1726, #c6f24e);
   --color-sobre-primario: light-dark(#fcfdfe, #0e1726);
   --color-boli-on: light-dark(#c6f24e, #0e1726);
+  /* Resumen: losas lima rayadas, barras "en revisión", barras de fondo y puntos del mapa. */
+  --color-losa: light-dark(#eef6d2, #2b3313);
+  --color-losa-texto: light-dark(#3d4a10, #e3edc0);
+  --color-revision: light-dark(#9db43a, #6f7f1e);
+  --color-fantasma: light-dark(#e6eaf0, #22252b);
+  --color-punto-mapa: light-dark(#c9ced6, #3a3e46);
 
   /* Una sola familia (Plus Jakarta Sans) para títulos y texto; JetBrains Mono para montos, placas y cédulas. */
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -209,6 +215,9 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Rayado diagonal de las losas y barras de fondo del resumen. */
+.rayado { background-image: repeating-linear-gradient(135deg, light-dark(rgba(14, 23, 38, 0.06), rgba(255, 255, 255, 0.07)) 0 2px, transparent 2px 7px); }
 
 /* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
 .vista { animation: entra 260ms var(--ease-entrada) both; }

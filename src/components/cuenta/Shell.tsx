@@ -1,15 +1,16 @@
-import { Car, ChartColumn, House, LogOut, Menu, ReceiptText, User, Video, type LucideIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Bell, Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, Search, User, Video, type LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
 import { formatCedula } from '@/lib/format.ts'
-import { Boton, Hoja, SelectorTema } from '@/components/ui/index.tsx'
+import { Boton, Hoja, InterruptorTema, SelectorTema } from '@/components/ui/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
 import { Logo } from '@/components/vc/index.tsx'
+import { Isotipo } from '@/components/vc/Isotipo.tsx'
 
 type Seccion = 'inicio' | 'multas' | 'estadisticas' | 'vehiculos' | 'en-vivo' | 'perfil'
 const NAV: Array<{ id: Seccion; label: string; Icono: LucideIcon }> = [
-  { id: 'inicio', label: 'Inicio', Icono: House },
+  { id: 'inicio', label: 'Resumen', Icono: LayoutGrid },
   { id: 'multas', label: 'Multas', Icono: ReceiptText },
   { id: 'estadisticas', label: 'Estadísticas', Icono: ChartColumn },
   { id: 'vehiculos', label: 'Vehículos', Icono: Car },
@@ -25,7 +26,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: sidebar tinta con barra lima. Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos + barra superior (buscador, tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
@@ -45,15 +46,22 @@ function Shell() {
   useEffect(() => { main.current?.scrollTo(0, 0) }, [pathname])
 
   const salir = () => { cerrarSesion(); navigate('/ingresar') }
+  // El buscador lleva a Multas filtrado por la placa escrita.
+  const buscar = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const q = String(new FormData(e.currentTarget).get('q') ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase()
+    navigate(q ? `/multas?placa=${q}` : '/multas')
+  }
   const idx = ABAJO.indexOf(seccion as Seccion)
   const iAbajo = idx < 0 ? 4 : idx
 
   return (
-    <div className="flex h-dvh flex-col">
-      <div className="flex min-h-0 flex-1">
-        <aside className="tinta hidden w-[248px] flex-none flex-col gap-1 bg-tinta px-3 py-5 lg:flex">
-          <div className="px-3 pb-5 text-card"><Logo claro /></div>
-          <nav aria-label="Principal" className="flex flex-col gap-1">
+    <div className="flex h-dvh flex-col bg-fondo">
+      <div className="flex min-h-0 flex-1 lg:gap-4 lg:p-4">
+        {/* ≥1024: riel de íconos con el logo; cada sección es un círculo con su nombre accesible. */}
+        <aside className="hidden w-[102px] flex-none flex-col items-center rounded-[22px] bg-card pt-6 pb-6 shadow-card lg:flex">
+          <Link to="/inicio" aria-label="SmartTraffic, inicio" className="flex text-tinta"><Isotipo size={60} /></Link>
+          <nav aria-label="Principal" className="mt-16 flex flex-col items-center gap-4">
             {NAV.map(({ id, label, Icono }) => {
               const on = seccion === id
               return (
@@ -61,28 +69,21 @@ function Shell() {
                   key={id}
                   to={`/${id}`}
                   aria-current={on ? 'page' : undefined}
-                  className={cx('relative flex h-11 items-center gap-3 rounded-control px-3 text-[15px] transition-colors duration-150', on ? 'bg-tinta-2 font-semibold text-card' : 'font-medium text-niebla hover:bg-tinta-2/60 hover:text-card')}
+                  aria-label={id === 'multas' && pendientes > 0 ? `${label}, ${pendientes} por pagar` : label}
+                  title={label}
+                  className={cx('relative flex size-11 items-center justify-center rounded-full transition-colors duration-150', on ? 'bg-brand text-[#0e1726]' : 'bg-suave text-tinta hover:bg-borde')}
                 >
-                  {on && <span aria-hidden="true" className="barra-activa absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-sm bg-brand" />}
-                  <Icono size={20} strokeWidth={1.75} aria-hidden="true" className={on ? 'text-brand' : undefined} />
-                  <span className="flex-1">{label}</span>
+                  <Icono size={18} strokeWidth={on ? 2.2 : 1.9} aria-hidden="true" />
                   {id === 'multas' && pendientes > 0 && (
-                    <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-rojo px-1.5 font-mono text-xs font-bold text-contraste" aria-label={`${pendientes} por pagar`}>{pendientes}</span>
+                    <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rojo px-1 font-mono text-[11px] font-bold text-contraste">{pendientes}</span>
                   )}
                 </Link>
               )
             })}
           </nav>
-          <div className="mt-auto flex items-center gap-2.5 rounded-control bg-tinta-2 p-3 text-card">
-            <span aria-hidden="true" className="flex size-9 flex-none items-center justify-center rounded-full bg-tinta-3 font-mono text-[13px] font-bold text-brand">{sesion?.cedula.charAt(0)}</span>
-            <span className="flex min-w-0 flex-1 flex-col leading-[18px]">
-              <span className="font-mono text-[13px] font-bold">{sesion && formatCedula(sesion.cedula)}</span>
-              <span className="text-xs text-niebla">Ciudadano</span>
-            </span>
-            <button type="button" onClick={salir} aria-label="Cerrar sesión" className="flex size-11 items-center justify-center text-niebla hover:text-card">
-              <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
-            </button>
-          </div>
+          <button type="button" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión" className="mt-auto flex size-11 items-center justify-center rounded-full bg-suave text-tinta transition-colors duration-150 hover:bg-borde">
+            <LogOut size={18} strokeWidth={1.9} aria-hidden="true" />
+          </button>
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -91,6 +92,25 @@ function Shell() {
             <Link to="/perfil" aria-label="Perfil" className="ml-auto flex size-11 items-center justify-center">
               <span className="flex size-8 items-center justify-center rounded-full bg-suave font-mono text-xs font-bold">{sesion?.cedula.charAt(0)}</span>
             </Link>
+          </header>
+
+          <header className="hidden flex-none items-center gap-5 pb-2 lg:flex">
+            <form role="search" onSubmit={buscar} className="flex h-[51px] w-[387px] items-center gap-3 rounded-full bg-suave px-5 text-texto-2">
+              <Search size={18} strokeWidth={2.2} aria-hidden="true" />
+              <label htmlFor="buscar" className="sr-only">Buscar por placa</label>
+              <input id="buscar" name="q" type="search" placeholder="Buscar por placa, fecha o cámara..." className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-texto-2" />
+            </form>
+            <div className="ml-auto flex items-center gap-5">
+              <InterruptorTema />
+              <Link to="/multas" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
+                <Bell size={20} strokeWidth={2} aria-hidden="true" />
+                {pendientes > 0 && <span aria-hidden="true" className="absolute top-2 right-2.5 size-2 rounded-full bg-rojo" />}
+              </Link>
+              <Link to="/perfil" className="flex items-center gap-3 text-tinta">
+                <span className="font-mono text-[15px] font-medium">{sesion && formatCedula(sesion.cedula)}</span>
+                <span aria-hidden="true" className="flex size-[51px] items-center justify-center rounded-full bg-brand font-mono text-lg font-bold text-[#0e1726]">{sesion?.cedula.charAt(0)}</span>
+              </Link>
+            </div>
           </header>
 
           <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
