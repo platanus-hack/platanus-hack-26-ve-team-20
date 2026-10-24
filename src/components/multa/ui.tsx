@@ -1,5 +1,5 @@
 // Piezas visuales de /multa y /pagar. Provisionales hasta que P4 publique src/components/vc
-// (DemoBanner, EstadoBadge, Evidencia, Placa, Monto) y los tokens en src/index.css: los colores
+// (EstadoBadge, Evidencia, Placa, Monto) y los tokens en src/index.css: los colores
 // son los de docs/05 §2, escritos como valores de Tailwind para no tocar archivos de P4.
 import { useState, type ReactNode } from 'react'
 import type { FinePublicDTO, LightState } from '@contracts'
@@ -10,12 +10,11 @@ export const MONO = 'font-mono tabular-nums whitespace-nowrap'
 
 export function PageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#F4F1EA] text-[15px] leading-[1.45] text-[#14213D]">
-      <DemoBanner />
-      <header className="border-b border-[#D9D4C7] bg-[#14213D] text-white">
+    <div className="min-h-screen bg-fondo text-[15px] leading-[1.45] text-tinta">
+      <header className="tinta border-b border-borde bg-tinta text-card">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <span className="text-[18px] font-bold tracking-tight">SmartTraffic</span>
-          <span className="text-[13px] text-white/75">Aviso de infracción de tránsito</span>
+          <span className="text-[13px] text-card/75">Aviso de infracción de tránsito</span>
         </div>
       </header>
       <main className="mx-auto max-w-xl px-4 pb-16 pt-6">{children}</main>
@@ -23,30 +22,21 @@ export function PageShell({ children }: { children: ReactNode }) {
   )
 }
 
-/** Visible en toda pantalla de pago (AGENTS.md §2.2). */
-export function DemoBanner() {
-  return (
-    <div role="note" className="border-b border-[#E09F1F] bg-[#FBEFD3] px-4 py-2 text-center text-[13px] font-semibold text-[#14213D]">
-      Demo — pago simulado · datos ficticios · sin dinero real
-    </div>
-  )
-}
-
 export function SourceNote({ source }: { source: Source }) {
   if (source === 'api') return null
   return (
-    <p className="mb-4 rounded-[6px] border border-dashed border-[#5B6B85] px-3 py-2 text-[13px] text-[#2B3A55]">
+    <p className="mb-4 rounded-[6px] border border-dashed border-input px-3 py-2 text-[13px] text-texto-2">
       Datos de ejemplo: el servidor todavía no responde, así que se muestra una multa ficticia.
     </p>
   )
 }
 
 const TONES: Record<StatusTone, string> = {
-  red: 'border-[#D62828] bg-[#FBE7E7] text-[#A61B1B]',
-  amber: 'border-[#E09F1F] bg-[#FBEFD3] text-[#7A5410]',
-  green: 'border-[#2D7D46] bg-[#E3F1E7] text-[#22603A]',
-  gray: 'border-[#5B6B85] bg-[#ECEEF2] text-[#2B3A55]',
-  blue: 'border-[#1F5FAD] bg-[#E4EDF8] text-[#1F5FAD]',
+  red: 'border-rojo bg-rojo-bg text-rojo-osc',
+  amber: 'border-ambar bg-ambar-bg text-ambar-osc',
+  green: 'border-verde bg-verde-bg text-verde-osc',
+  gray: 'border-input bg-gris-bg text-texto-2',
+  blue: 'border-azul bg-azul-bg text-azul',
 }
 
 export function StatusBadge({ text, tone }: { text: string; tone: StatusTone }) {
@@ -61,7 +51,7 @@ export function Plate({ value }: { value: string }) {
   return (
     <span
       aria-label={`Placa ${value.replace(/\*/g, ' oculto ')}`}
-      className={`${MONO} inline-block rounded-[6px] border-2 border-[#14213D] bg-white px-3 py-1 text-[18px] font-bold tracking-[0.2em]`}
+      className={`${MONO} placa inline-block rounded-[6px] border-2 border-tinta bg-card px-3 py-1 text-[18px] font-bold tracking-[0.2em]`}
     >
       {value}
     </span>
@@ -69,23 +59,23 @@ export function Plate({ value }: { value: string }) {
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-[10px] border border-[#D9D4C7] bg-white p-4 shadow-[0_1px_0_rgba(20,33,61,.08)] ${className}`}>{children}</section>
+  return <section className={`rounded-[10px] border border-borde bg-card p-4 shadow-[0_1px_0_rgba(20,33,61,.08)] ${className}`}>{children}</section>
 }
 
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-[#D9D4C7] py-2 last:border-b-0">
-      <dt className="text-[13px] text-[#5B6B85]">{label}</dt>
+    <div className="flex items-baseline justify-between gap-4 border-b border-borde py-2 last:border-b-0">
+      <dt className="text-[13px] text-texto-3">{label}</dt>
       <dd className="text-right font-semibold">{children}</dd>
     </div>
   )
 }
 
 const LIGHT_LABEL: Record<LightState, { text: string; dot: string }> = {
-  RED: { text: 'Luz roja', dot: 'bg-[#D62828]' },
-  YELLOW: { text: 'Luz amarilla', dot: 'bg-[#E09F1F]' },
-  GREEN: { text: 'Luz verde', dot: 'bg-[#2D7D46]' },
-  UNKNOWN: { text: 'Luz desconocida', dot: 'bg-[#5B6B85]' },
+  RED: { text: 'Luz roja', dot: 'bg-rojo' },
+  YELLOW: { text: 'Luz amarilla', dot: 'bg-ambar' },
+  GREEN: { text: 'Luz verde', dot: 'bg-verde' },
+  UNKNOWN: { text: 'Luz desconocida', dot: 'bg-input' },
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -99,12 +89,12 @@ function EvidenceItem({ item, label }: { item: FinePublicDTO['evidence'][number]
   const [broken, setBroken] = useState(false)
   const light = item.lightState ? LIGHT_LABEL[item.lightState] : null
   return (
-    <figure className="overflow-hidden rounded-[6px] border border-[#D9D4C7] bg-[#14213D]">
+    <figure className="tinta overflow-hidden rounded-[6px] border border-borde bg-tinta">
       <div className="relative aspect-video">
         {item.url && !broken ? (
           <img src={item.url} alt={label} loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[repeating-linear-gradient(135deg,#2B3A55_0,#2B3A55_10px,#253350_10px,#253350_20px)] text-[13px] text-white/70">
+          <div className="flex h-full w-full items-center justify-center bg-tinta-2 text-[13px] text-niebla">
             {item.url ? 'Imagen no disponible' : `${label} (ejemplo)`}
           </div>
         )}
@@ -118,14 +108,14 @@ function EvidenceItem({ item, label }: { item: FinePublicDTO['evidence'][number]
           </span>
         )}
       </div>
-      <figcaption className="bg-white px-3 py-1.5 text-[13px] text-[#2B3A55]">{label}</figcaption>
+      <figcaption className="bg-card px-3 py-1.5 text-[13px] text-texto-2">{label}</figcaption>
     </figure>
   )
 }
 
 export function Evidence({ items }: { items: FinePublicDTO['evidence'] }) {
   const visual = items.filter((e) => e.kind !== 'CLIP')
-  if (visual.length === 0) return <p className="text-[13px] text-[#5B6B85]">Esta multa no tiene imágenes adjuntas.</p>
+  if (visual.length === 0) return <p className="text-[13px] text-texto-3">Esta multa no tiene imágenes adjuntas.</p>
   // numeración por tipo: "Fotograma 1", "Fotograma 2", "Recorte de placa" (sin número si es único)
   const totals = new Map<string, number>()
   for (const item of visual) totals.set(item.kind, (totals.get(item.kind) ?? 0) + 1)
@@ -157,7 +147,7 @@ export function LoadingFine() {
     <div aria-busy="true" className="grid gap-4">
       <span className="sr-only">Cargando la multa…</span>
       {[40, 180, 120].map((h) => (
-        <div key={h} style={{ height: h }} className="animate-pulse rounded-[10px] bg-[#E6E1D6]" />
+        <div key={h} style={{ height: h }} className="animate-pulse rounded-[10px] bg-suave" />
       ))}
     </div>
   )
@@ -167,7 +157,7 @@ export function Notice({ title, children }: { title: string; children: ReactNode
   return (
     <Card>
       <h1 className="text-[22px] font-bold leading-[1.15]">{title}</h1>
-      <div className="mt-2 text-[#2B3A55]">{children}</div>
+      <div className="mt-2 text-texto-2">{children}</div>
     </Card>
   )
 }

@@ -25,6 +25,42 @@ describe('whatsappConfigFromEnv', () => {
     expect(whatsappConfigFromEnv({ NOTIFY_DRY_RUN: '' }).dryRun).toBe(true)
   })
 
+  it('ignora espacios y saltos de línea pegados en el panel de Vercel', () => {
+    expect(
+      whatsappConfigFromEnv({
+        NOTIFY_DRY_RUN: ' False\n',
+        WHATSAPP_ACCESS_TOKEN: 't\n',
+        WHATSAPP_PHONE_NUMBER_ID: ' 123 ',
+        WHATSAPP_GRAPH_VERSION: 'v23.0\n',
+      }),
+    ).toEqual({ accessToken: 't', phoneNumberId: '123', graphVersion: 'v23.0', dryRun: false })
+  })
+
+  it('quita caracteres invisibles pegados en el token y en el id (U+2060, espacio no separable, comillas)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(
+      whatsappConfigFromEnv({
+        NOTIFY_DRY_RUN: 'false',
+        WHATSAPP_ACCESS_TOKEN: '\u2060EAAtok\u00a0en123\u2060',
+        WHATSAPP_PHONE_NUMBER_ID: '“1141\u2060087575744689”',
+      }),
+    ).toMatchObject({ accessToken: 'EAAtoken123', phoneNumberId: '1141087575744689' })
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('token 3, id 3'))
+    expect(warn.mock.calls.flat().join(' ')).not.toContain('EAAtok')
+    warn.mockRestore()
+  })
+
+  it('con el token limpio el fetch no revienta', async () => {
+    const config = whatsappConfigFromEnv({ NOTIFY_DRY_RUN: 'false', WHATSAPP_ACCESS_TOKEN: 'tok\u2060en', WHATSAPP_PHONE_NUMBER_ID: '123' })
+    let auth = ''
+    const f = (async (_url: string, init: RequestInit) => {
+      auth = new Headers(init.headers).get('Authorization') ?? ''
+      return new Response(JSON.stringify({ messages: [{ id: 'wamid.1' }] }), { status: 200 })
+    }) as unknown as typeof fetch
+    expect(await sendWhatsAppText(MESSAGE, { config, fetchImpl: f })).toEqual({ status: 'SENT', providerId: 'wamid.1' })
+    expect(auth).toBe('Bearer token')
+  })
+
   it('lee las variables de WhatsApp', () => {
     expect(
       whatsappConfigFromEnv({

@@ -1,20 +1,22 @@
-import { Outlet } from 'react-router'
-import { DemoBanner, Logo } from '@/components/vc/index.tsx'
+import { Outlet, useLocation } from 'react-router'
+import { InterruptorTema } from '@/components/ui/index.tsx'
+import { Logo } from '@/components/vc/index.tsx'
 
 const LEMA = 'La multa llega con la prueba, y se paga en un minuto.'
 
 /** Acceso: formulario de 400 px máx. En desktop, panel tinta con la calle al atardecer. */
 export default function AuthLayout() {
+  const { pathname } = useLocation()
   return (
     <div className="flex min-h-dvh flex-col">
-      <DemoBanner />
       <div className="flex flex-1 flex-col lg:flex-row">
-        <div className="tinta flex flex-none flex-col gap-3 bg-tinta px-4 pt-6 pb-7 text-card lg:hidden">
-          <Logo claro />
-          <span className="font-display text-h2 font-bold tracking-[-0.02em]">{LEMA}</span>
-        </div>
-        <div className="flex flex-1 items-start justify-center px-4 pt-6 pb-8 lg:items-center lg:p-12">
-          <div className="flex w-full max-w-[400px] flex-col gap-5">
+        <div className="relative flex flex-1 flex-col items-center px-4 pt-4 pb-6 lg:justify-center lg:p-12">
+          {/* Tema arriba a la izquierda; en móvil el logo queda a la derecha. */}
+          <div className="flex w-full items-center justify-between pb-4 lg:absolute lg:top-4 lg:left-6 lg:w-auto lg:pb-0">
+            <InterruptorTema />
+            <span className="lg:hidden"><Logo /></span>
+          </div>
+          <div key={pathname} className="vista flex w-full max-w-[400px] flex-col gap-5">
             <Outlet />
           </div>
         </div>

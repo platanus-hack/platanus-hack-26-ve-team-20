@@ -15,6 +15,8 @@ export type DemoErrorCode =
   | 'CLAVE_C2P' | 'FONDOS' | 'YA_PAGADA' | 'VALIDACION' | 'NO_ENCONTRADA' | 'RED' | 'SESION'
   // Solo con la API real (docs/04 §0c): la demo nunca los produce.
   | 'SIN_TITULAR' | 'ENVIO_FALLIDO' | 'ESPERAR' | 'LIMITE' | 'CODIGO_AGOTADO'
+  // Historial del oficial (`lib/oficial`): la transición pedida no vale desde el estado actual.
+  | 'TRANSICION'
 
 export class DemoError extends Error {
   code: DemoErrorCode
@@ -34,19 +36,19 @@ const CODIGO_MS = 10 * 60_000
 // ---------------------------------------------------------------- almacenamiento
 // sessionStorage puede no existir o lanzar (modo privado, tests en Node): copia en memoria siempre.
 const memoria = new Map<string, string>()
-function leer<T>(clave: string): T | null {
+export function leer<T>(clave: string): T | null {
   let v: string | null | undefined
   try { v = sessionStorage.getItem(clave) } catch { v = memoria.get(clave) }
   if (v == null) v = memoria.get(clave)
   if (v == null) return null
   try { return JSON.parse(v) as T } catch { return null }
 }
-function guardar(clave: string, valor: unknown) {
+export function guardar(clave: string, valor: unknown) {
   const v = JSON.stringify(valor)
   memoria.set(clave, v)
   try { sessionStorage.setItem(clave, v) } catch { /* solo memoria */ }
 }
-function borrar(clave: string) {
+export function borrar(clave: string) {
   memoria.delete(clave)
   try { sessionStorage.removeItem(clave) } catch { /* solo memoria */ }
 }
@@ -61,7 +63,7 @@ export function reiniciarDemo() {
 
 // ---------------------------------------------------------------- latencia y fallos simulados
 const enTest = import.meta.env?.MODE === 'test'
-const esperar = (min = 300, max = 600) =>
+export const esperar = (min = 300, max = 600) =>
   enTest ? Promise.resolve() : new Promise<void>((r) => setTimeout(r, min + Math.random() * (max - min)))
 
 // `?demo=red` hace fallar las cargas de los primeros 2 s (para ver "Reintentar"); `?demo=sesion` vence la sesión.

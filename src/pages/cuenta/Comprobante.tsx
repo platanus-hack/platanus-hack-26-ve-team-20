@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useLocation, useParams, useSearchParams } from 'react-router'
 import { esPagable, getMultas, getSesion } from '@/lib/demo/api.ts'
 import { TIPO } from '@/lib/etiquetas.ts'
@@ -6,8 +6,7 @@ import { formatBs, formatFecha, formatHora, maskTelefono } from '@/lib/format.ts
 import { useCarga } from '@/hooks/useCarga.ts'
 import { BotonLink } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
-import { ErrorCarga, Pagina, Vacio, display } from '@/components/cuenta/piezas.tsx'
-import { EstadoBadge } from '@/components/vc/index.tsx'
+import { ErrorCarga, Pagina, Vacio } from '@/components/cuenta/piezas.tsx'
 
 export default function Comprobante() {
   const { id } = useParams()
@@ -15,15 +14,10 @@ export default function Comprobante() {
   const { state } = useLocation()
   const st = state as { recien?: boolean; telefono?: string; desde?: string } | null
   const { data, error, cargando, recargar } = useCarga(getMultas, [])
-  // Recién pagado: el check se dibuja (400 ms) y el badge pasa de PENDIENTE a PAGADA (200 ms).
-  const [pagada, setPagada] = useState(!st?.recien)
-
+  // Recién pagado: el check se dibuja (400 ms) y vibra una vez.
   useEffect(() => {
     if (!st?.recien) return
     try { navigator.vibrate?.([12, 40, 20]) } catch { /* sin háptica */ }
-    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const t = setTimeout(() => setPagada(true), reducido ? 0 : 420)
-    return () => clearTimeout(t)
   }, [st?.recien])
 
   const ids = id ? [id] : params.get('multas')?.split(',').filter(Boolean) ?? []
@@ -40,25 +34,24 @@ export default function Comprobante() {
     <Pagina>
       <div className="mx-auto flex w-full max-w-[520px] flex-col gap-5">
         <div className="flex flex-col items-center gap-3 pt-2 text-center">
-          <span className="flex size-20 items-center justify-center rounded-full bg-verde text-card">
+          <span className="flex size-20 items-center justify-center rounded-full bg-verde text-contraste">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path className={st?.recien ? 'check' : undefined} d="M20 6 9 17l-5-5" />
             </svg>
           </span>
-          <h1 className={display}>Pago aprobado</h1>
-          <span aria-live="polite"><EstadoBadge status={pagada ? 'PAID' : 'PENDING'} /></span>
+          <h1 className="font-display text-h1-m font-bold tracking-[-0.02em] lg:text-h1">Pago aprobado</h1>
         </div>
 
         <section aria-label="Comprobante" className={cx(tarjeta, 'flex flex-col overflow-hidden')}>
-          <div className="flex flex-col items-center gap-1.5 border-b border-dashed border-borde px-4 py-5">
-            <span className="text-caption text-texto-2">Total pagado · monto de ejemplo</span>
+          <div className="flex flex-col items-center gap-1.5 border-b border-borde px-4 py-5">
+            <span className="text-caption text-texto-2">Total pagado</span>
             <span className="num font-mono text-[32px] leading-[38px] font-bold">{formatBs(multas.reduce((t, m) => t + m.amountCents, 0))}</span>
             <span className="inline-flex h-[26px] items-center rounded-placa border-[1.5px] border-dashed border-texto-2 px-2.5 font-mono text-xs font-bold tracking-[.12em] text-texto-2">SIMULADO</span>
           </div>
           {multas.map((m) => (
             <div key={m.id} className="flex min-h-14 items-center justify-between gap-3 border-b border-borde px-4">
-              <span className="flex flex-col leading-5"><span className="font-semibold">{m.plate} · {TIPO[m.type]}</span><span className="text-caption text-texto-2">{formatBs(m.amountCents)}</span></span>
-              <span className="font-mono font-bold">{m.paymentReference}</span>
+              <span className="flex flex-col leading-5"><span className="text-sm font-semibold">{TIPO[m.type]}</span><span className="text-caption text-texto-2">{m.plate} · {formatBs(m.amountCents)}</span></span>
+              <span className="font-mono text-sm text-texto-2">{m.paymentReference}</span>
             </div>
           ))}
           <div className="grid grid-cols-2">

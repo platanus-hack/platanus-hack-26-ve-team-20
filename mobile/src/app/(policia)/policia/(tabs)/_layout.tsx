@@ -3,9 +3,10 @@ import { Bell, Search, User } from 'lucide-react-native';
 
 import { BarraTabs } from '@/components/extra';
 import { useOficial } from '@/demo/policia';
-import { color } from '@/theme';
+import { useTema } from '@/lib/tema';
 
 export default function TabsPolicia() {
+  const { c } = useTema();
   const { alerta, servicio } = useOficial();
   const items = [
     { name: 'index', label: 'Alertas', icono: Bell, punto: alerta === 'activa' && servicio },
@@ -13,7 +14,7 @@ export default function TabsPolicia() {
     { name: 'perfil', label: 'Perfil', icono: User },
   ];
   return (
-    <Tabs screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: color.fondo } }} tabBar={(p) => <BarraTabs {...p} items={items} />}>
+    <Tabs screenOptions={{ headerShown: false, animation: 'shift', sceneStyle: { backgroundColor: c.fondo } }} tabBar={(p) => <BarraTabs {...p} items={items} />}>
       <Tabs.Screen name="index" options={{ title: 'Alertas' }} />
       <Tabs.Screen name="consultar" options={{ title: 'Consultar placa' }} />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil' }} />

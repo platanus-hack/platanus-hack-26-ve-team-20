@@ -119,8 +119,61 @@
       "destination": "/api/p1?route=officer-login"
     },
     {
+      "source": "/api/choques/latido",
+      "destination": "/api/choques?route=latido"
+    },
+    {
+      "source": "/api/choques/red",
+      "destination": "/api/choques?route=red"
+    },
+    {
+      "source": "/api/choques/incidentes",
+      "destination": "/api/choques?route=incidente"
+    },
+    {
+      "source": "/api/choques/alertas/:id/clip",
+      "destination": "/api/choques?route=clip-subir&id=:id"
+    },
+    {
+      "source": "/api/choques/alertas/:id/perdida",
+      "destination": "/api/choques?route=alerta-perdida&id=:id"
+    },
+    {
+      "source": "/api/choques/clips/:id",
+      "destination": "/api/choques?route=clip-ver&id=:id"
+    },
+    {
+      "source": "/api/time",
+      "destination": "/api/p2?route=time"
+    },
+    {
+      "source": "/api/blob/upload",
+      "destination": "/api/p2?route=blob-upload"
+    },
+    {
+      "source": "/api/cameras/:id/light",
+      "destination": "/api/p2?route=camera-light&id=:id"
+    },
+    {
+      "source": "/api/cameras",
+      "destination": "/api/p2?route=cameras"
+    },
+    {
+      "source": "/api/detections",
+      "destination": "/api/p2?route=detections"
+    },
+    {
+      "source": "/api/live/violations",
+      "destination": "/api/p2?route=live-violation"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/p2.ts": {
+      "maxDuration": 60
+    }
+  }
 }

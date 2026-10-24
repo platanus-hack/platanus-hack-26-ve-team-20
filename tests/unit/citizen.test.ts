@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   CitizenLoginSchema, CitizenPasswordSchema, CitizenRegisterSchema, CitizenResendSchema, CitizenVerifySchema,
 } from '../../lib/contracts/index.ts'
-import { codeHash, maskPhone, phoneToLocal } from '../../lib/domain/citizen.ts'
+import { codeHash, maskPhone, phoneToLocal, sendFailureMessage } from '../../lib/domain/citizen.ts'
 import { createCodeSender } from '../../lib/domain/citizen-sender.ts'
 
 afterEach(() => vi.unstubAllEnvs())
@@ -139,5 +139,15 @@ describe('createCodeSender (WhatsApp)', () => {
     expect(out.delivered).toBe(false)
     expect(JSON.stringify(out)).not.toContain('482913')
     expect((await createCodeSender({ config, fetchImpl: boom })('no-es-telefono', '482913')).delivered).toBe(false)
+  })
+})
+
+describe('mensaje cuando el código no sale', () => {
+  it('dice qué pasó según el motivo', () => {
+    expect(sendFailureMessage('DRY_RUN')).toMatch(/desactivado/)
+    expect(sendFailureMessage('CONFIG')).toMatch(/no está configurado/)
+    expect(sendFailureMessage('WINDOW_CLOSED')).toMatch(/Escriba un mensaje/)
+    expect(sendFailureMessage('RECIPIENT_NOT_ALLOWED')).toMatch(/número autorizado/)
+    expect(sendFailureMessage('NETWORK')).toMatch(/unos minutos/)
   })
 })

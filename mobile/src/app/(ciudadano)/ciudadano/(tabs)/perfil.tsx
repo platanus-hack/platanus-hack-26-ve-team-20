@@ -4,12 +4,15 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Pantalla } from '@/components/extra';
-import { Boton, Campo, Interruptor, SW, T, Tarjeta } from '@/components/ui';
+import { Boton, Campo, Interruptor, SW, SelectorTema, T, Tarjeta } from '@/components/ui';
 import { CIUDADANO, reiniciarCiudadano } from '@/demo/ciudadano';
 import { guardarSesion } from '@/lib/dispositivo';
-import { color, tipo } from '@/theme';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { tipo } from '@/theme';
 
 export default function PerfilCiudadano() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const [avisos, setAvisos] = useState(true);
   const [abrirClave, setAbrirClave] = useState(false);
 
@@ -20,51 +23,67 @@ export default function PerfilCiudadano() {
   }
 
   return (
-    <Pantalla style={{ gap: 20, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 24 }}>
-      <T accessibilityRole="header" style={tipo.h1}>
+    <Pantalla style={{ gap: 12, paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32 }}>
+      <T accessibilityRole="header" style={[tipo.h1, { marginBottom: 12 }]}>
         Perfil
       </T>
+      <Seccion titulo="Cuenta" />
       <Tarjeta>
         <Fila primera etiqueta="Cédula">
           <T style={tipo.mono}>{CIUDADANO.cedula}</T>
         </Fila>
-        <Fila etiqueta="Teléfono para avisos">
+        <Fila etiqueta="Teléfono">
           <T style={tipo.mono}>{CIUDADANO.telefono}</T>
         </Fila>
-        <Fila etiqueta="Correo">
-          <T style={{ color: color.texto2 }}>Sin correo</T>
-        </Fila>
-        <View style={[s.fila, s.borde]}>
-          <T>Avisos por WhatsApp</T>
-          <Interruptor valor={avisos} onCambio={setAvisos} etiqueta="Avisos por WhatsApp" />
-        </View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: abrirClave }} onPress={() => setAbrirClave(!abrirClave)} style={[s.fila, s.borde]}>
-          <T style={tipo.cuerpoFuerte}>Cambiar contraseña</T>
-          <ChevronDown size={20} color={color.tinta} strokeWidth={SW} style={{ transform: [{ rotate: abrirClave ? '180deg' : '0deg' }] }} />
+          <T>Cambiar contraseña</T>
+          <ChevronDown size={20} color={c.texto2} strokeWidth={SW} style={{ transform: [{ rotate: abrirClave ? '180deg' : '0deg' }] }} />
         </Pressable>
         {abrirClave ? (
-          <View style={{ gap: 10, paddingHorizontal: 16, paddingBottom: 16 }}>
+          <View style={{ gap: 12, paddingHorizontal: 16, paddingBottom: 16 }}>
             <Campo etiqueta="Contraseña actual" secureTextEntry />
             <Campo etiqueta="Nueva contraseña" secureTextEntry />
-            <Boton titulo="Guardar" onPress={() => setAbrirClave(false)} style={{ alignSelf: 'flex-start', paddingHorizontal: 20 }} />
+            <Boton titulo="Guardar" onPress={() => setAbrirClave(false)} />
           </View>
         ) : null}
       </Tarjeta>
-      <Boton titulo="Cerrar sesión" variante="peligro" onPress={salir} style={{ alignSelf: 'flex-start', paddingHorizontal: 20 }} />
+      <Seccion titulo="Preferencias" />
+      <Tarjeta>
+        <View style={s.fila}>
+          <View style={{ flex: 1 }}>
+            <T>Avisos por WhatsApp</T>
+            <T style={[tipo.caption, { color: c.texto2 }]}>Le escribimos cuando llegue una multa.</T>
+          </View>
+          <Interruptor valor={avisos} onCambio={setAvisos} etiqueta="Avisos por WhatsApp" />
+        </View>
+        <View style={[s.borde, { gap: 10, padding: 16 }]}>
+          <T>Apariencia</T>
+          <SelectorTema />
+        </View>
+      </Tarjeta>
+      <Boton titulo="Cerrar sesión" variante="peligro" onPress={salir} style={{ marginTop: 20 }} />
     </Pantalla>
   );
 }
 
+function Seccion({ titulo }: { titulo: string }) {
+  const { c } = useTema();
+  return <T style={[tipo.captionFuerte, { color: c.texto2, marginTop: 8, paddingHorizontal: 4 }]}>{titulo.toUpperCase()}</T>;
+}
+
 function Fila({ etiqueta, children, primera }: { etiqueta: string; children: ReactNode; primera?: boolean }) {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   return (
     <View style={[s.fila, primera ? null : s.borde]}>
-      <T style={{ color: color.texto2 }}>{etiqueta}</T>
+      <T style={{ color: c.texto2 }}>{etiqueta}</T>
       {children}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const estilos = ({ c }: Tema) =>
+  StyleSheet.create({
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16 },
-  borde: { borderTopWidth: 1, borderTopColor: color.borde },
+  borde: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.borde },
 });

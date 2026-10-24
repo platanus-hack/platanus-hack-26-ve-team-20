@@ -11,7 +11,7 @@ import { Card, LoadingFine, MONO, Notice, PageShell, Plate, Row, SourceNote, Spi
 import { useFine } from '../components/multa/use-fine.ts'
 
 const INPUT =
-  'mt-1 block min-h-11 w-full rounded-[6px] border border-[#5B6B85] bg-white px-3 py-2 text-[15px] font-normal text-[#14213D] focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-[#1F5FAD] aria-[invalid=true]:border-[#D62828]'
+  'mt-1 block min-h-11 w-full rounded-[6px] border border-input bg-card px-3 py-2 text-[15px] font-normal text-tinta focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-azul aria-[invalid=true]:border-rojo'
 
 export default function Pagar() {
   const { token } = useParams()
@@ -51,7 +51,7 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
       <PageShell>
         <Notice title="Esta multa ya fue pagada">
           No se hizo ningún cobro nuevo.{' '}
-          <Link to={`/multa/${encodeURIComponent(fine.token)}`} className="font-semibold text-[#1F5FAD] underline">
+          <Link to={`/multa/${encodeURIComponent(fine.token)}`} className="font-semibold text-azul underline">
             Ver el comprobante
           </Link>
           .
@@ -97,7 +97,7 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
   })
   const errorText = (key: keyof C2PFormValues) =>
     errors[key] && (
-      <p id={`${key}-error`} className="mt-1 text-[13px] font-semibold text-[#A61B1B]">
+      <p id={`${key}-error`} className="mt-1 text-[13px] font-semibold text-rojo-osc">
         {errors[key]}
       </p>
     )
@@ -105,7 +105,7 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
   return (
     <PageShell>
       <SourceNote source={source} />
-      <Link to={`/multa/${encodeURIComponent(fine.token)}`} className="text-[13px] font-semibold text-[#1F5FAD] underline">
+      <Link to={`/multa/${encodeURIComponent(fine.token)}`} className="text-[13px] font-semibold text-azul underline">
         Volver a la multa
       </Link>
       <h1 className="mt-3 text-[28px] font-bold leading-[1.15]">Pagar con Pago Móvil C2P</h1>
@@ -122,20 +122,20 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
       </Card>
 
       {outcome?.kind === 'rejected' && (
-        <div role="alert" className="mt-4 rounded-[6px] border border-[#D62828] bg-[#FBE7E7] px-3 py-2 text-[#A61B1B]">
+        <div role="alert" className="mt-4 rounded-[6px] border border-rojo bg-rojo-bg px-3 py-2 text-rojo-osc">
           <p className="font-bold">Pago rechazado</p>
           <p>{rejectionMessage(outcome.failureCode)}</p>
         </div>
       )}
       {outcome?.kind === 'error' && (
-        <div role="alert" className="mt-4 rounded-[6px] border border-[#D62828] bg-[#FBE7E7] px-3 py-2 text-[#A61B1B]">
+        <div role="alert" className="mt-4 rounded-[6px] border border-rojo bg-rojo-bg px-3 py-2 text-rojo-osc">
           <p className="font-bold">No se pudo procesar el pago</p>
           <p>{outcome.message}</p>
         </div>
       )}
 
       <form noValidate onSubmit={submit} className="mt-6 grid gap-4">
-        <p className="text-[13px] text-[#2B3A55]">Genere su clave C2P en la app de su banco y complete los datos de la cuenta que paga.</p>
+        <p className="text-[13px] text-texto-2">Genere su clave C2P en la app de su banco y complete los datos de la cuenta que paga.</p>
 
         <div>
           <label htmlFor="c2p-bankCode" className="font-semibold">
@@ -215,11 +215,11 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
         <button
           type="submit"
           disabled={sending}
-          className="flex min-h-12 items-center justify-center rounded-[6px] bg-[#D62828] px-4 py-3 text-[18px] font-bold text-white hover:bg-[#B71F1F] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#14213D] disabled:cursor-wait disabled:bg-[#9B6B6B]"
+          className="flex min-h-12 items-center justify-center rounded-control bg-primario px-4 py-3 text-[18px] font-bold text-sobre-primario hover:opacity-90 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-tinta disabled:cursor-wait disabled:bg-input"
         >
           {sending ? <Spinner label="Procesando pago simulado…" /> : `Pagar ${amount}`}
         </button>
-        <p className="text-center text-[13px] text-[#5B6B85]">Pago simulado: no se debita ninguna cuenta.</p>
+        <p className="text-center text-[13px] text-texto-3">Pago simulado: no se debita ninguna cuenta.</p>
       </form>
     </PageShell>
   )
@@ -228,8 +228,8 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
 function Receipt({ reference, paidAt, amount, token }: { reference: string; paidAt: string; amount: string; token: string }) {
   return (
     <PageShell>
-      <Card className="border-2 border-[#2D7D46]">
-        <p className="text-[13px] font-semibold uppercase tracking-wide text-[#22603A]">Pago aprobado · simulado</p>
+      <Card className="border-2 border-verde">
+        <p className="text-[13px] font-semibold uppercase tracking-wide text-verde-osc">Pago aprobado · simulado</p>
         <h1 className="mt-1 text-[28px] font-bold leading-[1.15]">Comprobante</h1>
         <dl className="mt-4">
           <Row label="Referencia">
@@ -241,9 +241,9 @@ function Receipt({ reference, paidAt, amount, token }: { reference: string; paid
           <Row label="Fecha">{formatDateTime(paidAt)}</Row>
           <Row label="Método">Pago Móvil C2P (simulado)</Row>
         </dl>
-        <p className="mt-4 text-[13px] text-[#2B3A55]">Recibirá la confirmación por WhatsApp. Ningún banco procesó este pago: es una demostración.</p>
+        <p className="mt-4 text-[13px] text-texto-2">Recibirá la confirmación por WhatsApp. Ningún banco procesó este pago: es una demostración.</p>
       </Card>
-      <Link to={`/multa/${encodeURIComponent(token)}`} className="mt-4 inline-block font-semibold text-[#1F5FAD] underline">
+      <Link to={`/multa/${encodeURIComponent(token)}`} className="mt-4 inline-block font-semibold text-azul underline">
         Volver a la multa
       </Link>
     </PageShell>

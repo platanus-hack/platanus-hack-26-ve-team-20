@@ -54,13 +54,34 @@ const EnvSchema = z.object({
   WHATSAPP_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default(DEFAULT_GRAPH_VERSION),
 });
 
-/** Lee la configuración de `process.env`. Sin `NOTIFY_DRY_RUN=false` explícito, no se envía nada. */
+/**
+ * Deja solo los caracteres válidos de un token o id. Al copiar el token desde algunas apps se cuelan caracteres
+ * invisibles (U+2060, espacios no separables, comillas tipográficas); en el header Authorization hacen que
+ * `fetch` lance un TypeError antes de llegar a Meta. Los tokens de Meta son alfanuméricos y los ids, dígitos.
+ */
+export function cleanCredential(value: string | undefined, allowed: RegExp): { value: string | undefined; removed: number } {
+  if (value === undefined) return { value: undefined, removed: 0 };
+  const kept = [...value].filter((ch) => allowed.test(ch)).join("");
+  return { value: kept || undefined, removed: [...value].length - [...kept].length };
+}
+
+/**
+ * Lee la configuración de `process.env`. Sin `NOTIFY_DRY_RUN=false` explícito, no se envía nada.
+ * Recorta espacios y saltos de línea, y quita del token y del id cualquier carácter que no les corresponda.
+ */
 export function whatsappConfigFromEnv(env: Record<string, string | undefined> = process.env): WhatsAppConfig {
+  const v = (k: string) => env[k]?.trim() || undefined;
+  const token = cleanCredential(v("WHATSAPP_ACCESS_TOKEN"), /[A-Za-z0-9._-]/);
+  const phoneId = cleanCredential(v("WHATSAPP_PHONE_NUMBER_ID"), /\d/);
+  if (token.removed || phoneId.removed) {
+    // Solo cuántos: nunca el valor.
+    console.warn(`[whatsapp] se quitaron caracteres inválidos de las variables: token ${token.removed}, id ${phoneId.removed}`);
+  }
   const e = EnvSchema.parse({
-    NOTIFY_DRY_RUN: env.NOTIFY_DRY_RUN || undefined,
-    WHATSAPP_ACCESS_TOKEN: env.WHATSAPP_ACCESS_TOKEN,
-    WHATSAPP_PHONE_NUMBER_ID: env.WHATSAPP_PHONE_NUMBER_ID,
-    WHATSAPP_GRAPH_VERSION: env.WHATSAPP_GRAPH_VERSION || undefined,
+    NOTIFY_DRY_RUN: v("NOTIFY_DRY_RUN")?.toLowerCase(),
+    WHATSAPP_ACCESS_TOKEN: token.value,
+    WHATSAPP_PHONE_NUMBER_ID: phoneId.value,
+    WHATSAPP_GRAPH_VERSION: v("WHATSAPP_GRAPH_VERSION"),
   });
   return {
     accessToken: e.WHATSAPP_ACCESS_TOKEN,
@@ -167,10 +188,12 @@ async function post(rawTo: string, content: Record<string, unknown>, options: Se
     });
   } catch (err) {
     const timedOut = err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError");
+    // Solo el tipo y el código de la causa: el mensaje de un TypeError de headers incluye el token.
+    const cause = err instanceof Error && err.cause && typeof err.cause === "object" && "code" in err.cause ? ` ${String(err.cause.code)}` : "";
     return fail(
       timedOut
         ? { reason: "TIMEOUT", message: `Meta no respondió en ${TIMEOUT_MS / 1000} s` }
-        : { reason: "NETWORK", message: "No se pudo conectar con Meta" },
+        : { reason: "NETWORK", message: `No se pudo conectar con Meta (${err instanceof Error ? err.name : "error"}${cause})` },
     );
   }
 

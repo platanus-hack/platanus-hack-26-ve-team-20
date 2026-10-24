@@ -55,9 +55,9 @@ export default function Multas() {
               aria-pressed={placa === p}
               onClick={() => cambiar('placa', p)}
               className={cx(
-                'press h-11 rounded-full border px-3.5',
+                'press h-10 rounded-full border px-3.5 transition-colors duration-150',
                 p ? 'font-mono text-[13px] font-bold' : 'text-sm font-semibold',
-                placa === p ? 'border-tinta bg-tinta text-card' : 'border-input bg-card text-tinta',
+                placa === p ? 'border-tinta bg-suave text-tinta' : 'border-borde text-texto-2 hover:text-tinta',
               )}
             >
               {p ?? 'Todos'}
@@ -82,7 +82,7 @@ export default function Multas() {
         [...grupos].map(([mes, lista]) => (
           <section key={mes} aria-label={mes} className="flex flex-col">
             <h2 className="sticky top-0 z-10 bg-fondo px-1 py-2.5 text-caption font-semibold text-texto-2">{mes}</h2>
-            <ListaMultas multas={lista} conPagar={tab === 'por-pagar'} desde="multas" />
+            <ListaMultas multas={lista} desde="multas" />
           </section>
         ))
       ))}

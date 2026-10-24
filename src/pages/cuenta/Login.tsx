@@ -1,7 +1,7 @@
 import { Clock, Eye, EyeOff } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { DemoError, getSesion, iniciarSesion } from '@/lib/demo/api.ts'
+import { DemoError, USA_API_REAL, getSesion, iniciarSesion } from '@/lib/demo/api.ts'
 import { Boton, Campo, SelectCedula } from '@/components/ui/index.tsx'
 import { enlace, input } from '@/components/ui/estilos.ts'
 import { display } from '@/components/cuenta/piezas.tsx'
@@ -13,12 +13,13 @@ export default function Login() {
   const location = useLocation()
   const st = location.state as { vencida?: boolean; desde?: string } | null
   const [tipo, setTipo] = useState<'V' | 'E'>('V')
-  const [ced, setCed] = useState('99000001')
+  const [ced, setCed] = useState(USA_API_REAL ? '' : '99000001')
   const [clave, setClave] = useState('')
   const [ver, setVer] = useState(false)
   const [fallos, setFallos] = useState(0)
   const [enviando, setEnviando] = useState(false)
   const [olvido, setOlvido] = useState(false)
+  const [fallaServidor, setFallaServidor] = useState<string | null>(null)
 
   if (getSesion() && !enviando) return <Navigate to="/inicio" replace />
 
@@ -26,11 +27,15 @@ export default function Login() {
     e.preventDefault()
     if (enviando) return
     setEnviando(true)
+    setFallaServidor(null)
     try {
       await iniciarSesion(`${tipo}${ced}`, clave)
       navigate(st?.desde ?? '/inicio', { replace: true })
     } catch (err) {
       if (err instanceof DemoError && err.code === 'CREDENCIALES') setFallos((f) => f + 1)
+      else setFallaServidor(err instanceof DemoError && err.code === 'RED'
+        ? 'No pudimos conectar con el servidor. Revise su conexión e intente de nuevo.'
+        : 'No pudimos iniciar sesión en este momento. Intente de nuevo en unos minutos.')
       setEnviando(false)
     }
   }
@@ -83,11 +88,12 @@ export default function Login() {
           </span>
         )}
       </div>
+      {fallaServidor && <p role="alert" className="text-sm text-rojo-osc">{fallaServidor}</p>}
       <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</Boton>
       <div className="flex items-center justify-center gap-1.5 text-sm text-texto-2">
         ¿No tiene cuenta?<Link to="/registro" className={enlace}>Crear cuenta</Link>
       </div>
-      <span className="text-center text-caption text-texto-3">Prototipo: V-99000001 con cualquier contraseña de 6 o más caracteres; «clave-mal» simula una clave incorrecta.</span>
+      {!USA_API_REAL && <span className="text-center text-caption text-texto-3">Prototipo: V-99000001 con cualquier contraseña de 6 o más caracteres; «clave-mal» simula una clave incorrecta.</span>}
     </form>
   )
 }

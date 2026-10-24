@@ -158,6 +158,9 @@ Response 200:
 Lógica: cargar cámara → `lib/vision.analyze()` → `lib/domain.registerDetection()` → (P1 llama `notifyFineIssued` si FINED) → si vehículo con multas impagas previas también `registerSighting` + `dispatchAlert`.
 Errores: servicio ML caído o respuesta inválida → 200 con `verdict: "NEEDS_REVIEW"`, `reviewReason: "ML_SERVICE_ERROR"` (nunca perder el clip).
 
+### `POST /api/live/violations` (servicio ML) — multas del modo en vivo
+La manda `ml/app/en_vivo.py` (no la app) con `Authorization: Bearer ML_SERVICE_TOKEN` cuando el motor cierra una multa de cruce en rojo. Body: `{ cameraCode, occurredAt, trackId, plate|null, plateConfidence, votes, rawReads[], modelVersion, idempotencyKey, sceneJpegBase64, vehicleJpegBase64?, plateJpegBase64? }`. Sube las fotos a Blob, juzga la placa con la misma regla que los clips (`judgePlate`) y llama a `registerDetection`. La escena ocupa el lugar del clip (el modo en vivo no graba video). Response `{ ok, data: { violationId, status, fineId?, duplicate, verdict, plate } }`.
+
 ### `POST /api/sightings` (camera | admin) — "placa vista" sin infracción
 Request `{ "cameraId": "...", "plate": "AB123CD", "seenAt": "ISO", "evidenceUrl": "opcional" }` o `{ "cameraCode", "clip": {...}, "clockOffsetMs" }` (el servicio ML lee la placa).
 Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, officerId?, distanceM? } | null } }`.
@@ -347,7 +350,9 @@ Response 200:
   "plateCropBase64": "..."
 }
 ```
-Reglas: coordenadas normalizadas 0–1 (origen arriba-izquierda), instantes en ms desde el inicio del clip (PTS). `speedKmh` es `null` con `speedValid: false` si hay huecos, oclusión, cambio de ID sospechado o fps < 24. La placa con caracteres dudosos usa `?` (→ `NO_PLATE`/revisión). El servicio **no** conoce el semáforo: la luz en el instante del cruce la evalúa `lib/vision/rules.ts` con los `LightChange`. `GET /health` devuelve `{ ok: true, modelVersion }`.
+Reglas: coordenadas normalizadas 0–1 (origen arriba-izquierda), instantes en ms desde el inicio del clip (PTS). `speedKmh` es `null` con `speedValid: false` si hay huecos, oclusión, cambio de ID sospechado o fps < 24. La placa con caracteres dudosos usa `?` (→ `NO_PLATE`/revisión). El servicio **no** conoce el semáforo: la luz en el instante del cruce la evalúa `lib/vision/rules.ts` con los `LightChange`. `GET /health` devuelve `{ ok: true, modelVersion, mode: "motor" | "simulado" }`.
+
+Implementación actual (`ml/app/pipeline.py`, envuelve `MotorInfracciones`): `tracks` solo trae los vehículos que cruzaron `stopLine`; `firstMs`, `lastMs`, `framesSeen`, `framesConfirmed`, `laneId`, `speedKmh` y `directionDeg` pueden venir `null` (el motor no los expone todavía); `plates[].rawReads` trae las lecturas crudas del OCR para revisión; `simulated: true` cuando el servicio corre sin pesos. `incidents[]` trae los posibles choques de `choques.pt` (`kind: "CRASH"`, `atMs`, `confidence`, `box`, `vehicles[]` con placa o `null`, `sceneJpegBase64`): son avisos para revisar, **nunca** multas, y no entran en `tracks`/`plates`.
 
 Post-proceso (`lib/vision/analyze.ts`): Zod parse → elegir el track que cruzó `stopLine` → `normalizePlate` → `rules.ts` (luz en `atMs`, doble llave) → subir `keyFrames` y recorte a Blob → `VisionResult` (con `clipUrl`, `crossing`, `motion`).
 

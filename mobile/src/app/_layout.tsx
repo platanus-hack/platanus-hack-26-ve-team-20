@@ -6,10 +6,12 @@ import { Stack } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
-import { color } from '@/theme';
+import { leerSesion } from '@/lib/dispositivo';
+import { TemaProvider, leerModoTema, useTema } from '@/lib/tema';
+import { color, type ModoTema } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -23,21 +25,38 @@ export default function RootLayout() {
     JetBrainsMono_700Bold,
   });
 
+  // La guardia de rutas (lib/guardia) necesita la sesión leída antes de montar los grupos; el tema, antes del primer pintado.
+  const [modoTema, setModoTema] = useState<ModoTema | null>(null);
   useEffect(() => {
-    if (listas || error) SplashScreen.hideAsync().catch(() => {});
-  }, [listas, error]);
+    Promise.all([leerSesion().catch(() => null), leerModoTema()]).then(([, modo]) => setModoTema(modo));
+  }, []);
+
+  useEffect(() => {
+    if ((listas || error) && modoTema) SplashScreen.hideAsync().catch(() => {});
+  }, [listas, error, modoTema]);
 
   useEffect(() => {
     // Ciudadano y policía van en vertical; la pantalla de cámara fija su propia orientación.
     if (Platform.OS !== 'web') ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
   }, []);
 
-  if (!listas && !error) return null;
+  if ((!listas && !error) || !modoTema) return null;
 
   return (
+    <TemaProvider inicial={modoTema}>
+      <Raiz />
+    </TemaProvider>
+  );
+}
+
+function Raiz() {
+  const { c, esquema } = useTema();
+  return (
     <>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.fondo } }}>
+      <StatusBar style={esquema === 'oscuro' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', contentStyle: { backgroundColor: c.fondo } }}>
+        <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: esquema === 'oscuro' ? c.fondo : color.tinta } }} />
+        <Stack.Screen name="(ciudadano)" options={{ animation: 'fade' }} />
         <Stack.Screen name="camara" options={{ contentStyle: { backgroundColor: '#0A0F18' }, animation: 'fade' }} />
       </Stack>
     </>

@@ -42,11 +42,28 @@ export async function guardar(clave: string, valor: string | null): Promise<void
 export type Modo = 'ciudadano' | 'policia';
 const SESION = 'smarttraffic.sesion';
 
+// Copia en memoria con suscriptores: la guardia de rutas se re-renderiza al instante tras login/logout.
+let sesionActual: Modo | null = null;
+const oyentes = new Set<() => void>();
+const fijarSesion = (modo: Modo | null) => {
+  sesionActual = modo;
+  oyentes.forEach((cb) => cb());
+};
+export const sesionEnMemoria = () => sesionActual;
+export const suscribirSesion = (cb: () => void) => {
+  oyentes.add(cb);
+  return () => { oyentes.delete(cb); };
+};
+
 export const leerSesion = async (): Promise<Modo | null> => {
   const v = await leer(SESION);
-  return v === 'ciudadano' || v === 'policia' ? v : null;
+  fijarSesion(v === 'ciudadano' || v === 'policia' ? v : null);
+  return sesionActual;
 };
-export const guardarSesion = (modo: Modo | null) => guardar(SESION, modo);
+export const guardarSesion = (modo: Modo | null) => {
+  fijarSesion(modo);
+  return guardar(SESION, modo);
+};
 
 // Ajustes del modo cámara
 export const CLAVE_CAMARA = 'smarttraffic.camara.clave';

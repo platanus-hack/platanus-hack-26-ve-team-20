@@ -1,9 +1,9 @@
-import { Car } from 'lucide-react'
+import { Car, ChevronRight } from 'lucide-react'
 import type { CSSProperties } from 'react'
+import { Link } from 'react-router'
 import { esPagable, getMultas, getVehiculos } from '@/lib/demo/api.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
-import { BotonLink } from '@/components/ui/index.tsx'
-import { cx } from '@/components/ui/estilos.ts'
+import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Titulo, Vacio } from '@/components/cuenta/piezas.tsx'
 import { Placa } from '@/components/vc/index.tsx'
 
@@ -13,7 +13,7 @@ export default function Vehiculos() {
   return (
     <Pagina>
       <Titulo despues="A su nombre según el registro (ejemplo).">Vehículos</Titulo>
-      {cargando && <div aria-busy="true" aria-label="Cargando vehículos" className="grid grid-cols-1 gap-4 lg:grid-cols-2"><span className="sk h-52 rounded-card" /><span className="sk h-52 rounded-card" /></div>}
+      {cargando && <div aria-busy="true" aria-label="Cargando vehículos" className="grid grid-cols-1 gap-3 lg:grid-cols-2"><span className="sk h-24 rounded-card" /><span className="sk h-24 rounded-card" /></div>}
       {error && error.code !== 'SESION' && <ErrorCarga titulo="No pudimos cargar sus vehículos" texto="Revise su conexión e intente de nuevo." onReintentar={recargar} />}
       {data && (data[0].length === 0 ? (
         <Vacio
@@ -22,29 +22,26 @@ export default function Vehiculos() {
           icono={<span className="flex size-12 items-center justify-center rounded-control bg-suave"><Car size={22} strokeWidth={1.75} aria-hidden="true" /></span>}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {data[0].map((v, i) => {
             const suyas = data[1].filter((m) => m.plate === v.plate)
             const pp = suyas.filter(esPagable).length
             return (
-              <article key={v.plate} className="entra rounded-card bg-suave p-1.5" style={{ '--i': i } as CSSProperties}>
-                <div className="flex flex-col gap-4 rounded-control bg-card p-5 shadow-[0_1px_2px_rgba(14,23,38,.06)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <Placa value={v.plate} size="lg" />
-                    <span className={cx('inline-flex h-[26px] items-center rounded-full px-2.5 text-xs font-semibold', pp ? 'bg-rojo-bg text-rojo-osc' : 'bg-verde-bg text-verde-osc')}>
-                      {pp ? `${pp} por pagar` : 'Al día'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="text-h3 font-semibold">{v.brand} {v.model} {v.year}</h2>
-                    <span className="text-sm text-texto-2">{v.color} · ejemplo</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-t border-borde pt-3">
-                    <span className="text-sm text-texto-2"><span className="font-mono font-bold text-tinta">{suyas.length}</span> multas registradas</span>
-                    <BotonLink variante="outline" to={`/multas?placa=${v.plate}${pp ? '' : '&tab=pagadas'}`} className="h-11 px-4 text-sm">Ver sus multas</BotonLink>
-                  </div>
-                </div>
-              </article>
+              <Link
+                key={v.plate}
+                to={`/multas?placa=${v.plate}${pp ? '' : '&tab=pagadas'}`}
+                aria-label={`${v.brand} ${v.model} ${v.year}, placa ${v.plate}, ${pp ? `${pp} por pagar` : 'al día'}. Ver sus multas`}
+                className={cx(tarjeta, 'entra group flex items-center gap-4 p-4 transition-colors duration-150 hover:bg-suave lg:p-5')}
+                style={{ '--i': i } as CSSProperties}
+              >
+                <Placa value={v.plate} size="sm" />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="font-semibold">{v.brand} {v.model} {v.year}</span>
+                  <span className="text-caption text-texto-2">{v.color} · ejemplo · {suyas.length} {suyas.length === 1 ? 'multa' : 'multas'}</span>
+                  <span className={cx('text-caption font-semibold', pp ? 'text-rojo-osc' : 'text-verde-osc')}>{pp ? `${pp} por pagar` : 'Al día'}</span>
+                </span>
+                <ChevronRight size={18} strokeWidth={2} aria-hidden="true" className="flex-none text-texto-3 transition-transform duration-150 group-hover:translate-x-0.5" />
+              </Link>
             )
           })}
         </div>
