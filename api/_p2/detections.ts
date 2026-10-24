@@ -4,6 +4,7 @@ import { DetectionRequestSchema } from "../../lib/contracts/index.ts";
 import { db } from "../../lib/db.ts";
 import { analyze } from "../../lib/vision/index.ts";
 import { registerDetection } from "../../lib/domain/index.ts";
+import { assignDemoOwner } from "../../lib/vision/demo-owners.ts";
 import { requireCameraKey } from "./camera-key.ts";
 import { ApiError, handler, sendOk } from "../_lib/respond.ts";
 
@@ -21,6 +22,8 @@ export default handler(["POST"], async (req, res) => {
     clockOffsetMs: body.clockOffsetMs, idempotencyKey,
   });
   // P1 guarda también los NO_VIOLATION (como VOID) para el feed de la consola.
+  // Demo: una placa confiable que no existe se registra a nombre de un dueño de demo (DEMO_DUENOS_CEDULAS).
+  if (result.verdict === "VIOLATION" && result.plate) await assignDemoOwner(db, result.plate);
   const registered = await registerDetection(result);
 
   sendOk(res, {
