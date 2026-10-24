@@ -58,6 +58,8 @@ export interface TransitionChanges {
   voidReason?: string | null;
   vehicleId?: string | null;
   plateRead?: string | null;
+  /** Comentario del operador: va al AuditLog, no a la violación. */
+  note?: string | null;
 }
 
 /**
@@ -129,12 +131,14 @@ async function applyTransition(
     action: "VIOLATION_TRANSITION",
     entity: "Violation",
     entityId: violationId,
-    before: { status: from, fineStatus: current.fine?.status ?? null },
+    before: { status: from, fineStatus: current.fine?.status ?? null, ...(changes.plateRead !== undefined && { plateRead: current.plateRead }) },
     after: {
       status: to,
       fineStatus: fineAfter,
       ...(changes.reviewReason !== undefined && { reviewReason: changes.reviewReason }),
       ...(changes.voidReason !== undefined && { voidReason: changes.voidReason }),
+      ...(changes.plateRead !== undefined && { plateRead: changes.plateRead }),
+      ...(changes.note && { note: changes.note }),
     },
   });
 

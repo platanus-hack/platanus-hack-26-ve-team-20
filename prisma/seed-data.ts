@@ -4,13 +4,14 @@
 // permitidos entran por DEMO_PHONE_DRIVER / DEMO_PHONE_OFFICER (variables de entorno).
 import { createHash } from "node:crypto";
 import { normalizeCedula, normalizePlate } from "../lib/contracts/index.ts";
+import { FINE_AMOUNTS_EXAMPLE } from "../lib/domain/fines.ts";
 
 export const SEED_PREFIX = "seed_";
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
 
-// MONTOS DE EJEMPLO, no legales (en céntimos). F7 define la tabla de dominio.
-const AMOUNT_RED_LIGHT_CENTS = 2_500_000;
+// Mismo monto de ejemplo que usa el dominio (lib/domain/fines.ts), en céntimos.
+const AMOUNT_RED_LIGHT_CENTS = FINE_AMOUNTS_EXAMPLE.RED_LIGHT;
 
 export interface SeedOptions {
   now: Date;

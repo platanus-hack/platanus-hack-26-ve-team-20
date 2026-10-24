@@ -1,7 +1,7 @@
 # 04 — API · VíaClara
 
 Convenciones: JSON, Zod en `lib/contracts/`, respuesta `{ ok: true, data }` | `{ ok: false, error: { code, message } }`. Códigos HTTP: 200/201, 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 404 `NOT_FOUND`, 409 `CONFLICT`/`INVALID_TRANSITION`, 429 `RATE_LIMITED`, 502 `UPSTREAM_ERROR`.
-Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de `ADMIN_PASSCODE`; `officer` = cookie de `OFFICER_PASSCODE` + `officerId`; `public` = sin auth.
+Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de sesión `vc_admin` del login de admin (§0b); `officer` = cookie `vc_officer` (`OFFICER_PASSCODE` + placa del oficial, la emite P3); `public` = sin auth.
 
 ## 0. Contratos compartidos (`lib/contracts/index.ts`) — se acuerdan en la hora 1
 ```ts
@@ -62,6 +62,20 @@ Mientras un módulo no existe, su dueño publica un **mock** con la misma firma 
 
 ---
 
+## 0b. Autenticación de admin/operador (P1)
+Cuenta en la tabla `AdminUser` (correo + contraseña con hash scrypt). La sesión es una cookie `vc_admin` firmada (HttpOnly, SameSite=Lax, Secure en Vercel, 8 h). Para métodos que modifican, si el navegador envía `Origin` debe coincidir con el host.
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/auth/login` `{ "email", "password" }` | public | 200 `{ user: { id, email, name } }` + `Set-Cookie`. Credenciales erróneas, correo inexistente o cuenta desactivada → el mismo 401 `Credenciales inválidas`. |
+| `GET /api/auth/me` | admin | 200 `{ user }`, o 401 si no hay sesión (la SPA lo usa para decidir si redirige a `/login`). |
+| `POST /api/auth/logout` | public | Borra la cookie. Idempotente. |
+
+- **Límites**: 5 fallos por correo y 10 por IP en 10 min → 429 `RATE_LIMITED` (aun con la contraseña correcta mientras dure el bloqueo). Los fallos se auditan (`ADMIN_LOGIN_FAILED`) sin guardar el correo ni la contraseña.
+- **Revocación**: desactivar la cuenta (`active = false`) o cambiar su contraseña invalida las sesiones abiertas.
+- **Cuenta inicial**: `pnpm db:seed` la crea con `ADMIN_EMAIL` / `ADMIN_PASSWORD` (solo se guarda el hash). Cambiar `ADMIN_PASSWORD` y volver a sembrar actualiza el hash.
+- Guardas disponibles en `api/_lib/auth.ts`: `requireAdmin(db, req)`, `requireCamera(req)`, `requireCameraOrAdmin(db, req)`, `requireOfficer(req)` y, para P3, `issueOfficerSession(res, officerId)`.
+
 ## 1. Detecciones y cámaras (P2)
 
 ### `GET /api/time` (public)
@@ -112,18 +126,34 @@ Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, offic
 
 ## 2. Violaciones y revisión (P1)
 ### `GET /api/violations?status=NEEDS_REVIEW&since=ISO&limit=50` (admin)
+`status` acepta uno o varios estados separados por coma (`FINED,NOTIFIED`). `limit` 1–200 (50 por defecto). Orden: la **modificación más reciente primero** (`updatedAt`). `since` devuelve solo lo modificado después de ese instante (estricto): el feed en vivo de `/camaras` sondea cada 2–3 s con `since = nextSince`, así un cambio de estado (DETECTED → NOTIFIED) vuelve a aparecer. `nextSince` es el `updatedAt` más reciente devuelto, o `null` si no hay novedades (el cliente conserva el anterior). Con más de `limit` novedades se devuelven las más nuevas.
 ```json
 { "ok": true, "data": { "items": [ {
-  "id": "vio_cuid", "type": "RED_LIGHT", "status": "NEEDS_REVIEW", "reviewReason": "LOW_CONFIDENCE",
+  "id": "vio_cuid", "type": "RED_LIGHT", "status": "NEEDS_REVIEW", "verdict": "NEEDS_REVIEW",
+  "reviewReason": "LOW_CONFIDENCE", "voidReason": null,
   "camera": { "code": "CAM-001", "intersection": "Av. Demo Norte con Calle 1 (ejemplo)" },
-  "plateRead": "AB12?CD", "confidence": 0.62, "occurredAt": "ISO",
+  "plateRead": "AB12?CD", "plateConfidence": 0.55, "confidence": 0.62,
+  "lightState": "RED",
+  "motion": { "speedKmh": 42.1, "laneId": "C1", "relation": "WITH_FLOW" },
+  "occurredAt": "ISO", "updatedAt": "ISO",
   "evidence": [{ "kind": "FRAME", "url": "..." }],
-  "fine": null
+  "fine": { "token": "x7Gq...", "status": "PENDING", "amountCents": 2500000, "currency": "VES" }
 } ], "nextSince": "ISO" } }
 ```
+- `verdict` lo deduce el servidor: `NEEDS_REVIEW`, `NO_VIOLATION` (un `VOID` con `voidReason = "NO_VIOLATION"`, ver `03` §4) o `VIOLATION`.
+- `fine` es `null` si no hay multa; su `status` incluye `OVERDUE` (calculado). `lightState` es la luz en el cruce (`null` en datos del seed).
+- Auth `admin`: cookie de sesión (§0b); sin sesión válida → 401.
+- Devuelve los tokens de multa (llave de acceso): jamás debe quedar público.
+
+### `GET /api/violations/[id]` (admin)
+Detalle para la pantalla de revisión: el mismo ítem de la lista más `modelVersion`, `aiOutput` (respuesta cruda del servicio ML) y `ruleOutput` (`{ verdict, crossing, rules }`). 404 si no existe.
+
 ### `POST /api/violations/[id]/review` (admin)
 Request `{ "action": "APPROVE", "plate": "AB123CD", "note": "placa legible en frame 2" }` o `{ "action": "VOID", "reason": "Vehículo de emergencia" }`.
-Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transición inválida.
+Response `{ ok, data: { status: "NOTIFIED" | "FINED" | "VOID", fineId? } }`.
+- **APPROVE** solo desde `NEEDS_REVIEW`: pasa por `REVIEWED` → `FINED` (crea la multa) y avisa al conductor (`NOTIFIED`). Si el aviso falla, la multa queda emitida y `status` es `FINED`. `plate` (opcional) corrige la placa: debe tener formato válido y ser de un vehículo registrado; sin `plate` se usa el vehículo ya enlazado o la placa leída si corresponde a uno registrado; si no hay vehículo → 400 `VALIDATION_ERROR` ("Indique la placa…"). `note` va al `AuditLog`. La multa queda con `verification: "HUMAN"`. No se despacha alerta a oficiales al aprobar (la detección ya es vieja).
+- **VOID** exige `reason`. Vale desde cualquier estado que la tabla de transiciones permita, así que también anula una multa ya emitida; desde `PAID` o `VOID` → 409.
+- Todo pasa por `transition()` y queda en el `AuditLog` con el operador de la sesión (`OPERATOR`, id de la cuenta, IP). Aprobar es atómico y la fila se bloquea: dos operadores a la vez → uno gana, el otro recibe 409 `INVALID_TRANSITION` y solo existe una multa.
 
 ## 3. Multa pública (P1)
 ### `GET /api/fines/[token]` (public)
@@ -138,7 +168,7 @@ Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transi
   "paidAt": null, "paymentReference": null
 }}
 ```
-El token es la "llave" de acceso: quien lo tiene ve la evidencia de esa multa. No muestra cédula ni teléfono.
+El token es la "llave" de acceso: quien lo tiene ve la evidencia de esa multa. No muestra cédula ni teléfono. Un token inexistente o mal formado responde igual (404 `NOT_FOUND`), sin revelar cuál de los dos. `status` es el estado guardado (`PENDING`, `PAID`, `APPEALED`, `VOID`) y `overdue` se calcula aparte. `verification` es `HUMAN` si la violación pasó por revisión y `AUTO` si no. `paymentReference` es la del pago aprobado. Respuestas con `Cache-Control: no-store`.
 
 ## 4. Portal por cédula (P1)
 ### `POST /api/portal/lookup` (public, rate limit 10/10min/IP)
@@ -152,7 +182,12 @@ Response (siempre 200, misma forma aunque no exista):
                "status": "PENDING", "amountCents": 0, "currency": "VES", "fineToken": null } ]
 }}
 ```
-`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`). Escribe `AuditLog(PORTAL_LOOKUP, ip)`.
+`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`); hasta entonces es siempre `null`.
+- **Cédula**: acepta `V12345678`, `v-12.345.678` y letras `V`, `E`, `J`, `G`, `P`; sin letra se busca como `V` y como `E` (el ciudadano suele escribir solo el número). Formato inválido → 400 `VALIDATION_ERROR`.
+- **Qué lista**: las multas **emitidas** de los vehículos del titular (una violación en revisión aún no es multa y no aparece), la más reciente primero, hasta 50; el `summary` cuenta todas. `pending` = pendientes + vencidas; `status` puede ser `OVERDUE` (calculado). Una cédula sin multas o inexistente responde 200 con la misma forma y todo en cero.
+- **Privacidad**: nunca nombre, teléfono, correo, cédula completa, placa completa ni `publicToken`; un test fija las claves exactas de la respuesta.
+- **Límite**: 10 consultas por IP cada 10 min → 429 `RATE_LIMITED`. El conteo y el registro son atómicos (bloqueo por IP): consultas simultáneas no pueden pasarse del máximo, y las bloqueadas no alargan la ventana.
+- **Auditoría**: cada consulta permitida escribe `AuditLog(PORTAL_LOOKUP, ip)` con una huella de la cédula en `entityId`, nunca la cédula.
 
 ## 5. Pagos C2P SIMULADOS (P3)
 ### Contexto: cómo es C2P real

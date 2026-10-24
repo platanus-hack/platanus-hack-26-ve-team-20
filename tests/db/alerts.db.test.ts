@@ -1,117 +1,163 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { createDispatcher } from '../../lib/alerts/dispatch.ts'
+import type { DispatchAlert, FineStatus, NotifyFineIssued, RegisterSighting, ViolationStatus, VisionResult } from '../../lib/contracts/index.ts'
 import { db } from '../../lib/db.ts'
-import { createNotifier } from '../../lib/notify/notifier.ts'
-import { createPrismaNotificationRepo } from '../../lib/notify/prisma-repo.ts'
+import { createRegisterSighting } from '../../lib/domain/sightings.ts'
+import { createRegisterDetection } from '../../lib/domain/violations.ts'
 
-// dispatchAlert contra la base real (`pnpm test:db`), SIN enviar WhatsApp (`send` falso).
-// Cámara del seed seed_cam_1 → intersección seed_int_1 (10.4961, -66.853).
-const RUN = `test_alr_${Date.now().toString(36)}`
-const suffix = Date.now().toString().slice(-4)
-const CAM = { lat: 10.4961, lng: -66.853 }
-const send = vi.fn(async () => ({ status: 'SENT' as const, providerId: `wamid.${RUN}` }))
-const notifier = createNotifier({ repo: createPrismaNotificationRepo(db), send, appBaseUrl: 'https://example.test' })
-const notifyOfficerAlert = vi.fn(notifier.notifyOfficerAlert)
-const { dispatchAlert } = createDispatcher({ db, notifyOfficerAlert })
-
-async function vehicleWithDebt(tag: string, unpaid: number) {
-  const id = `${RUN}_${tag}`
-  await db.person.create({ data: { id: `${id}_per`, cedula: `V8${suffix}${tag.length}${unpaid}${tag.charCodeAt(0)}`.slice(0, 10), fullName: 'Persona Prueba (ejemplo)', phone: '584120000099' } })
-  await db.vehicle.create({ data: { id: `${id}_veh`, plate: `${tag.toUpperCase().slice(0, 2)}${suffix}${tag.length}`, make: 'Ford', model: 'Explorer', color: 'blanca', ownerId: `${id}_per` } })
-  for (let i = 0; i < unpaid; i++) {
-    await db.violation.create({
-      data: {
-        id: `${id}_vio${i}`, idempotencyKey: `test-${id}-${i}`, type: 'RED_LIGHT', status: 'NOTIFIED', cameraId: 'seed_cam_1', vehicleId: `${id}_veh`,
-        confidence: 0.9, occurredAt: new Date(), aiOutput: {}, ruleOutput: {},
-        fine: { create: { id: `${id}_fine${i}`, publicToken: `${id}-tok-${i}-pad`, amountCents: 100, dueAt: new Date(Date.now() + 86_400_000) } },
-      },
-    })
-  }
-  return `${id}_veh`
-}
-
+// Enganche detección → avistamiento → alerta (docs/02 §5 paso 8, HU-06).
+const RUN = Date.now().toString(36)
+const SUFFIX = String(Date.now() % 10_000).padStart(4, '0')
+const KEY_PREFIX = `test-alr-${RUN}`
+const personId = `test_${RUN}_per`
 let n = 0
-const sighting = async (vehicleId: string) => {
-  const s = await db.sighting.create({ data: { id: `${RUN}_s${++n}`, cameraId: 'seed_cam_1', vehicleId, plateRead: 'X', seenAt: new Date() } })
-  return s.id
+const vehicleIds: string[] = []
+const sightingIds: string[] = []
+
+/** Dependencias con espías: registran los avistamientos creados y las alertas despachadas. */
+function setup(dispatch?: DispatchAlert) {
+  const real = createRegisterSighting(db)
+  const registerSighting = vi.fn<RegisterSighting>(async (s) => {
+    const out = await real(s)
+    sightingIds.push(out.sightingId)
+    return out
+  })
+  const dispatchAlert = vi.fn<DispatchAlert>(dispatch ?? (async () => ({ alertId: 'alr_test', status: 'SENT', officerId: 'o', distanceM: 420 })))
+  const notifyFineIssued = vi.fn<NotifyFineIssued>(async () => ({ channel: 'WHATSAPP', status: 'DRY_RUN' }))
+  const register = createRegisterDetection({ db, notifyFineIssued, registerSighting, dispatchAlert, confidenceThreshold: 0.8 })
+  return { register, registerSighting, dispatchAlert }
 }
 
-let vehicleA = ''
-let vehicleB = ''
+async function vehicle(): Promise<{ id: string; plate: string }> {
+  const id = `test_${RUN}_veh_${++n}`
+  const plate = `TZ${String(n).padStart(2, '0')}${SUFFIX}`
+  await db.vehicle.create({ data: { id, plate, make: 'Test', model: 'Auto', color: 'gris', ownerId: personId } })
+  vehicleIds.push(id)
+  return { id, plate }
+}
+
+/** Una multa ANTERIOR del vehículo (placa leída nula para no interferir con el dedup). */
+async function priorFine(vehicleId: string, v: ViolationStatus = 'NOTIFIED', f: FineStatus = 'PENDING') {
+  const id = `test_${RUN}_prior_${++n}`
+  await db.violation.create({
+    data: {
+      id, idempotencyKey: `${KEY_PREFIX}-prior-${n}`, type: 'RED_LIGHT', status: v, cameraId: 'seed_cam_1', vehicleId, confidence: 0.9,
+      occurredAt: new Date(Date.now() - 10 * 86_400_000), aiOutput: {}, ruleOutput: {},
+      fine: { create: { id: `${id}_fine`, publicToken: `test-token-${id}-pad`, amountCents: 100, status: f, dueAt: new Date(Date.now() + 86_400_000) } },
+    },
+  })
+}
+
+function detection(plate: string | null, over: Partial<VisionResult> = {}): VisionResult {
+  const at = new Date().toISOString()
+  return {
+    cameraId: 'seed_cam_1', type: 'RED_LIGHT', verdict: 'VIOLATION', plate, plateConfidence: 0.95, confidence: 0.92, occurredAt: at,
+    frames: [{ url: 'https://example.com/t/f0.jpg', capturedAt: at, lightState: 'RED' }],
+    clipUrl: 'https://example.com/t/clip.mp4',
+    crossing: { crossedStopLine: true, atMs: 1800, lightState: 'RED' },
+    motion: { speedKmh: null, laneId: null, directionDeg: null, relation: 'UNKNOWN' },
+    modelVersion: 'test-0.1', aiOutput: {}, ruleOutput: {}, idempotencyKey: `${KEY_PREFIX}-${++n}`,
+    ...over,
+  }
+}
 
 beforeAll(async () => {
-  if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) throw new Error('Falta el seed: corre `pnpm db:seed`')
-  const officer = (tag: string, onDuty: boolean, dLat: number) =>
-    db.officer.create({
-      data: {
-        id: `${RUN}_${tag}`, badge: `T-${suffix}-${tag}`, name: `Oficial Prueba ${tag} (ejemplo)`, phone: `58412000${suffix}`, onDuty,
-        locations: { create: { lat: CAM.lat + dLat, lng: CAM.lng, recordedAt: new Date() } },
-      },
-    })
-  await officer('near', true, 0.0003) // ~33 m
-  await officer('far', true, 0.027) // ~3 km
-  await officer('off', false, 0.0001) // más cerca, pero fuera de servicio
-  vehicleA = await vehicleWithDebt('aa', 2)
-  vehicleB = await vehicleWithDebt('bb', 1)
+  if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) {
+    throw new Error('Falta el seed: corre `pnpm db:seed` antes de `pnpm test:db`')
+  }
+  await db.person.create({ data: { id: personId, cedula: `V9${String(Date.now()).slice(-7)}`, fullName: 'Persona Test', phone: '584120000000' } })
 })
 
 afterAll(async () => {
-  const alerts = (await db.alert.findMany({ where: { sightingId: { startsWith: RUN } }, select: { id: true } })).map((a) => a.id)
-  const ntfs = (await db.notification.findMany({ where: { alertId: { in: alerts } }, select: { id: true } })).map((x) => x.id)
-  await db.auditLog.deleteMany({ where: { entityId: { in: [...alerts, ...ntfs] } } })
-  await db.notification.deleteMany({ where: { id: { in: ntfs } } })
-  await db.alert.deleteMany({ where: { id: { in: alerts } } })
-  await db.sighting.deleteMany({ where: { id: { startsWith: RUN } } })
-  await db.officerLocation.deleteMany({ where: { officerId: { startsWith: RUN } } })
-  await db.officer.deleteMany({ where: { id: { startsWith: RUN } } })
-  await db.fine.deleteMany({ where: { id: { startsWith: RUN } } })
-  await db.violation.deleteMany({ where: { id: { startsWith: RUN } } })
-  await db.vehicle.deleteMany({ where: { id: { startsWith: RUN } } })
-  await db.person.deleteMany({ where: { id: { startsWith: RUN } } })
+  const created = await db.violation.findMany({ where: { idempotencyKey: { startsWith: KEY_PREFIX } }, include: { fine: true } })
+  const ids = created.flatMap((v) => [v.id, ...(v.fine ? [v.fine.id] : [])])
+  await db.auditLog.deleteMany({ where: { entityId: { in: ids } } })
+  await db.sighting.deleteMany({ where: { id: { in: sightingIds } } })
+  await db.evidence.deleteMany({ where: { violationId: { in: created.map((v) => v.id) } } })
+  await db.fine.deleteMany({ where: { violationId: { in: created.map((v) => v.id) } } })
+  await db.violation.deleteMany({ where: { id: { in: created.map((v) => v.id) } } })
+  await db.vehicle.deleteMany({ where: { id: { in: vehicleIds } } })
+  await db.person.deleteMany({ where: { id: personId } })
   await db.$disconnect()
 })
 
-describe('dispatchAlert contra la base', () => {
-  it('alerta al oficial en servicio más cercano y le escribe por WhatsApp', async () => {
-    const s1 = await sighting(vehicleA)
-    const r = await dispatchAlert(s1)
-    expect(r).toMatchObject({ status: 'SENT', officerId: `${RUN}_near` })
-    expect(r.distanceM).toBeLessThan(60)
+describe('registerDetection → registerSighting → dispatchAlert', () => {
+  it('vehículo con multa impaga previa: crea el avistamiento y despacha UNA alerta', async () => {
+    const v = await vehicle()
+    await priorFine(v.id)
+    const { register, registerSighting, dispatchAlert } = setup()
 
-    const alert = await db.alert.findUniqueOrThrow({ where: { id: r.alertId } })
-    expect(alert).toMatchObject({ vehicleId: vehicleA, sightingId: s1, unpaidCount: 2, status: 'SENT', officerId: `${RUN}_near` })
-    const ntf = await db.notification.findFirstOrThrow({ where: { alertId: r.alertId } })
-    expect(ntf).toMatchObject({ template: 'OFFICER_ALERT', status: 'SENT', fineId: null })
-    const calls = send.mock.calls as unknown as Array<[{ body: string }]>
-    expect(calls.at(-1)?.[0].body).toMatch(/con 2 multas impagas visto en Av\. Demo Norte con Calle 1 \(ejemplo\) hace menos de 1 min, a \d+ m de su posición/)
-    expect(await db.auditLog.count({ where: { entity: 'Alert', entityId: r.alertId, action: 'ALERT_DISPATCHED' } })).toBe(1)
+    const out = await register(detection(v.plate))
+
+    expect(out).toMatchObject({ status: 'NOTIFIED', duplicate: false })
+    expect(registerSighting).toHaveBeenCalledTimes(1)
+    expect(registerSighting).toHaveBeenCalledWith(expect.objectContaining({ cameraId: 'seed_cam_1', plate: v.plate, evidenceUrl: 'https://example.com/t/clip.mp4' }))
+    const sightingId = sightingIds.at(-1)!
+    expect(dispatchAlert).toHaveBeenCalledTimes(1)
+    expect(dispatchAlert).toHaveBeenCalledWith(sightingId)
+    expect(await db.sighting.findUniqueOrThrow({ where: { id: sightingId } })).toMatchObject({ vehicleId: v.id, plateRead: v.plate })
   })
 
-  it('la misma placa otra vez en < 10 min queda SUPPRESSED, sin WhatsApp', async () => {
-    const before = notifyOfficerAlert.mock.calls.length
-    const r = await dispatchAlert(await sighting(vehicleA))
-    expect(r).toEqual({ alertId: r.alertId, status: 'SUPPRESSED' })
-    expect(notifyOfficerAlert.mock.calls.length).toBe(before)
+  it('sin multas previas no hay avistamiento ni alerta (aunque esta detección genere una multa)', async () => {
+    const v = await vehicle()
+    const { register, registerSighting, dispatchAlert } = setup()
+    const out = await register(detection(v.plate))
+    expect(out.fineId).toBeDefined()
+    expect(registerSighting).not.toHaveBeenCalled()
+    expect(dispatchAlert).not.toHaveBeenCalled()
   })
 
-  it('repetir el mismo avistamiento devuelve la misma alerta (idempotente)', async () => {
-    const s = await sighting(vehicleB)
-    const a = await dispatchAlert(s)
-    const calls = notifyOfficerAlert.mock.calls.length
-    const b = await dispatchAlert(s)
-    expect(b).toEqual(a)
-    expect(notifyOfficerAlert.mock.calls.length).toBe(calls)
+  it('multas previas pagadas o anuladas no cuentan', async () => {
+    const v = await vehicle()
+    await priorFine(v.id, 'PAID', 'PAID')
+    await priorFine(v.id, 'VOID', 'VOID')
+    const { register, dispatchAlert } = setup()
+    await register(detection(v.plate))
+    expect(dispatchAlert).not.toHaveBeenCalled()
   })
 
-  it('dos avistamientos simultáneos de la misma placa: una alerta y una suprimida', async () => {
-    const vehicleC = await vehicleWithDebt('cc', 1)
-    const [x, y] = await Promise.all([dispatchAlert(await sighting(vehicleC)), dispatchAlert(await sighting(vehicleC))])
-    expect([x.status, y.status].sort()).toEqual(['SENT', 'SUPPRESSED'])
+  it('la repetición de la misma detección no vuelve a alertar', async () => {
+    const v = await vehicle()
+    await priorFine(v.id)
+    const { register, registerSighting, dispatchAlert } = setup()
+    const r = detection(v.plate)
+    await register(r)
+    const again = await register(r)
+    expect(again.duplicate).toBe(true)
+    expect(registerSighting).toHaveBeenCalledTimes(1)
+    expect(dispatchAlert).toHaveBeenCalledTimes(1)
   })
 
-  it('avistamiento inexistente o sin vehículo: error de dominio', async () => {
-    await expect(dispatchAlert(`${RUN}_no_existe`)).rejects.toMatchObject({ code: 'NOT_FOUND' })
-    const loose = await db.sighting.create({ data: { id: `${RUN}_loose`, cameraId: 'seed_cam_1', plateRead: 'ZZ999ZZ', seenAt: new Date() } })
-    await expect(dispatchAlert(loose.id)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+  it('un cruce en verde (NO_VIOLATION) de un vehículo con deuda también alerta: la cámara lo vio', async () => {
+    const v = await vehicle()
+    await priorFine(v.id)
+    const { register, dispatchAlert } = setup()
+    const out = await register(detection(v.plate, { verdict: 'NO_VIOLATION', crossing: { crossedStopLine: true, lightState: 'GREEN' } }))
+    expect(out.status).toBe('VOID')
+    expect(dispatchAlert).toHaveBeenCalledTimes(1)
+  })
+
+  it('no alerta si la placa no es confiable ni si el vehículo no está registrado', async () => {
+    const v = await vehicle()
+    await priorFine(v.id)
+    const a = setup()
+    await a.register(detection(v.plate, { plateConfidence: 0.5 })) // lectura dudosa: podría ser otro vehículo
+    expect(a.dispatchAlert).not.toHaveBeenCalled()
+
+    const b = setup()
+    await b.register(detection(`ZA${SUFFIX}Q`))
+    expect(b.dispatchAlert).not.toHaveBeenCalled()
+  })
+
+  it('si despachar la alerta falla, la detección igual se registra y el fallo se audita', async () => {
+    const v = await vehicle()
+    await priorFine(v.id)
+    const { register } = setup(async () => {
+      throw new Error('sin oficiales (prueba)')
+    })
+    const out = await register(detection(v.plate))
+    expect(out).toMatchObject({ status: 'NOTIFIED', duplicate: false })
+    const logs = await db.auditLog.findMany({ where: { entityId: out.violationId, action: 'ALERT_FAILED' } })
+    expect(logs).toHaveLength(1)
+    expect(logs[0]!.after).toMatchObject({ error: 'sin oficiales (prueba)' })
   })
 })

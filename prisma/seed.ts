@@ -10,6 +10,7 @@ try {
 const { db } = await import("../lib/db.ts");
 const { buildSeed } = await import("./seed-data.ts");
 const { applySeed } = await import("./seed-run.ts");
+const { ensureAdmin } = await import("./seed-admin.ts");
 
 try {
   const counts = await applySeed(
@@ -21,6 +22,12 @@ try {
     }),
   );
   console.log("seed aplicado:", counts);
+  const admin = await ensureAdmin(db, {
+    email: process.env["ADMIN_EMAIL"],
+    password: process.env["ADMIN_PASSWORD"],
+    name: process.env["ADMIN_NAME"],
+  });
+  console.log(admin === "skipped" ? "admin: sin ADMIN_EMAIL/ADMIN_PASSWORD, no se crea cuenta" : `admin: ${admin}`);
 } finally {
   await db.$disconnect();
 }

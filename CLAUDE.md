@@ -71,6 +71,7 @@ api/                                # Vercel Functions (TypeScript, Node)
   violations/index.ts               # GET lista (P1)
   violations/[id]/review.ts         # POST aprobar/rechazar (P1)
   fines/[token].ts                  # GET multa pública (P1)
+  auth/login.ts, logout.ts, me.ts   # login de admin/operador por cookie de sesión (P1)
   portal/lookup.ts                  # POST consulta por cédula (P1)
   payments/c2p.ts                   # POST pago simulado (P3)
   officers/location.ts              # POST ubicación oficial (P3)
@@ -89,6 +90,7 @@ ml/                                 # servicio de visión (Python/FastAPI) + ent
 lib/
   contracts/        # tipos + Zod compartidos (P1 dueño, todos revisan)
   db.ts             # Prisma client singleton (P1)
+  auth/             # hash scrypt de contraseñas y sesiones firmadas (P1)
   domain/           # máquina de estados, multas, auditoría (P1)
   vision/           # cliente del servicio ML, reglas (luz en el cruce, placa), doble llave (P2)
   storage/          # Vercel Blob (P2)
@@ -134,7 +136,8 @@ docs/               # esta documentación
 | `WHATSAPP_VERIFY_TOKEN` | texto para el GET de verificación del webhook | P3 |
 | `WHATSAPP_GRAPH_VERSION` | versión de la Graph API, p.ej. `v23.0` | P3 |
 | `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
-| `ADMIN_PASSCODE` | acceso simple a `/admin` y `/camaras` | P1 |
+| `SESSION_SECRET` | firma las cookies de sesión (≥ 32 caracteres; `openssl rand -base64 48`). Obligatoria en Vercel | P1 |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
 | `ALERT_RADIUS_METERS` | p.ej. `1500` | P3 |
