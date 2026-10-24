@@ -4,6 +4,7 @@
 import base64
 import os
 import sys
+import threading
 import time
 import urllib.request
 import uuid
@@ -30,6 +31,8 @@ CHOQUES_ACTIVOS = os.getenv("ML_CHOQUES", "false") == "true"
 # Umbral sugerido por el notebook de choques (INTEGRACION_CAPA_CHOQUES.md §8); calibrar en el sitio de la demo.
 CONF_CHOQUES = float(os.getenv("ML_CONF_CHOQUES", "0.3"))
 MAX_CLIP_BYTES = 100 * 1024 * 1024
+# La GPU de Mac (mps) no admite dos usos a la vez: /predict y el modo en vivo se turnan con este candado.
+GPU_LOCK = threading.Lock()
 ESCENA_MAX_ANCHO = 1280  # fotos de escena en la respuesta; en disco quedan a resolución completa
 PLACA_NO_LEIDA = "NO LEIDA"
 

@@ -37,6 +37,14 @@ Levanta uvicorn con el `ML_SERVICE_TOKEN` de `.env.local` (`mps`, y COCO si no h
 con el dominio fijo de ngrok (requiere ngrok ≥ 3.20 y `ngrok config add-authtoken`). En Vercel:
 `ML_SERVICE_URL=https://brittle-kilowatt-entertain.ngrok-free.dev` y el mismo `ML_SERVICE_TOKEN`.
 
+## Modo en vivo (demo)
+
+Con `servir.sh` corriendo, abrir `https://<dominio-ngrok>/en-vivo` en el teléfono (o `http://localhost:8000/en-vivo`
+en la Mac con la cámara de Continuidad). Pide la `CAMERA_API_KEY`, abre la cámara trasera y manda cuadros por
+WebSocket. Botones ROJO/VERDE: el motor multa solo a quien cruza la línea de pare **en rojo**. Cada multa cerrada
+aparece en la lista con placa y foto y se registra en Vercel (`ML_REGISTRO_URL` → `POST /api/live/violations`).
+Sin esa variable, las multas solo quedan en pantalla. La cámara del navegador exige HTTPS (ngrok) salvo en localhost.
+
 ## Cuando termine el entrenamiento en Kaggle
 
 El código del motor (`ml/motor/`) ya está en el repo, extraído de `deteccion_semaforo_placas.ipynb`. Solo faltan los pesos:

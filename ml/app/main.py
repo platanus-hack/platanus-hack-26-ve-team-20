@@ -2,18 +2,16 @@
 import os
 import secrets
 import tempfile
-import threading
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 
-from . import pipeline
+from . import en_vivo, pipeline
 from .schemas import PredictRequest, PredictResponse
 
 app = FastAPI(title="VíaClara ML")
-# El motor es pesado y guarda estado de tracking: un clip a la vez (docs de integración §4).
-_lock = threading.Lock()
+app.include_router(en_vivo.router)
 
 
 def auth(authorization: Annotated[str, Header()] = "") -> None:
@@ -33,7 +31,7 @@ def health() -> dict[str, object]:
 def predict(req: PredictRequest) -> PredictResponse:
     if not pipeline.motor_disponible():
         return pipeline.simulado(req)
-    with _lock, tempfile.TemporaryDirectory() as tmp:
+    with pipeline.GPU_LOCK, tempfile.TemporaryDirectory() as tmp:
         try:
             clip = pipeline.descargar(req.clip.url, Path(tmp))
             return pipeline.analizar(clip, req.calibration)

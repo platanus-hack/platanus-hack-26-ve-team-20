@@ -85,9 +85,8 @@ export function evaluate(
   const atMs = crosser.stopLine.atMs;
   const crossedAt = toServerTime(ctx.startedAt, ctx.clockOffsetMs, atMs);
   const lightState = lightAt(ctx.lightChanges, crossedAt);
-  const read = res.plates.find((p) => p.trackId === crosser.trackId);
-  const plate = read ? normalizePlate(read.text) : null;
-  const plateConfidence = read?.ocrConfidence ?? 0;
+  const plateCheck = judgePlate(res.plates.find((p) => p.trackId === crosser.trackId), ctx.threshold);
+  const { plate, plateConfidence } = plateCheck;
   const base = { trackId: crosser.trackId, plate, plateConfidence, crossing: { crossedStopLine: true, atMs, lightState }, motion, crossedAt };
   const review = (reviewReason: VisionReviewReason): RuleResult => ({ ...base, verdict: "NEEDS_REVIEW", reviewReason });
 
@@ -96,8 +95,20 @@ export function evaluate(
   const weakTrack = crosser.idSwitchSuspected
     || (ctx.stopLineFrames !== undefined && framesConfirmed != null && framesConfirmed < ctx.stopLineFrames);
   if (lightState === "UNKNOWN" || weakTrack || changesNear(ctx.lightChanges, crossedAt)) return review("MODEL_RULE_DISAGREE");
-  // Aquí solo se juzga si la LECTURA es confiable; si la placa existe lo decide el dominio (PLATE_NOT_FOUND).
-  if (!plate || !isPlausiblePlate(plate)) return review("NO_PLATE");
-  if (plateConfidence < ctx.threshold || (read?.votes ?? 0) < MIN_PLATE_VOTES) return review("LOW_CONFIDENCE");
-  return { ...base, verdict: "VIOLATION" };
+  return plateCheck.reviewReason ? review(plateCheck.reviewReason) : { ...base, verdict: "VIOLATION" };
+}
+
+/**
+ * La parte de la placa en la doble llave (clips y modo en vivo): solo se juzga si la LECTURA es confiable
+ * (plausible, repetida y con confianza); si la placa existe lo decide el dominio (PLATE_NOT_FOUND).
+ */
+export function judgePlate(
+  read: { text: string; ocrConfidence: number; votes: number } | undefined,
+  threshold: number,
+): { plate: string | null; plateConfidence: number; reviewReason?: "NO_PLATE" | "LOW_CONFIDENCE" } {
+  const plate = read ? normalizePlate(read.text) : null;
+  const plateConfidence = read?.ocrConfidence ?? 0;
+  if (!read || !plate || !isPlausiblePlate(plate)) return { plate, plateConfidence, reviewReason: "NO_PLATE" };
+  if (plateConfidence < threshold || read.votes < MIN_PLATE_VOTES) return { plate, plateConfidence, reviewReason: "LOW_CONFIDENCE" };
+  return { plate, plateConfidence };
 }
