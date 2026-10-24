@@ -3,7 +3,8 @@
 ## 1. Componentes
 | Componente | Tecnología | Responsabilidad |
 |---|---|---|
-| Web app | Next.js App Router en Vercel | Todas las pantallas y route handlers |
+| Web app | React + Vite (SPA, TypeScript) en Vercel | Todas las pantallas (`src/`) |
+| API | Vercel Functions (`api/`, TypeScript, Node) | Endpoints REST; reutilizan `lib/*` |
 | Simulador de cámara | `/camaras` (client) | Sube frames a Blob (client upload), dibuja línea de pare, dispara análisis |
 | Pipeline de visión | `lib/vision/*` en Vercel Function (Node) | Llama a Claude con frames, valida JSON, aplica regla geométrica |
 | Dominio | `lib/domain/*` | Máquina de estados, creación de multas, deduplicación, auditoría |
@@ -23,8 +24,8 @@ flowchart LR
     OFF[/oficial<br/>móvil/]
     ADM[/admin/revision/]
   end
-  subgraph Vercel["Vercel (Next.js)"]
-    API[Route handlers /api/*]
+  subgraph Vercel["Vercel (SPA Vite + Functions)"]
+    API[Vercel Functions /api/*]
     VIS[lib/vision]
     DOM[lib/domain]
     NOT[lib/notify]
@@ -147,13 +148,13 @@ Nota: la ubicación usada para la distancia es la **de la cámara** (donde fue v
 
 ## 6. Restricciones de Vercel (honestas)
 - Vercel Functions: body de request/response máx **4.5 MB** (error 413) → frames a Blob por client upload, la función recibe URLs. Fuente: https://vercel.com/docs/functions/limitations
-- Duración máx en Hobby **300 s** (misma fuente). Un análisis con Claude tarda segundos; poner `export const maxDuration = 60` en `/api/detections`.
+- Duración máx en Hobby **300 s** (misma fuente). Un análisis con Claude tarda segundos; configurar `maxDuration: 60` para `api/detections.ts` en `vercel.json` (`functions`).
 - No hay procesos persistentes ni video en streaming: **no** procesamos video. El simulador extrae frames en el navegador (`<video>` + `<canvas>`, opcional) o usa imágenes pre-grabadas.
 - Sin WebSockets garantizados en el MVP: "tiempo real" = polling cada 2–3 s (`/api/violations?since=`).
 - Región: alinear región de Functions con la de Neon para latencia.
 
 ## 7. Seguridad mínima
-- `/camaras`, `/admin/*` protegidos con `ADMIN_PASSCODE` (cookie httpOnly firmada; middleware). `/oficial` con `OFFICER_PASSCODE` + selección de oficial seed.
+- `/camaras`, `/admin/*` protegidos con `ADMIN_PASSCODE` (cookie httpOnly firmada; la validan las funciones de `/api` con `api/_lib/auth.ts` y la SPA redirige a login si recibe 401). `/oficial` con `OFFICER_PASSCODE` + selección de oficial seed.
 - Webhook Kapso: verificar HMAC-SHA256 de `X-Webhook-Signature` sobre el body crudo con `KAPSO_WEBHOOK_SECRET`.
 - `publicToken` de multa: 22+ caracteres aleatorios (nanoid), no secuencial.
 - Rate limit en `/api/portal/lookup` y `/api/payments/c2p` (tabla en DB o memoria por instancia; suficiente para demo).

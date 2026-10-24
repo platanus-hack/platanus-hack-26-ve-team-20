@@ -18,7 +18,7 @@ Todos los datos de la demo son ficticios.
 https://<pendiente>.vercel.app
 
 ## Stack
-Next.js (App Router, TypeScript) en Vercel · Tailwind + shadcn/ui · Neon Postgres + Prisma · Vercel Blob · Claude API · Kapso · Resend.
+React + Vite (TypeScript) y Vercel Functions en Vercel · Tailwind + shadcn/ui · Neon Postgres + Prisma · Vercel Blob · Claude API · Kapso · Resend.
 
 ## Correr localmente
 ```bash

@@ -53,7 +53,7 @@ Mientras un módulo no existe, su dueño publica un **mock** con la misma firma 
 ### `POST /api/blob/upload` (admin)
 Handler de `@vercel/blob/client` `handleUpload`. Restringe `allowedContentTypes: ["image/jpeg","image/png","image/webp"]`, máx 5 MB, prefijo `evidence/`.
 
-### `POST /api/detections` (admin) · `maxDuration = 60`
+### `POST /api/detections` (admin) · `maxDuration = 60` (vía `vercel.json`)
 Request:
 ```json
 {

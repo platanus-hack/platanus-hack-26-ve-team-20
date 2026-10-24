@@ -19,7 +19,7 @@ Comerse la luz roja casi nunca tiene consecuencia si no hay un fiscal presente. 
 - Auditoría de cada acción. Demo con **datos 100 % ficticios**.
 
 ## Tecnología
-Next.js en **Vercel** · Postgres (Neon) + Prisma · Vercel Blob · **Claude** (visión) · **Kapso** (WhatsApp) · Resend (email).
+React + TypeScript en **Vercel** · Postgres (Neon) + Prisma · Vercel Blob · **Claude** (visión) · **Kapso** (WhatsApp) · Resend (email).
 
 En producción: detección en el borde (YOLO + ALPR) con Claude como segundo revisor, e integración C2P real vía banco o agregador.
 

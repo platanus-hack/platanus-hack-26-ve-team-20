@@ -19,7 +19,9 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 8. No modifiques el repo de la organización desde agentes con force-push; PRs pequeños a `main`.
 
 ## 3. Stack
-- Next.js (última estable, **App Router**, TypeScript estricto) en **Vercel**.
+- **TypeScript estricto en todo el proyecto** (frontend y backend). Sin JavaScript plano.
+- Frontend: **React puro (SPA) con Vite** + React Router, desplegado en **Vercel**. Sin Next.js.
+- Backend: **Vercel Functions** en `/api` (TypeScript, runtime Node).
 - Tailwind CSS + shadcn/ui (tematizado, ver `docs/05-ui.md`).
 - Postgres (**Neon** vía Vercel Marketplace) + **Prisma**.
 - **Vercel Blob** para evidencia (imágenes de frames, recortes de placa).
@@ -31,7 +33,8 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 ## 4. Comandos
 ```bash
 pnpm install
-pnpm dev                     # http://localhost:3000
+pnpm dev                     # Vite en http://localhost:5173 (solo SPA)
+vercel dev                   # SPA + funciones /api juntas (http://localhost:3000)
 pnpm prisma migrate dev      # aplica schema local
 pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts)
 pnpm prisma studio
@@ -43,27 +46,31 @@ vercel --prod                # o deploy automático desde el repo espejo persona
 
 ## 5. Estructura del repo (objetivo)
 ```
-app/
-  page.tsx                          # landing pública (P4)
-  consulta/page.tsx                 # portal por cédula (P4)
-  multa/[token]/page.tsx            # aterrizaje de multa (P3)
-  multa/[token]/pagar/page.tsx      # pago C2P simulado (P3)
-  camaras/page.tsx                  # simulador de cámara + consola operador (P2)
-  oficial/page.tsx                  # vista móvil del oficial (P4 UI, datos P3)
-  admin/revision/page.tsx           # cola de revisión humana (P4 UI, API P1)
-  api/
-    detections/route.ts             # POST analizar frames (P2)
-    sightings/route.ts              # POST placa vista (P2 → lib/alerts de P3)
-    violations/route.ts             # GET lista (P1)
-    violations/[id]/review/route.ts # POST aprobar/rechazar (P1)
-    fines/[token]/route.ts          # GET multa pública (P1)
-    portal/lookup/route.ts          # POST consulta por cédula (P1)
-    payments/c2p/route.ts           # POST pago simulado (P3)
-    officers/location/route.ts      # POST ubicación oficial (P3)
-    officers/[id]/alerts/route.ts   # GET alertas (P3)
-    alerts/[id]/ack/route.ts        # POST acuse (P3)
-    webhooks/kapso/route.ts         # POST eventos Kapso (P3)
-    blob/upload/route.ts            # token client-upload Vercel Blob (P2)
+src/                                # SPA React + Vite (todo cliente)
+  main.tsx, App.tsx                 # entrada y rutas (React Router) (P4)
+  index.css                         # tokens Tailwind (P4)
+  pages/
+    Landing.tsx                     # /            landing pública (P4)
+    Consulta.tsx                    # /consulta    portal por cédula (P4)
+    Multa.tsx                       # /multa/:token       aterrizaje de multa (P3)
+    Pagar.tsx                       # /multa/:token/pagar pago C2P simulado (P3)
+    Camaras.tsx                     # /camaras     simulador de cámara + consola operador (P2)
+    Oficial.tsx                     # /oficial     vista móvil del oficial (P4 UI, datos P3)
+    AdminRevision.tsx               # /admin/revision cola de revisión humana (P4 UI, API P1)
+  hooks/, lib/api-client.ts         # fetch tipado a /api con los contratos
+api/                                # Vercel Functions (TypeScript, Node)
+  detections.ts                     # POST analizar frames (P2)
+  sightings.ts                      # POST placa vista (P2 → lib/alerts de P3)
+  violations/index.ts               # GET lista (P1)
+  violations/[id]/review.ts         # POST aprobar/rechazar (P1)
+  fines/[token].ts                  # GET multa pública (P1)
+  portal/lookup.ts                  # POST consulta por cédula (P1)
+  payments/c2p.ts                   # POST pago simulado (P3)
+  officers/location.ts              # POST ubicación oficial (P3)
+  officers/[id]/alerts.ts           # GET alertas (P3)
+  alerts/[id]/ack.ts                # POST acuse (P3)
+  webhooks/kapso.ts                 # POST eventos Kapso (P3)
+  blob/upload.ts                    # token client-upload Vercel Blob (P2)
 lib/
   contracts/        # tipos + Zod compartidos (P1 dueño, todos revisan)
   db.ts             # Prisma client singleton (P1)
@@ -83,12 +90,13 @@ docs/               # esta documentación
 ```
 
 ## 6. Convenciones
-- TS estricto, sin `any`. Validación con **Zod** en todo borde (route handlers, webhooks, salida de Claude).
-- Route handlers devuelven `{ ok: true, data }` o `{ ok: false, error: { code, message } }`.
+- TS estricto, sin `any`. Validación con **Zod** en todo borde (funciones de `/api`, webhooks, salida de Claude).
+- Las funciones de `/api` devuelven `{ ok: true, data }` o `{ ok: false, error: { code, message } }`.
 - Dinero en **céntimos enteros** (`amountCents`) + `currency` ("VES" o "USD" de ejemplo). Nunca float.
 - Fechas en UTC en DB; mostrar en `America/Caracas`.
 - Placas normalizadas: mayúsculas, sin espacios/guiones (`normalizePlate()` en `lib/contracts`).
-- Server Components por defecto; `"use client"` solo donde haga falta.
+- Todo el frontend es cliente (SPA): datos vía `fetch` a `/api` con los tipos de `lib/contracts`. Sin Server Components ni `"use client"`.
+- Lógica de servidor solo en `api/` y `lib/`: `src/` solo importa `lib/contracts`, nunca `lib/db`, `lib/vision`, etc.
 - Todo cambio de estado de dominio pasa por `lib/domain/state-machine.ts` y escribe `AuditLog`.
 - Copys de UI en español (Venezuela), tuteo neutro-formal ("usted" en notificaciones oficiales).
 - Commits: Conventional Commits (`feat(vision): ...`). Ramas `p1/...`, `p2/...`, etc.

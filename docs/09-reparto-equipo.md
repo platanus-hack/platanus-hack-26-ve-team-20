@@ -6,15 +6,15 @@ Objetivo: 4 verticales con **mínimo solapamiento de archivos** para no pisarse 
 | Ruta | Dueño | Otros pueden… |
 |---|---|---|
 | `lib/contracts/**` | P1 | proponer cambios por PR; requiere OK de los afectados |
-| `prisma/**`, `lib/db.ts`, `lib/domain/**`, `lib/auth/**`, `middleware.ts` | P1 | solo leer |
-| `app/api/violations/**`, `app/api/fines/**`, `app/api/portal/**` | P1 | — |
+| `prisma/**`, `lib/db.ts`, `lib/domain/**`, `lib/auth/**`, `api/_lib/auth.ts` (guardas por passcode) | P1 | solo leer |
+| `api/violations/**`, `api/fines/**`, `api/portal/**` | P1 | — |
 | `tests/e2e/**`, `vitest.config.ts`, `playwright.config.ts` | P1 | agregar specs de su vertical |
 | `lib/vision/**`, `lib/storage/**`, `public/demo/**` | P2 | — |
-| `app/camaras/**`, `components/camaras/**`, `app/api/detections/**`, `app/api/sightings/**`, `app/api/blob/**`, `app/api/cameras/**` | P2 | — |
+| `src/pages/Camaras.tsx`, `components/camaras/**`, `api/detections/**`, `api/sightings/**`, `api/blob/**`, `api/cameras/**` | P2 | — |
 | `lib/notify/**`, `lib/payments/**`, `lib/geo/**`, `lib/alerts/**` | P3 | — |
-| `app/multa/**`, `components/multa/**`, `app/api/payments/**`, `app/api/officers/**`, `app/api/alerts/**`, `app/api/webhooks/**` | P3 | P4 ajusta estilos por PR |
-| `app/globals.css`, `tailwind` config, `components/ui/**`, `components/vc/**`, `app/layout.tsx`, `app/page.tsx` | P4 | usar, no modificar |
-| `app/consulta/**`, `app/oficial/**`, `app/admin/**`, `components/{consulta,oficial,admin}/**`, `pitch/**`, `DESIGN.md` | P4 | — |
+| `src/pages/{Multa,Pagar}.tsx`, `components/multa/**`, `api/payments/**`, `api/officers/**`, `api/alerts/**`, `api/webhooks/**` | P3 | P4 ajusta estilos por PR |
+| `src/index.css`, `src/main.tsx`, `src/App.tsx`, `src/pages/Landing.tsx`, `tailwind` config, `vite.config.ts`, `components/ui/**`, `components/vc/**` | P4 | usar, no modificar |
+| `src/pages/{Consulta,Oficial,AdminRevision}.tsx`, `components/{consulta,oficial,admin}/**`, `pitch/**`, `DESIGN.md` | P4 | — |
 | `package.json`, `pnpm-lock.yaml` | compartido | agregar deps en PR propio y pequeño; si hay conflicto en lock: `pnpm install` y recommit |
 | `docs/**`, `AGENTS.md`, `CLAUDE.md` | P4 (producto) | cualquiera por PR |
 
@@ -47,10 +47,10 @@ P4 páginas ──> GET/POST APIs de P1 y P3 (DTOs de lib/contracts)
 **Tareas en orden**
 | Bloque | Tarea | Entregable en checkpoint |
 |---|---|---|
-| h0–1 | Crear app Next.js (TS, App Router, Tailwind, ESLint), pnpm, estructura de carpetas, `lib/contracts` con equipo, `.env.example` | h1: contratos en `main` |
+| h0–1 | Crear app Vite + React (TS estricto, Tailwind, shadcn, ESLint) y carpeta `api/` para Vercel Functions, pnpm, estructura de carpetas, `lib/contracts` con equipo, `.env.example` | h1: contratos en `main` |
 | h1–4 | Prisma schema (doc 03), Neon vía Vercel Marketplace, migración, `seed.ts` v1, repo espejo + Vercel prod | h4: app desplegada con seed |
 | h4–8 | `lib/domain`: `state-machine.ts`, `violations.ts` (`registerDetection` con dedup e idempotencia), `fines.ts` (montos de ejemplo, token), `audit.ts`; APIs `GET /api/violations`, `GET /api/fines/[token]` | h8: crear multa vía script/API |
-| h8–12 | Integrar: reemplazar mocks por reales; `markFinePaid`; auth passcode (`middleware.ts`, cookie firmada) | h12: E2E happy path |
+| h8–12 | Integrar: reemplazar mocks por reales; `markFinePaid`; auth passcode (`api/_lib/auth.ts` (guardas por passcode), cookie firmada) | h12: E2E happy path |
 | h12–14 | `POST /api/portal/lookup` (+ rate limit, enmascarado, AuditLog), `POST /api/violations/[id]/review` | h16: portal y revisión en prod |
 | h14–18 | Tests unit dominio; `registerSighting`; `pnpm demo:reset`; Playwright happy path | — |
 | h18–22 | Duerme | — |
@@ -62,10 +62,10 @@ P4 páginas ──> GET/POST APIs de P1 y P3 (DTOs de lib/contracts)
 Eres el agente de Persona 1 (backend core) del proyecto VíaClara. Lee AGENTS.md, docs/01-producto-prd.md, docs/03-modelo-de-datos.md, docs/04-api.md (§0, §2, §3, §4, §9) y docs/09-reparto-equipo.md §1-§4.
 Solo puedes modificar los archivos que posee P1 según docs/09 §1.
 Objetivo inmediato (en este orden, un PR pequeño por paso, usando las skills incremental-implementation y api-and-interface-design):
-1) Esqueleto Next.js App Router + TS estricto + Tailwind + Prisma; crea lib/contracts/index.ts exactamente con los tipos y firmas de docs/04-api.md §0 y Zod schemas de requests.
+1) Esqueleto Vite + React + TS estricto + Tailwind + Vercel Functions (`api/`) + Prisma; crea lib/contracts/index.ts exactamente con los tipos y firmas de docs/04-api.md §0 y Zod schemas de requests.
 2) prisma/schema.prisma según docs/03 §2, lib/db.ts singleton, prisma/seed.ts idempotente con los datos FALSOS de docs/03 §5 (lee DEMO_PHONE_DRIVER/DEMO_PHONE_OFFICER de env).
 3) lib/domain/state-machine.ts con transiciones de docs/03 §3 y AuditLog en la misma transacción; lib/domain/violations.ts con registerDetection (dedup ±60 s, idempotencyKey), lib/domain/fines.ts.
-4) Route handlers GET /api/violations, GET /api/fines/[token] con DTOs y respuestas de docs/04.
+4) Vercel Functions GET /api/violations, GET /api/fines/[token] con DTOs y respuestas de docs/04.
 Usa los mocks de lib/notify/mock.ts y lib/alerts/mock.ts si los reales no existen. Escribe tests Vitest para la máquina de estados y dedup. Antes de decir terminado, aplica superpowers-verification-before-completion y verifica los criterios de HU-02 en docs/01.
 ```
 
@@ -87,10 +87,10 @@ Usa los mocks de lib/notify/mock.ts y lib/alerts/mock.ts si los reales no existe
 Eres el agente de Persona 2 (visión y simulador de cámara) de VíaClara. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2 y docs/09 §1, §2, §5.
 Solo modifica archivos de P2 (docs/09 §1). Usa lib/contracts sin cambiarlo; si necesitas un cambio, propónlo aparte.
 Pasos (PRs pequeños, skill incremental-implementation):
-1) app/api/blob/upload/route.ts con @vercel/blob/client handleUpload (solo imágenes, máx 5 MB) y lib/storage/blob.ts.
-2) app/camaras/page.tsx: selector de cámara (GET /api/cameras o seed), dropzone 2-3 frames, redimensiona en cliente a ≤1568 px, sube a Blob, muestra previews con overlay de stopLine.
+1) api/blob/upload.ts con @vercel/blob/client handleUpload (solo imágenes, máx 5 MB) y lib/storage/blob.ts.
+2) src/pages/Camaras.tsx: selector de cámara (GET /api/cameras o seed), dropzone 2-3 frames, redimensiona en cliente a ≤1568 px, sube a Blob, muestra previews con overlay de stopLine.
 3) lib/vision/{prompt.ts,claude.ts,geometry.ts,analyze.ts}: llamada a Claude con @anthropic-ai/sdk, modelo de process.env.ANTHROPIC_MODEL, tool_choice forzado a report_detection con el input_schema de docs/04 §8, validación Zod, regla geométrica y doble llave; devuelve VisionResult.
-4) app/api/detections/route.ts (maxDuration=60) que llama analyze() y luego registerDetection() (usa lib/domain/mock si no existe).
+4) api/detections.ts (maxDuration=60 en vercel.json) que llama analyze() y luego registerDetection() (usa lib/domain/mock si no existe).
 Tests Vitest de geometry y analyze con salidas de Claude simuladas. No proceses video en el servidor. Verifica HU-01 de docs/01 con superpowers-verification-before-completion.
 ```
 
@@ -100,7 +100,7 @@ Tests Vitest de geometry y analyze con salidas de Claude simuladas. No proceses 
 |---|---|---|
 | h0–1 | Cuenta Kapso + número + API key; pedir plantilla `KAPSO_TEMPLATE_FINE` (por si acaso); cuenta Resend; revisar contratos | h1: credenciales en Vercel env |
 | h1–4 | `lib/notify/kapso.ts` (doc 04 §7), `templates.ts`, `NOTIFY_DRY_RUN`, registro en `Notification` | h4: WhatsApp real desde prod a teléfono de demo |
-| h4–8 | `lib/payments/{banks.ts,c2p.ts}` simulado; `POST /api/payments/c2p` (idempotencia, nunca guardar clave); `app/multa/[token]/page.tsx` y `/pagar` con componentes de P4 | h8: pagar multa seed |
+| h4–8 | `lib/payments/{banks.ts,c2p.ts}` simulado; `POST /api/payments/c2p` (idempotencia, nunca guardar clave); `src/pages/Multa.tsx` y `/pagar` con componentes de P4 | h8: pagar multa seed |
 | h8–12 | `notifyFineIssued/PaymentConfirmed` reales; `POST /api/webhooks/kapso` (HMAC, lote, estados); `lib/notify/email.ts` (Resend) como fallback | h12: E2E |
 | h12–14 | `lib/geo/haversine.ts`; `/api/officers/session`, `/location`, `/[id]/alerts`; `/api/alerts/[id]/ack`; `lib/alerts/dispatch.ts`; `notifyOfficerAlert` | h16: alerta llega al teléfono 2 |
 | h14–18 | Tests pagos/alerts/webhook | — |
@@ -114,9 +114,9 @@ Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee 
 Solo modifica archivos de P3 (docs/09 §1).
 Pasos (PRs pequeños):
 1) lib/notify/kapso.ts: POST https://api.kapso.ai/meta/whatsapp/v24.0/{KAPSO_PHONE_NUMBER_ID}/messages con header X-API-Key, mensajes text (y template si KAPSO_TEMPLATE_FINE existe); lib/notify/templates.ts con los textos de docs/04 §7; respeta NOTIFY_DRY_RUN; registra Notification. Implementa notifyFineIssued, notifyPaymentConfirmed, notifyOfficerAlert con firma de lib/contracts.
-2) lib/payments/c2p.ts SIMULADO (reglas de docs/04 §5; jamás persistir ni loguear c2pKey) y app/api/payments/c2p/route.ts con idempotencia y 409 ALREADY_PAID; llama markFinePaid.
-3) app/multa/[token]/page.tsx y app/multa/[token]/pagar/page.tsx mobile-first con banner "Demo — pago simulado".
-4) app/api/webhooks/kapso/route.ts con verificación HMAC-SHA256 de X-Webhook-Signature sobre el body crudo, soporte de lotes, actualización de Notification por providerId.
+2) lib/payments/c2p.ts SIMULADO (reglas de docs/04 §5; jamás persistir ni loguear c2pKey) y api/payments/c2p.ts con idempotencia y 409 ALREADY_PAID; llama markFinePaid.
+3) src/pages/Multa.tsx y src/pages/Pagar.tsx mobile-first con banner "Demo — pago simulado".
+4) api/webhooks/kapso.ts con verificación HMAC-SHA256 de X-Webhook-Signature sobre el body crudo, soporte de lotes, actualización de Notification por providerId.
 5) lib/geo/haversine.ts, lib/alerts/dispatch.ts (algoritmo docs/04 §6) y APIs de oficiales/alertas.
 Tests Vitest para c2p, haversine, dispatch y webhook. Verifica HU-03, HU-04 y HU-06 de docs/01 antes de terminar.
 ```
@@ -126,7 +126,7 @@ Tests Vitest para c2p, haversine, dispatch y webhook. Verifica HU-03, HU-04 y HU
 | Bloque | Tarea | Entregable |
 |---|---|---|
 | h0–1 | Dirección de diseño (doc 05 §1), `DESIGN.md` (skill `design-md`), revisar DTOs | h1: tokens acordados |
-| h1–4 | Tokens en `globals.css`, fuentes (Public Sans, IBM Plex Mono vía `next/font`), shadcn tematizado, `components/vc/*` (`Placa`, `EstadoBadge`, `Evidencia`, `Monto`, `DemoBanner`, `SemaforoMini`), `layout.tsx`, landing | h4: landing en prod |
+| h1–4 | Tokens en `src/index.css`, fuentes (Public Sans, IBM Plex Mono vía `@fontsource`), shadcn tematizado, `components/vc/*` (`Placa`, `EstadoBadge`, `Evidencia`, `Monto`, `DemoBanner`, `SemaforoMini`), `layout.tsx`, landing | h4: landing en prod |
 | h4–8 | `/consulta` y `/admin/revision` con datos mock (fixtures del seed) | h8: pantallas navegables |
 | h8–12 | Apoyar a P3 en estilo de `/multa` y `/pagar` (PRs de estilo) y a P2 en el feed/pasos de la consola | h12: E2E se ve bien |
 | h12–14 | `/oficial`: login, toggle servicio, mapa Leaflet (dynamic import, sin SSR), lista de alertas con polling; conectar `/consulta` y `/admin` a APIs reales | h16 |
@@ -140,9 +140,9 @@ Eres el agente de Persona 4 (UI y diseño) de VíaClara. Lee AGENTS.md, docs/01-
 Solo modifica archivos de P4 (docs/09 §1). Usa las skills design-md, frontend-ui-engineering, minimalist-ui, web-design-guidelines y vercel-react-best-practices.
 Pasos (PRs pequeños):
 1) DESIGN.md con la dirección de docs/05 §1 (sobrio, cívico; sin degradados morados, sin Inter por defecto, sin emojis como íconos; lucide-react).
-2) Tokens de docs/05 §2 en app/globals.css y Tailwind; fuentes Public Sans e IBM Plex Mono con next/font; tematizar shadcn (Button, Input, Select, Card, Badge, Table, Sheet, Dialog, Skeleton, Sonner).
+2) Tokens de docs/05 §2 en src/index.css y Tailwind; fuentes Public Sans e IBM Plex Mono vía @fontsource; tematizar shadcn (Button, Input, Select, Card, Badge, Table, Sheet, Dialog, Skeleton, Sonner).
 3) components/vc: Placa, EstadoBadge, Evidencia, Monto (es-VE, céntimos), DemoBanner, SemaforoMini.
-4) app/page.tsx (landing), app/consulta/page.tsx, app/admin/revision/page.tsx con fixtures tipados con los DTOs de lib/contracts; luego app/oficial/page.tsx con Leaflet (import dinámico) y polling de alertas.
+4) src/pages/Landing.tsx, src/pages/Consulta.tsx, src/pages/AdminRevision.tsx con fixtures tipados con los DTOs de lib/contracts; luego src/pages/Oficial.tsx con Leaflet (import dinámico) y polling de alertas.
 Mobile-first a 360 px, contraste AA, foco visible, fechas en America/Caracas. Verifica criterios de docs/05 §3 con playwright-cli/browser-testing-with-devtools antes de terminar.
 ```
 
