@@ -1,5 +1,5 @@
-import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
-import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { ChevronDown, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { useTema, type Tema } from '@/hooks/useTema.ts'
 import { boton, cx, type Variante } from './estilos.ts'
@@ -24,17 +24,79 @@ export function Campo({ id, label, error, ayuda, children }: { id: string; label
   )
 }
 
+const TIPOS_CEDULA = ['V', 'E'] as const
+
+/** V/E con lista propia: letra y flecha centradas, opciones centradas y con los colores del tema (la lista nativa no se deja centrar). */
 export function SelectCedula({ value, onChange }: { value: string; onChange: (v: 'V' | 'E') => void }) {
+  const [abierta, setAbierta] = useState(false)
+  const [activa, setActiva] = useState(0)
+  const caja = useRef<HTMLDivElement>(null)
+  const boton = useRef<HTMLButtonElement>(null)
+  const id = useId()
+
+  useEffect(() => {
+    if (!abierta) return
+    const fuera = (e: PointerEvent) => { if (!caja.current?.contains(e.target as Node)) setAbierta(false) }
+    document.addEventListener('pointerdown', fuera)
+    return () => document.removeEventListener('pointerdown', fuera)
+  }, [abierta])
+
+  const abrir = () => { setActiva(Math.max(0, TIPOS_CEDULA.indexOf(value as 'V' | 'E'))); setAbierta(true) }
+  const elegir = (v: 'V' | 'E') => { onChange(v); setAbierta(false); boton.current?.focus() }
+
+  const tecla = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!abierta) return abrir()
+      setActiva((i) => (i + (e.key === 'ArrowDown' ? 1 : -1) + TIPOS_CEDULA.length) % TIPOS_CEDULA.length)
+    } else if ((e.key === 'Enter' || e.key === ' ') && abierta) {
+      e.preventDefault()
+      elegir(TIPOS_CEDULA[activa]!)
+    } else if (e.key === 'Escape' && abierta) {
+      e.preventDefault()
+      setAbierta(false)
+    } else if (e.key === 'Tab') {
+      setAbierta(false)
+    }
+  }
+
   return (
-    <select
-      aria-label="Tipo de cédula"
-      value={value}
-      onChange={(e) => onChange(e.target.value === 'E' ? 'E' : 'V')}
-      className="h-12 w-[76px] flex-none rounded-control border border-input bg-card px-2.5 font-mono text-base font-bold"
-    >
-      <option value="V">V</option>
-      <option value="E">E</option>
-    </select>
+    <div ref={caja} className="relative w-[76px] flex-none">
+      <button
+        ref={boton}
+        type="button"
+        role="combobox"
+        aria-label="Tipo de cédula"
+        aria-haspopup="listbox"
+        aria-expanded={abierta}
+        aria-controls={id}
+        aria-activedescendant={abierta ? `${id}-${activa}` : undefined}
+        onClick={() => (abierta ? setAbierta(false) : abrir())}
+        onKeyDown={tecla}
+        className="flex h-12 w-full items-center justify-center gap-1.5 rounded-control border border-input bg-card font-mono text-base font-bold text-tinta"
+      >
+        {value}
+        <ChevronDown size={16} strokeWidth={2} aria-hidden="true" className={cx('text-texto-2 transition-transform duration-200 motion-reduce:transition-none', abierta && 'rotate-180')} />
+      </button>
+      {abierta && (
+        <ul id={id} role="listbox" aria-label="Tipo de cédula" className="absolute top-full right-0 left-0 z-30 mt-1 overflow-hidden rounded-control border border-borde bg-card p-1 shadow-sheet">
+          {TIPOS_CEDULA.map((t, i) => (
+            <li
+              key={t}
+              id={`${id}-${i}`}
+              role="option"
+              aria-selected={t === value}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => elegir(t)}
+              onPointerEnter={() => setActiva(i)}
+              className={cx('flex h-10 cursor-pointer items-center justify-center rounded-[8px] font-mono text-base font-bold text-tinta', i === activa && 'bg-suave')}
+            >
+              {t}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -166,6 +228,46 @@ export function BotonTema({ className }: { className?: string }) {
       className={cx('flex size-11 items-center justify-center rounded-control text-texto-2 hover:text-tinta', className)}
     >
       <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
+    </button>
+  )
+}
+
+const OSCURO_MQ = '(prefers-color-scheme: dark)'
+const sistemaOscuro = () => typeof window !== 'undefined' && window.matchMedia?.(OSCURO_MQ).matches === true
+const oirSistema = (f: () => void) => {
+  const mq = window.matchMedia?.(OSCURO_MQ)
+  mq?.addEventListener('change', f)
+  return () => mq?.removeEventListener('change', f)
+}
+
+/** Interruptor claro/oscuro: el círculo se desliza en 220 ms entre el sol y la luna. Con «sistema» muestra el tema que rige. */
+export function InterruptorTema({ className }: { className?: string }) {
+  const [tema, cambiar] = useTema()
+  const delSistema = useSyncExternalStore(oirSistema, sistemaOscuro, () => false)
+  const oscuro = tema === 'oscuro' || (tema === 'sistema' && delSistema)
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={oscuro}
+      aria-label="Modo oscuro"
+      title={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      onClick={() => cambiar(oscuro ? 'claro' : 'oscuro')}
+      className={cx('group flex h-11 items-center rounded-full', className)}
+    >
+      <span className="relative flex h-8 w-[60px] items-center justify-between rounded-full border border-borde bg-suave px-2 text-texto-3 transition-colors duration-200 group-hover:border-input">
+        <Sun size={14} strokeWidth={2} aria-hidden="true" />
+        <Moon size={14} strokeWidth={2} aria-hidden="true" />
+        <span
+          aria-hidden="true"
+          className={cx(
+            'absolute top-[3px] left-[3px] flex size-6 items-center justify-center rounded-full bg-card text-tinta shadow-card transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none',
+            oscuro && 'translate-x-7',
+          )}
+        >
+          {oscuro ? <Moon size={14} strokeWidth={2} /> : <Sun size={14} strokeWidth={2} className="text-ambar-osc" />}
+        </span>
+      </span>
     </button>
   )
 }
