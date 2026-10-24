@@ -11,7 +11,7 @@ import type { Officer, OfficerInvitation, PrismaClient } from "../generated/pris
 import { audit } from "./audit.ts";
 import { maskPhone } from "./citizen.ts";
 import { DomainError, NotFoundError } from "./errors.ts";
-import { assertUnderLimit, consumeLimit } from "./rate-limit.ts";
+import { assertUnderLimit, consumeLimit, settleLoginAttempt } from "./rate-limit.ts";
 
 export const INVITATION_TTL_MS = 72 * 3_600_000;
 const WINDOW_10_MIN = 10 * 60_000;
@@ -168,10 +168,17 @@ export function createOfficerInviteService(deps: OfficerInviteDeps) {
     await assertUnderLimit(db, { action: A_LOGIN_FAILED, entityId: key, max: 5, windowMs: WINDOW_10_MIN }, now);
     const officer = await db.officer.findUnique({ where: { email: input.email } });
     const ok = await verifyPassword(input.password, officer?.passwordHash ?? (await dummyHash()));
-    if (!officer || !officer.passwordHash || !officer.active || !ok) {
-      await audit(db, { actor: { type: "OFFICER", ip: ipKey }, action: A_LOGIN_FAILED, entity: "Officer", entityId: key });
-      throw new DomainError("UNAUTHORIZED", "Correo o contraseña incorrectos.", "CREDENCIALES");
-    }
+    const good = Boolean(officer && officer.passwordHash && officer.active && ok);
+    await settleLoginAttempt(
+      db,
+      [
+        { action: A_LOGIN_FAILED, ip: ipKey, max: 10, windowMs: WINDOW_10_MIN, lockKey: `officer-login:ip:${ipKey}` },
+        { action: A_LOGIN_FAILED, entityId: key, max: 5, windowMs: WINDOW_10_MIN, lockKey: `officer-login:email:${key}` },
+      ],
+      good ? null : { actor: { type: "OFFICER", ip: ipKey }, action: A_LOGIN_FAILED, entity: "Officer", entityId: key },
+      now,
+    );
+    if (!officer || !good) throw new DomainError("UNAUTHORIZED", "Correo o contraseña incorrectos.", "CREDENCIALES");
     await audit(db, { actor: { type: "OFFICER", id: officer.id, ip: ipKey }, action: "OFFICER_LOGIN", entity: "Officer", entityId: officer.id });
     return officer;
   }

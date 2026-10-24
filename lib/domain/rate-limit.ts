@@ -61,6 +61,27 @@ export async function consumeLimits(
   }, { maxWait: 10_000, timeout: 20_000 });
 }
 
+/**
+ * Cierra un intento de login ya verificado (la contraseña se comprobó FUERA del bloqueo, que es lento). Bajo el
+ * bloqueo de las claves: si alguna regla ya está en su máximo lanza `RateLimitedError` —aun con la contraseña
+ * correcta— y, si no, registra `failure` cuando el intento falló. Así, aunque lleguen cientos de intentos a la
+ * vez, solo los primeros `max` obtienen una respuesta de "mal"/"bien"; el resto recibe 429.
+ */
+export async function settleLoginAttempt(
+  db: PrismaClient,
+  rules: Array<LimitRule & { lockKey: string }>,
+  failure: AuditEntry | null,
+  now: Date = new Date(),
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    for (const key of [...new Set(rules.map((r) => r.lockKey))].sort()) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+    }
+    for (const rule of rules) await assertUnderLimit(tx, rule, now);
+    if (failure) await audit(tx, failure);
+  }, { maxWait: 10_000, timeout: 20_000 });
+}
+
 /** Una sola regla: ver {@link consumeLimits}. */
 export function consumeLimit(
   db: PrismaClient,
