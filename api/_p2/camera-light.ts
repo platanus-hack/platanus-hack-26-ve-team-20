@@ -1,9 +1,9 @@
 // Semáforo simulado de una cámara (docs/10 §6). Dueño: P2.
 // GET: estado actual. POST { state }: crea un LightChange con la hora del servidor (amarillo se guarda como GREEN).
-import { LightRequestSchema } from "../../../lib/contracts/index.ts";
-import { db } from "../../../lib/db.ts";
-import { requireCameraKey } from "../../_lib/camera-key.ts";
-import { ApiError, handler, sendOk } from "../../_lib/respond.ts";
+import { LightRequestSchema } from "../../lib/contracts/index.ts";
+import { db } from "../../lib/db.ts";
+import { requireCameraKey } from "./camera-key.ts";
+import { ApiError, handler, sendOk } from "../_lib/respond.ts";
 
 export default handler(["GET", "POST"], async (req, res) => {
   // shortcut: protegido con la clave de cámara hasta que P1 publique la guarda de admin (api/_lib/auth.ts).

@@ -1,7 +1,7 @@
-# 04 — API · VíaClara
+# 04 — API · SmartTraffic
 
 Convenciones: JSON, Zod en `lib/contracts/`, respuesta `{ ok: true, data }` | `{ ok: false, error: { code, message } }`. Códigos HTTP: 200/201, 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 404 `NOT_FOUND`, 409 `CONFLICT`/`INVALID_TRANSITION`, 429 `RATE_LIMITED`, 502 `UPSTREAM_ERROR`.
-Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de `ADMIN_PASSCODE`; `officer` = cookie de `OFFICER_PASSCODE` + `officerId`; `public` = sin auth.
+Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de sesión `vc_admin` del login de admin (§0b); `officer` = cookie `vc_officer` (`OFFICER_PASSCODE` + placa del oficial, la emite P3); `public` = sin auth.
 
 ## 0. Contratos compartidos (`lib/contracts/index.ts`) — se acuerdan en la hora 1
 ```ts
@@ -62,6 +62,63 @@ Mientras un módulo no existe, su dueño publica un **mock** con la misma firma 
 
 ---
 
+## 0b. Autenticación de admin/operador (P1)
+Cuenta en la tabla `AdminUser` (correo + contraseña con hash scrypt). La sesión es una cookie `vc_admin` firmada (HttpOnly, SameSite=Lax, Secure en Vercel, 8 h). Para métodos que modifican, si el navegador envía `Origin` debe coincidir con el host.
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/auth/login` `{ "email", "password" }` | public | 200 `{ user: { id, email, name } }` + `Set-Cookie`. Credenciales erróneas, correo inexistente o cuenta desactivada → el mismo 401 `Credenciales inválidas`. |
+| `GET /api/auth/me` | admin | 200 `{ user }`, o 401 si no hay sesión (la SPA lo usa para decidir si redirige a `/login`). |
+| `POST /api/auth/logout` | public | Borra la cookie. Idempotente. |
+
+- **Límites**: 5 fallos por correo y 10 por IP en 10 min → 429 `RATE_LIMITED` (aun con la contraseña correcta mientras dure el bloqueo). Los fallos se auditan (`ADMIN_LOGIN_FAILED`) sin guardar el correo ni la contraseña.
+- **Revocación**: desactivar la cuenta (`active = false`) o cambiar su contraseña invalida las sesiones abiertas.
+- **Cuenta inicial**: `pnpm db:seed` la crea con `ADMIN_EMAIL` / `ADMIN_PASSWORD` (solo se guarda el hash). Cambiar `ADMIN_PASSWORD` y volver a sembrar actualiza el hash.
+- Guardas disponibles en `api/_lib/auth.ts`: `requireAdmin(db, req)`, `requireCamera(req)`, `requireCameraOrAdmin(db, req)`, `requireOfficer(req)` y, para P3, `issueOfficerSession(res, officerId)`.
+
+## 0c. Cuenta del ciudadano: cédula + contraseña (P1)
+El ciudadano crea su propia contraseña al registrarse y entra con su cédula. Sesión: cookie `vc_citizen` firmada (HttpOnly, SameSite=Lax, Secure en Vercel) de **30 min que se renueva con cada llamada autenticada** (`GET /api/citizen/me?renew=0` comprueba sin renovar, para sondeos). Como en el admin, los `POST` rechazan un `Origin` ajeno.
+
+**Registro abierto.** Cualquier persona puede abrir cuenta: escribe cédula, **teléfono** y contraseña y recibe un código de 6 dígitos por WhatsApp en ese teléfono. Si la cédula no existe se crea el titular (sin vehículos ni multas) al pedir el código. Si el titular ya existe, el código también va al teléfono escrito, pero su teléfono no cambia si tiene vehículos. Sin `phone` solo sirve para titulares conocidos: el código va al teléfono que el sistema tiene. El servidor solo devuelve el teléfono enmascarado (`0426-***0319`). El código se guarda como HMAC (con `SESSION_SECRET`), vence a los 10 min y admite 5 intentos. Con `WHATSAPP_TEMPLATE_CODE` se envía con una plantilla de autenticación aprobada (llega a cualquiera); sin ella, texto libre (solo dentro de la ventana de 24 h).
+
+> **Límite conocido (decisión de producto para la demo).** El código prueba que la persona controla *un* teléfono, no que sea el titular de la cédula: quien conozca la cédula de otro puede abrir esa cuenta con su propio teléfono y ver sus multas. Mitigaciones previstas fuera del MVP: verificar contra el teléfono del titular cuando se conoce, o un dato adicional (p. ej. una placa).
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/citizen/register` `{ cedula, password, phone?, email? }` | public | Paso 1: guarda la contraseña elegida (mín. 8) y envía el código al `phone` (venezolano, cualquier formato; se normaliza a `58412…`). 200 `{ telefono }`. |
+| `POST /api/citizen/register/resend` `{ cedula }` | public | Código nuevo (30 s entre envíos). 200 `{ telefono }`. |
+| `POST /api/citizen/register/verify` `{ cedula, code }` | public | Paso 2: crea la cuenta y abre la sesión. 200 `{ user, vehicles }` + `Set-Cookie`. |
+| `POST /api/citizen/login` `{ cedula, password }` | public | 200 `{ user }` + `Set-Cookie`. |
+| `POST /api/citizen/logout` | public | Borra la cookie. Idempotente. |
+| `GET /api/citizen/me[?renew=0]` | citizen | `{ user: { cedula, telefono, correo } }` (el teléfono en formato local `04264180319`). |
+| `POST /api/citizen/password` `{ current, next }` | citizen | Cambia la contraseña; emite una sesión nueva y cierra las demás. |
+| `GET /api/citizen/fines` | citizen | `{ items: CitizenFineDTO[] }`: sus multas, la infracción más reciente primero, con `token` para pagar en `POST /api/payments/c2p`. |
+| `GET /api/citizen/fines/:id` | citizen | Una multa propia; una ajena responde 404 igual que una inexistente. |
+| `POST /api/citizen/fines/:id/appeal` | citizen | Apela una multa pendiente o vencida (→ `APPEALED`). |
+| `GET /api/citizen/vehicles` | citizen | `{ items: CitizenVehicleDTO[] }`. |
+
+**Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula y no se dio teléfono), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
+
+**Límites.** Registro/reenvío: 10 por IP cada 10 min y 5 por cédula por hora. Verificación: 20 por IP cada 10 min. Login: 5 fallos por cédula y 10 por IP cada 10 min (bloquea aun con la contraseña correcta). Cambio de contraseña: 5 intentos por cuenta cada 10 min. Los fallos se auditan con una huella de la cédula, nunca con la cédula ni la contraseña.
+
+**Solo para demos.** `CITIZEN_DEMO_CODE` (6 dígitos) junto con `DEMO_CEDULA` hacen que ese código valga para esa cédula **sin enviar nada** (la presentación no depende de la ventana de 24 h). Sin esas dos variables no existe. No debe configurarse en un entorno con datos reales.
+
+## 0d. Invitaciones de oficiales (P1; las pantallas son de P4)
+El admin invita por correo a un oficial; el oficial abre el enlace, elige teléfono y contraseña y nace su cuenta con una placa `OF-NNNN`. Token de 256 bits (43 caracteres base64url), solo se guarda su SHA-256; vence a las 72 h, un solo uso, revocable. Invitar de nuevo al mismo correo anula la pendiente. El correo sale por SMTP (`SMTP_HOST/PORT/USER/PASS`, p. ej. Gmail con contraseña de aplicación); en seco con `NOTIFY_DRY_RUN` ≠ `false`. Enlace del correo: `${APP_BASE_URL}/oficial/invitacion?token=…` (**ruta del SPA que debe crear P4**). La sesión del oficial es la misma cookie `vc_officer` que usa P3 (`/api/officers/*`).
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/admin/officer-invitations` `{ email, name }` | admin | Crea la invitación y envía el correo. 201 `{ invitation, emailSent, inviteUrl? }`; `inviteUrl` solo si el correo no salió (el admin copia el enlace). 409 `CORREO_EN_USO` si ya es oficial. |
+| `GET /api/admin/officer-invitations` | admin | `{ items: OfficerInvitationDTO[] }` (estado `PENDING`/`USED`/`EXPIRED`/`REVOKED`, placa si se usó). Nunca devuelve tokens. |
+| `POST /api/admin/officer-invitations/:id/revoke` | admin | Anula una pendiente (idempotente). 409 `YA_USADA` si ya se usó. |
+| `GET /api/admin/officers` | admin | `{ items: AdminOfficerDTO[] }` con teléfono enmascarado. |
+| `POST /api/admin/officers/:id/active` `{ active }` | admin | Desactiva/reactiva (desactivar lo saca de servicio y le impide el login con correo). |
+| `POST /api/officer/invitation/check` `{ token }` | public | `{ email, name, expiresAt }`. 404 `INVITACION_INVALIDA` igual para inexistente, vencida, usada o revocada. |
+| `POST /api/officer/invitation/accept` `{ token, name?, phone, password }` | public | Contraseña ≥ 10, teléfono venezolano. 201 `{ officer }` + `Set-Cookie vc_officer`. |
+| `POST /api/officer/login` `{ email, password }` | public | 200 `{ officer }` + cookie. Un solo error `CREDENCIALES` (401); 5 fallos por correo y 10 por IP cada 10 min. |
+
+Los oficiales del seed siguen entrando con `OFFICER_PASSCODE` + placa (`POST /api/officers/session`, P3). **Pendiente para P3:** esas rutas deberían comprobar `Officer.active` (hoy una sesión ya emitida a un oficial desactivado sigue valiendo hasta que vence, 12 h).
+
 ## 1. Detecciones y cámaras (P2)
 
 ### `GET /api/time` (public)
@@ -112,18 +169,34 @@ Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, offic
 
 ## 2. Violaciones y revisión (P1)
 ### `GET /api/violations?status=NEEDS_REVIEW&since=ISO&limit=50` (admin)
+`status` acepta uno o varios estados separados por coma (`FINED,NOTIFIED`). `limit` 1–200 (50 por defecto). Orden: la **modificación más reciente primero** (`updatedAt`). `since` devuelve solo lo modificado después de ese instante (estricto): el feed en vivo de `/camaras` sondea cada 2–3 s con `since = nextSince`, así un cambio de estado (DETECTED → NOTIFIED) vuelve a aparecer. `nextSince` es el `updatedAt` más reciente devuelto, o `null` si no hay novedades (el cliente conserva el anterior). Con más de `limit` novedades se devuelven las más nuevas.
 ```json
 { "ok": true, "data": { "items": [ {
-  "id": "vio_cuid", "type": "RED_LIGHT", "status": "NEEDS_REVIEW", "reviewReason": "LOW_CONFIDENCE",
+  "id": "vio_cuid", "type": "RED_LIGHT", "status": "NEEDS_REVIEW", "verdict": "NEEDS_REVIEW",
+  "reviewReason": "LOW_CONFIDENCE", "voidReason": null,
   "camera": { "code": "CAM-001", "intersection": "Av. Demo Norte con Calle 1 (ejemplo)" },
-  "plateRead": "AB12?CD", "confidence": 0.62, "occurredAt": "ISO",
+  "plateRead": "AB12?CD", "plateConfidence": 0.55, "confidence": 0.62,
+  "lightState": "RED",
+  "motion": { "speedKmh": 42.1, "laneId": "C1", "relation": "WITH_FLOW" },
+  "occurredAt": "ISO", "updatedAt": "ISO",
   "evidence": [{ "kind": "FRAME", "url": "..." }],
-  "fine": null
+  "fine": { "token": "x7Gq...", "status": "PENDING", "amountCents": 2500000, "currency": "VES" }
 } ], "nextSince": "ISO" } }
 ```
+- `verdict` lo deduce el servidor: `NEEDS_REVIEW`, `NO_VIOLATION` (un `VOID` con `voidReason = "NO_VIOLATION"`, ver `03` §4) o `VIOLATION`.
+- `fine` es `null` si no hay multa; su `status` incluye `OVERDUE` (calculado). `lightState` es la luz en el cruce (`null` en datos del seed).
+- Auth `admin`: cookie de sesión (§0b); sin sesión válida → 401.
+- Devuelve los tokens de multa (llave de acceso): jamás debe quedar público.
+
+### `GET /api/violations/[id]` (admin)
+Detalle para la pantalla de revisión: el mismo ítem de la lista más `modelVersion`, `aiOutput` (respuesta cruda del servicio ML) y `ruleOutput` (`{ verdict, crossing, rules }`). 404 si no existe.
+
 ### `POST /api/violations/[id]/review` (admin)
 Request `{ "action": "APPROVE", "plate": "AB123CD", "note": "placa legible en frame 2" }` o `{ "action": "VOID", "reason": "Vehículo de emergencia" }`.
-Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transición inválida.
+Response `{ ok, data: { status: "NOTIFIED" | "FINED" | "VOID", fineId? } }`.
+- **APPROVE** solo desde `NEEDS_REVIEW`: pasa por `REVIEWED` → `FINED` (crea la multa) y avisa al conductor (`NOTIFIED`). Si el aviso falla, la multa queda emitida y `status` es `FINED`. `plate` (opcional) corrige la placa: debe tener formato válido y ser de un vehículo registrado; sin `plate` se usa el vehículo ya enlazado o la placa leída si corresponde a uno registrado; si no hay vehículo → 400 `VALIDATION_ERROR` ("Indique la placa…"). `note` va al `AuditLog`. La multa queda con `verification: "HUMAN"`. No se despacha alerta a oficiales al aprobar (la detección ya es vieja).
+- **VOID** exige `reason`. Vale desde cualquier estado que la tabla de transiciones permita, así que también anula una multa ya emitida; desde `PAID` o `VOID` → 409.
+- Todo pasa por `transition()` y queda en el `AuditLog` con el operador de la sesión (`OPERATOR`, id de la cuenta, IP). Aprobar es atómico y la fila se bloquea: dos operadores a la vez → uno gana, el otro recibe 409 `INVALID_TRANSITION` y solo existe una multa.
 
 ## 3. Multa pública (P1)
 ### `GET /api/fines/[token]` (public)
@@ -138,7 +211,7 @@ Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transi
   "paidAt": null, "paymentReference": null
 }}
 ```
-El token es la "llave" de acceso: quien lo tiene ve la evidencia de esa multa. No muestra cédula ni teléfono.
+El token es la "llave" de acceso: quien lo tiene ve la evidencia de esa multa. No muestra cédula ni teléfono. Un token inexistente o mal formado responde igual (404 `NOT_FOUND`), sin revelar cuál de los dos. `status` es el estado guardado (`PENDING`, `PAID`, `APPEALED`, `VOID`) y `overdue` se calcula aparte. `verification` es `HUMAN` si la violación pasó por revisión y `AUTO` si no. `paymentReference` es la del pago aprobado. Respuestas con `Cache-Control: no-store`.
 
 ## 4. Portal por cédula (P1)
 ### `POST /api/portal/lookup` (public, rate limit 10/10min/IP)
@@ -152,11 +225,16 @@ Response (siempre 200, misma forma aunque no exista):
                "status": "PENDING", "amountCents": 0, "currency": "VES", "fineToken": null } ]
 }}
 ```
-`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`). Escribe `AuditLog(PORTAL_LOOKUP, ip)`.
+`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`); hasta entonces es siempre `null`.
+- **Cédula**: acepta `V12345678`, `v-12.345.678` y letras `V`, `E`, `J`, `G`, `P`; sin letra se busca como `V` y como `E` (el ciudadano suele escribir solo el número). Formato inválido → 400 `VALIDATION_ERROR`.
+- **Qué lista**: las multas **emitidas** de los vehículos del titular (una violación en revisión aún no es multa y no aparece), la más reciente primero, hasta 50; el `summary` cuenta todas. `pending` = pendientes + vencidas; `status` puede ser `OVERDUE` (calculado). Una cédula sin multas o inexistente responde 200 con la misma forma y todo en cero.
+- **Privacidad**: nunca nombre, teléfono, correo, cédula completa, placa completa ni `publicToken`; un test fija las claves exactas de la respuesta.
+- **Límite**: 10 consultas por IP cada 10 min → 429 `RATE_LIMITED`. El conteo y el registro son atómicos (bloqueo por IP): consultas simultáneas no pueden pasarse del máximo, y las bloqueadas no alargan la ventana.
+- **Auditoría**: cada consulta permitida escribe `AuditLog(PORTAL_LOOKUP, ip)` con una huella de la cédula en `entityId`, nunca la cédula.
 
 ## 5. Pagos C2P SIMULADOS (P3)
 ### Contexto: cómo es C2P real
-En Pago Móvil C2P (comercio a persona) el **comercio** debita al pagador. El pagador genera en la app de su banco una **clave C2P** (token de un solo uso) y entrega: **banco** (código de 4 dígitos), **teléfono** afiliado, **cédula** y **clave**. El comercio envía eso + monto + concepto a la API C2P de **su** banco (o de un agregador de pagos) autenticado con credenciales del comercio; el banco responde aprobado/rechazado con número de referencia. Integración real requeriría: convenio con banco/agregador, credenciales y certificados, ambiente de certificación, conciliación diaria y manejo de reversos. **En VíaClara NO hay integración real.**
+En Pago Móvil C2P (comercio a persona) el **comercio** debita al pagador. El pagador genera en la app de su banco una **clave C2P** (token de un solo uso) y entrega: **banco** (código de 4 dígitos), **teléfono** afiliado, **cédula** y **clave**. El comercio envía eso + monto + concepto a la API C2P de **su** banco (o de un agregador de pagos) autenticado con credenciales del comercio; el banco responde aprobado/rechazado con número de referencia. Integración real requeriría: convenio con banco/agregador, credenciales y certificados, ambiente de certificación, conciliación diaria y manejo de reversos. **En SmartTraffic NO hay integración real.**
 
 ### `POST /api/payments/c2p` (public; identificado por token)
 Request:
@@ -212,7 +290,7 @@ Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}
 Content-Type: application/json
 
 { "messaging_product": "whatsapp", "recipient_type": "individual", "to": "584120000001",
-  "type": "text", "text": { "body": "VíaClara · Aviso de infracción…\nVer y pagar: https://…/multa/x7Gq…", "preview_url": true },
+  "type": "text", "text": { "body": "SmartTraffic · Aviso de infracción…\nVer y pagar: https://…/multa/x7Gq…", "preview_url": true },
   "biz_opaque_callback_data": "fine:fine_cuid" }
 ```
 Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
@@ -220,9 +298,9 @@ Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: h
 **Ventana de 24 h de WhatsApp**: solo se envía texto libre a números que escribieron al número de prueba en las últimas 24 h; fuera de ella Meta exige plantillas, que no usamos. Los teléfonos de demo escriben "hola" al número antes de cada prueba, ensayo y del pitch. Si la ventana está cerrada, el envío falla y queda `Notification.FAILED` con el error. Solo reciben los números verificados en *API Setup* del número de prueba.
 
 Textos (`lib/notify/templates.ts`):
-- `FINE_ISSUED`: "VíaClara (demo). Se registró una posible infracción: {tipo} en {intersección}, {fecha hora} (hora de Caracas), vehículo placa {placaEnmascarada}. Monto de ejemplo: {monto}. Vea la evidencia, pague o apele aquí: {link}"
-- `PAYMENT_CONFIRMED`: "VíaClara (demo). Pago simulado recibido. Ref {ref}. Multa {placaEnmascarada} saldada."
-- `OFFICER_ALERT`: "VíaClara · Alerta: vehículo {placa} ({vehículo}) con {n} multas impagas visto en {intersección} hace {min} min, a {distancia} de su posición. Verifique antes de actuar."
+- `FINE_ISSUED`: "SmartTraffic (demo). Se registró una posible infracción: {tipo} en {intersección}, {fecha hora} (hora de Caracas), vehículo placa {placaEnmascarada}. Monto de ejemplo: {monto}. Vea la evidencia, pague o apele aquí: {link}"
+- `PAYMENT_CONFIRMED`: "SmartTraffic (demo). Pago simulado recibido. Ref {ref}. Multa {placaEnmascarada} saldada."
+- `OFFICER_ALERT`: "SmartTraffic · Alerta: vehículo {placa} ({vehículo}) con {n} multas impagas visto en {intersección} hace {min} min, a {distancia} de su posición. Verifique antes de actuar."
 
 ### Entrante — `GET` y `POST /api/webhooks/whatsapp`
 - `GET` (verificación al registrar la URL en la app de Meta): si `hub.mode=subscribe` y `hub.verify_token` = `WHATSAPP_VERIFY_TOKEN`, responder 200 con `hub.challenge` en texto plano; si no, 403.

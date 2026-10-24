@@ -1,4 +1,4 @@
-# 11 — P1: features y entregables · VíaClara
+# 11 — P1: features y entregables · SmartTraffic
 
 Cómo se trabaja: **una feature = un entregable = un commit**. Al terminar cada una se corre la verificación, se hace el commit y se **para** hasta el visto bueno. Rama `daniel-morillo`; no se mezcla trabajo de dos features en un commit. Fuente: `docs/09` §4, `docs/07`, `docs/03`, `docs/04` y los criterios HU-02/05/07 de `docs/01`.
 
@@ -15,7 +15,7 @@ Verificación común a todas (`docs/AGENTS.md` §10): `pnpm lint && pnpm typeche
 | F6 | Máquina de estados + auditoría | `transition()` con `AuditLog` transaccional | h4–8 |
 | F7 | Multas y `registerDetection` | Detección → `Violation` + `Fine` o `NEEDS_REVIEW`, con dedup | h4–8 |
 | F8 | Avistamientos y pago | `registerSighting` y `markFinePaid` | h4–8 |
-| F9 | Autenticación por passcode | Guardas `admin` / `camera` / `officer` | h8–12 |
+| F9 | Login de admin y guardas de sesión | Login con `AdminUser`, cookie firmada y guardas `admin` / `camera` / `officer` | h8–12 |
 | F10 | API de lectura | `GET /api/violations` y `GET /api/fines/[token]` | h4–8 |
 | F11 | Portal por cédula | `POST /api/portal/lookup` con rate limit | h12–14 |
 | F12 | Revisión humana | `POST /api/violations/[id]/review` | h12–14 |
@@ -111,27 +111,38 @@ Orden de ejecución: F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F10
 - [ ] Ningún campo personal en la multa pública (test que lo comprueba).
 **Commit**: `feat(api): violations list and public fine`
 
-## F9 — Autenticación por passcode
-**Alcance**: `api/_lib/auth.ts` con cookie httpOnly firmada para `admin` (`ADMIN_PASSCODE`), guarda `camera` (`X-Camera-Key`) y verificación de la cookie `officer` (la emite P3); `POST /api/auth/admin` y `DELETE`; se aplica a `GET /api/violations`.
+## F9 — Login de admin y guardas de sesión
+**Decisión (del equipo)**: el acceso de admin/operador es un **login** con cuentas en la base (`AdminUser`, hash scrypt), no un passcode compartido. El oficial sigue con `OFFICER_PASSCODE` + placa (P3) y la app móvil con `X-Camera-Key`.
+**Alcance**: modelo `AdminUser` + migración con RLS; `lib/auth/{password,session}.ts` (scrypt y cookie HMAC); `api/auth/{login,logout,me}.ts`; guardas `requireAdmin`, `requireCamera`, `requireCameraOrAdmin`, `requireOfficer` y `issueOfficerSession` en `api/_lib/auth.ts`; límite de intentos con `AuditLog`; `ensureAdmin` en el seed (`ADMIN_EMAIL` / `ADMIN_PASSWORD`).
 **Criterios de aceptación**
-- [ ] Sin cookie válida → 401 `UNAUTHORIZED`; con passcode correcto se emite cookie `HttpOnly; Secure; SameSite=Lax`.
-- [ ] Comparación del passcode y de la firma en tiempo constante; sin secretos en el repo.
-- [ ] Tests de los tres guardas.
-**Commit**: `feat(auth): passcode guards for admin, camera and officer`
+- [x] Sin sesión válida → 401 `UNAUTHORIZED`; con credenciales correctas se emite la cookie `HttpOnly; SameSite=Lax` (+ `Secure` en Vercel), firmada con `SESSION_SECRET`.
+- [x] Correo inexistente, contraseña errónea y cuenta desactivada dan exactamente el mismo 401, sin diferencia observable de tiempo (hash falso).
+- [x] 5 fallos por correo o 10 por IP en 10 min → 429, aun con la contraseña correcta; los fallos se auditan sin guardar correo ni contraseña.
+- [x] Desactivar la cuenta o cambiar la contraseña cierra las sesiones abiertas; las sesiones caducan a las 8 h.
+- [x] Falla cerrada: sin `SESSION_SECRET` (o < 32 caracteres) o sin `CAMERA_API_KEY` nadie entra.
+- [x] La contraseña nunca se guarda ni se loguea en claro; solo el hash.
+- [x] Probado empaquetado como función de Vercel (`vercel build`) contra la base real.
+**Commit**: `feat(auth): admin login with signed sessions and guards`
 
 ## F11 — Portal por cédula
-**Alcance**: `POST /api/portal/lookup` con normalización, respuesta de forma idéntica exista o no la cédula, rate limit 10/10 min/IP y `AuditLog(PORTAL_LOOKUP, ip)`.
+**Alcance**: `POST /api/portal/lookup` con normalización, respuesta de forma idéntica exista o no la cédula, rate limit 10/10 min/IP (atómico, `consumeLimit`) y `AuditLog(PORTAL_LOOKUP, ip)`.
 **Criterios de aceptación (HU-05)**
-- [ ] `v-99.000.001` equivale a `V99000001`; placa enmascarada, sin nombre completo ni teléfono; `fineToken` = `null`.
-- [ ] Cédula inexistente → misma forma y "sin infracciones".
-- [ ] La consulta 11 en 10 min → 429 `RATE_LIMITED`.
+- [x] `v-99.000.001` equivale a `V99000001` (y `99000001` se busca como `V` y `E`); placa enmascarada, sin nombre ni teléfono; `fineToken` = `null`.
+- [x] Cédula inexistente → misma forma y "sin infracciones".
+- [x] La consulta 11 en 10 min desde la misma IP → 429; 15 simultáneas dejan pasar exactamente 10.
+- [x] La auditoría guarda la IP y una huella de la cédula, nunca la cédula.
+- [x] Probado empaquetado como función de Vercel contra la base real, con los personajes del seed.
 **Commit**: `feat(api): portal lookup with rate limit and audit`
 
 ## F12 — Revisión humana
-**Alcance**: `POST /api/violations/[id]/review` (`APPROVE` con corrección de placa opcional → `REVIEWED` → `FINED` → `NOTIFIED`; `VOID` con motivo).
+**Alcance**: `POST /api/violations/[id]/review` (`APPROVE` con corrección de placa opcional → `REVIEWED` → `FINED` → `NOTIFIED`; `VOID` con motivo) y `GET /api/violations/[id]` (detalle con la salida del modelo, necesario para HU-07).
 **Criterios de aceptación (HU-07)**
-- [ ] `APPROVE` crea la multa y notifica (mock); la placa corregida se normaliza y se busca el vehículo.
-- [ ] Transición inválida → 409 `INVALID_TRANSITION`; cada acción escribe `AuditLog` con actor.
+- [x] `APPROVE` crea la multa y notifica; la placa corregida se normaliza, se valida y se enlaza al vehículo.
+- [x] Sin vehículo conocido ni placa válida → 400; estado distinto de `NEEDS_REVIEW` → 409 `INVALID_TRANSITION`; inexistente → 404.
+- [x] Cada acción escribe `AuditLog` con el operador como actor (id de la cuenta, IP, nota y placa anterior).
+- [x] Aprobaciones simultáneas: una sola multa y un solo aviso.
+- [x] Si el aviso falla la multa queda emitida (`FINED`) y se audita `NOTIFY_FAILED`.
+- [x] Probado empaquetado como función de Vercel contra la base real.
 **Commit**: `feat(api): violation review approve and void`
 
 ## F13 — Integración
@@ -153,3 +164,16 @@ Orden de ejecución: F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F10
 3. **Linter**: `oxlint` (viene con Vite); `docs/09` ya no menciona ESLint.
 4. **Componentes**: `src/components/**` (no en la raíz); actualizado en `AGENTS.md`, `docs/05` y `docs/09`.
 5. **Orden**: F10 (lectura) antes que F9 (auth).
+
+## F15 — Cuenta del ciudadano (cédula + contraseña)
+**Decisión (del equipo)**: el ciudadano entra con su cédula y una contraseña que crea al registrarse (la pantalla `/registro` del front ya lo pedía).
+**Alcance**: modelos `CitizenAccount` y `CitizenRegistration` (+ migración con RLS); `lib/domain/citizen.ts` (registro, reenvío, verificación, login, cambio de contraseña) y `citizen-data.ts` (perfil, multas, vehículos, apelación); sesión `vc_citizen` de 30 min con renovación; 11 rutas `/api/citizen/*` dentro del router `api/p1.ts`; consolidación de las rutas de P1 en **una** función de Vercel (11 → 6) para dejar sitio a P2.
+**Criterios de aceptación**
+- [x] Registro con código por WhatsApp al teléfono que el sistema tiene para la cédula; el servidor solo devuelve el teléfono enmascarado.
+- [x] El código no se guarda en claro; vence a los 10 min; 5 intentos; 30 s entre envíos; límites por IP y por cédula.
+- [x] Login con un único error para cédula desconocida, contraseña errónea y cuenta desactivada; bloqueo tras 5 fallos por cédula / 10 por IP.
+- [x] Sesión de 30 min renovable; cambiar la contraseña o desactivar la cuenta cierra las sesiones abiertas; las cookies de admin y oficial no valen.
+- [x] Un ciudadano solo ve y apela sus multas (una ajena es 404, igual que una inexistente).
+- [x] Ninguna respuesta filtra hashes de contraseña ni HMAC de códigos; los POST rechazan un `Origin` ajeno.
+- [x] Probado empaquetado como función de Vercel contra la base real.
+**Commit**: `feat(auth): citizen accounts with cedula and password`

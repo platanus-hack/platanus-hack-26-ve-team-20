@@ -19,6 +19,7 @@ const all = args.has("--all");
 const { db } = await import("../lib/db.ts");
 const { buildSeed } = await import("../prisma/seed-data.ts");
 const { applySeed } = await import("../prisma/seed-run.ts");
+const { ensureAdmin } = await import("../prisma/seed-admin.ts");
 
 const now = new Date();
 const caracasDay = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Caracas" }).format(now); // YYYY-MM-DD
@@ -65,6 +66,18 @@ try {
       }),
     );
     console.log("seed reaplicado:", counts);
+    const admin = await ensureAdmin(db, {
+      email: process.env["ADMIN_EMAIL"],
+      password: process.env["ADMIN_PASSWORD"],
+      name: process.env["ADMIN_NAME"],
+    });
+    console.log(`admin: ${admin}`);
+    const { buildDemoCitizen, applyDemoCitizen, formatDemoCitizen } = await import("../prisma/seed-demo-citizen.ts");
+    const citizen = buildDemoCitizen({ cedula: process.env["DEMO_CEDULA"], phone: process.env["DEMO_PHONE_DRIVER"] || undefined, now: new Date() });
+    const lines = citizen
+      ? formatDemoCitizen(await applyDemoCitizen(db, citizen), process.env["APP_BASE_URL"] || "http://localhost:5173")
+      : [process.env["DEMO_CEDULA"] ? "demo: DEMO_CEDULA no tiene forma de cédula; no se siembra" : "demo: sin DEMO_CEDULA, no se crea ciudadano de la demo"];
+    for (const line of lines) console.log(line);
   }
 } finally {
   await db.$disconnect();

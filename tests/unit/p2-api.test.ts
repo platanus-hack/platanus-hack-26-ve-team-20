@@ -8,16 +8,18 @@ const mocks = vi.hoisted(() => ({
     lightChange: { create: vi.fn(), findFirst: vi.fn() },
   },
   analyze: vi.fn(),
+  registerDetection: vi.fn(),
   handleUpload: vi.fn(),
 }))
 vi.mock('../../lib/db.ts', () => ({ db: mocks.db }))
 vi.mock('../../lib/vision/index.ts', () => ({ analyze: mocks.analyze }))
+vi.mock('../../lib/domain/index.ts', () => ({ registerDetection: mocks.registerDetection }))
 vi.mock('@vercel/blob/client', () => ({ handleUpload: mocks.handleUpload }))
 
-const { default: time } = await import('../../api/time.ts')
-const { default: upload } = await import('../../api/blob/upload.ts')
-const { default: light } = await import('../../api/cameras/[id]/light.ts')
-const { default: detections } = await import('../../api/detections.ts')
+const { default: time } = await import('../../api/_p2/time.ts')
+const { default: upload } = await import('../../api/_p2/blob-upload.ts')
+const { default: light } = await import('../../api/_p2/camera-light.ts')
+const { default: detections } = await import('../../api/_p2/detections.ts')
 
 const KEY = 'clave-de-camara-de-prueba'
 process.env['CAMERA_API_KEY'] = KEY
@@ -115,6 +117,12 @@ describe('POST /api/detections', () => {
     motion: { speedKmh: null, laneId: null, directionDeg: null, relation: 'UNKNOWN' },
   })
 
+  beforeEach(() => {
+    mocks.registerDetection.mockImplementation(async (r: VisionResult) => ({
+      violationId: 'vio_1', status: r.verdict === 'NO_VIOLATION' ? 'VOID' : 'FINED', fineId: 'fine_1', duplicate: false,
+    }))
+  })
+
   it('analiza el clip de la cámara y registra la violación', async () => {
     mocks.db.camera.findUnique.mockResolvedValue({ id: 'cam_1', active: true })
     mocks.analyze.mockImplementation(async (i: { idempotencyKey: string }) => ({ ...vision('VIOLATION'), idempotencyKey: i.idempotencyKey }))
@@ -136,11 +144,12 @@ describe('POST /api/detections', () => {
     expect(keys[0]).toBe(keys[1])
   })
 
-  it('sin infracción no crea violación', async () => {
+  it('sin infracción también se registra (P1 la guarda como VOID para el feed)', async () => {
     mocks.db.camera.findUnique.mockResolvedValue({ id: 'cam_1', active: true })
     mocks.analyze.mockResolvedValue(vision('NO_VIOLATION'))
     const { body: res } = await call(detections, { method: 'POST', body })
-    expect(res).toMatchObject({ ok: true, data: { verdict: 'NO_VIOLATION', violationId: null } })
+    expect(mocks.registerDetection).toHaveBeenCalledOnce()
+    expect(res).toMatchObject({ ok: true, data: { verdict: 'NO_VIOLATION', status: 'VOID' } })
   })
 
   it('cámara desconocida → 404; body inválido → 400', async () => {

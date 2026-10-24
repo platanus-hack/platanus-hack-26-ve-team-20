@@ -1,4 +1,4 @@
-# 02 — Arquitectura · VíaClara
+# 02 — Arquitectura · SmartTraffic
 
 ## 1. Componentes
 | Componente | Tecnología | Responsabilidad |
@@ -162,7 +162,7 @@ Nota: la ubicación usada para la distancia es la **de la cámara** (GPS del tel
 
 ## 7. Seguridad mínima
 - La app móvil y el botón de sets demo autentican con `X-Camera-Key` (`CAMERA_API_KEY`); el servicio ML solo acepta `Authorization: Bearer ML_SERVICE_TOKEN`.
-- `/camaras`, `/admin/*` protegidos con `ADMIN_PASSCODE` (cookie httpOnly firmada; la validan las funciones de `/api` con `api/_lib/auth.ts` y la SPA redirige a login si recibe 401). `/oficial` con `OFFICER_PASSCODE` + selección de oficial seed.
+- `/camaras`, `/admin/*`: **login de admin** (correo + contraseña de la tabla `AdminUser`, hash scrypt) que emite una cookie `vc_admin` HttpOnly, SameSite=Lax y Secure, firmada con `SESSION_SECRET` (8 h). Las funciones de `/api` la validan con `api/_lib/auth.ts` (comprueba firma, vigencia, cuenta activa y que la contraseña no haya cambiado) y la SPA redirige a `/login` si recibe 401. Intentos fallidos limitados por IP (10) y por correo (5) cada 10 min. `/oficial` con `OFFICER_PASSCODE` + selección de oficial seed (cookie `vc_officer`, la emite P3).
 - Webhook de WhatsApp (Meta): verificar `X-Hub-Signature-256` (HMAC-SHA256 del body crudo con `WHATSAPP_APP_SECRET`) y el `GET` de verificación con `WHATSAPP_VERIFY_TOKEN`.
 - `publicToken` de multa: 22+ caracteres aleatorios (nanoid), no secuencial.
 - Rate limit en `/api/portal/lookup` y `/api/payments/c2p` (tabla en DB o memoria por instancia; suficiente para demo).

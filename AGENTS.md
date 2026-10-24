@@ -1,9 +1,9 @@
-# AGENTS.md — VíaClara
+# AGENTS.md — SmartTraffic
 
 > Guía para agentes (Claude Code, Cursor, etc.) y humanos. Léela completa antes de tocar código. `CLAUDE.md` es una copia idéntica.
 
 ## 1. Qué es
-**VíaClara**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
+**SmartTraffic**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
 Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (WhatsApp Cloud API de Meta) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
 
 Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único requisito técnico: **hosting en Vercel**.
@@ -11,7 +11,7 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 ## 2. Reglas no negociables
 1. **Un flujo E2E primero.** Nada de features laterales hasta que funcione: frame → detección → placa → multa → WhatsApp → pago simulado → `PAID`. (Ver `docs/01-producto-prd.md` §MVP.)
 2. **Pagos SIMULADOS.** Ningún dinero real, ningún banco real. Toda pantalla de pago muestra el banner "Demo — pago simulado".
-3. **Solo datos FALSOS.** Cédulas, placas, teléfonos y nombres del seed son inventados y marcados como ejemplo. Los únicos teléfonos reales permitidos son los del equipo (vía env `DEMO_PHONE_*`), nunca en el repo.
+3. **Solo datos FALSOS.** Cédulas, placas, teléfonos y nombres del seed son inventados y marcados como ejemplo. Los únicos datos reales permitidos son los del equipo y entran solo por variables de entorno, nunca en el repo: los teléfonos (`DEMO_PHONE_*`) y la cédula de la demo (`DEMO_CEDULA`).
 4. **Cero secretos en código.** Todo por variables de entorno (lista abajo). `.env.local` está en `.gitignore`. Mantén `.env.example` actualizado.
 5. **Revisión humana**: una detección con confianza < umbral o sin placa NO genera multa; va a la cola `/admin/revision`.
 6. **Contratos primero.** Tipos y esquemas Zod viven en `lib/contracts/`. Cambiarlos requiere avisar al equipo (ver `docs/09-reparto-equipo.md`).
@@ -43,7 +43,7 @@ pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts); idempot
 pnpm demo:reset              # borra lo generado por la demo HOY (no sembrado) y re-siembra; --dry-run, --all
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
-cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
+cd mobile && npm install && npx expo start   # app (ciudadano, policía y cámara); npm propio, fuera del workspace pnpm
 cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
 pnpm test                    # vitest (unit, sin red)
 pnpm test:db                 # vitest contra la base real (requiere seed; limpia sus filas test_*)
@@ -68,9 +68,10 @@ src/                                # SPA React + Vite (todo cliente)
 api/                                # Vercel Functions (TypeScript, Node)
   detections.ts                     # POST analizar frames (P2)
   sightings.ts                      # POST placa vista (P2 → lib/alerts de P3)
-  violations/index.ts               # GET lista (P1)
-  violations/[id]/review.ts         # POST aprobar/rechazar (P1)
+  p1.ts                             # ÚNICA función de P1: auth, violaciones, revisión (rutas en api/_p1/, URLs por vercel.json)
   fines/[token].ts                  # GET multa pública (P1)
+  # /api/admin/officer-invitations, /api/admin/officers, /api/officer/* (invitaciones y cuentas de oficiales) → dentro de p1.ts
+  # /api/citizen/* (registro con código por WhatsApp, login por cédula, multas, apelación) → dentro de p1.ts
   portal/lookup.ts                  # POST consulta por cédula (P1)
   payments/c2p.ts                   # POST pago simulado (P3)
   officers/location.ts              # POST ubicación oficial (P3)
@@ -89,6 +90,7 @@ ml/                                 # servicio de visión (Python/FastAPI) + ent
 lib/
   contracts/        # tipos + Zod compartidos (P1 dueño, todos revisan)
   db.ts             # Prisma client singleton (P1)
+  auth/             # hash scrypt de contraseñas y sesiones firmadas (P1)
   domain/           # máquina de estados, multas, auditoría (P1)
   vision/           # cliente del servicio ML, reglas (luz en el cruce, placa), doble llave (P2)
   storage/          # Vercel Blob (P2)
@@ -103,6 +105,8 @@ public/demo/        # manifiesto y clips de ejemplo (sets A–D) para pruebas y 
 tests/              # e2e Playwright (P1 coordina QA)
 docs/               # esta documentación
 ```
+
+> **Presupuesto de funciones (Vercel Hobby = 12 por deploy).** Cada `.ts` de `api/` fuera de carpetas o archivos con `_` cuenta como una. Hoy: `health`, `fines/[token]`, `portal/lookup`, `webhooks/whatsapp`, `p1`, `p3` = 6. P2 y los demás deben **agrupar sus rutas en un router propio** (`api/p2.ts` + `api/_p2/*.ts` + reescrituras en `vercel.json`, como `api/p1.ts` y `api/p3.ts`) y no crear una función por endpoint. Un test (`tests/unit/vercel-functions.test.ts`) falla si se pasa de 12.
 
 ## 6. Convenciones
 - TS estricto, sin `any`. Validación con **Zod** en todo borde (funciones de `/api`, webhooks, respuesta del servicio ML).
@@ -133,10 +137,16 @@ docs/               # esta documentación
 | `WHATSAPP_APP_SECRET` | clave secreta de la app; verifica `X-Hub-Signature-256` del webhook | P3 |
 | `WHATSAPP_VERIFY_TOKEN` | texto para el GET de verificación del webhook | P3 |
 | `WHATSAPP_GRAPH_VERSION` | versión de la Graph API, p.ej. `v23.0` | P3 |
+| `WHATSAPP_TEMPLATE_CODE`, `WHATSAPP_TEMPLATE_LANG` | plantilla de autenticación aprobada para el código de registro (llega a cualquier número, sin ventana de 24 h); `LANG` por defecto `es`. Sin ella se envía texto libre | P1 |
 | `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
-| `ADMIN_PASSCODE` | acceso simple a `/admin` y `/camaras` | P1 |
+| `SESSION_SECRET` | firma las cookies de sesión (≥ 32 caracteres; `openssl rand -base64 48`). Obligatoria en Vercel | P1 |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | correo de las invitaciones a oficiales por SMTP (p. ej. Gmail `smtp.gmail.com`:465 con contraseña de aplicación; sin dominio propio). Puerto por defecto 465 (TLS); 587 = STARTTLS | P1 |
+| `EMAIL_FROM` | remitente, p. ej. `SmartTraffic <cuenta@gmail.com>`; opcional (por defecto `SMTP_USER`; con Gmail debe ser la misma cuenta) | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
+| `CITIZEN_DEMO_CODE` | SOLO DEMOS: 6 dígitos que valen como código de verificación para la cédula `DEMO_CEDULA`, sin enviar WhatsApp. Sin esta variable no hay atajo | P1 |
+| `DEMO_CEDULA` | cédula REAL de quien presenta; `pnpm db:seed` le crea un titular de la demo con multas FALSAS (placas, nombre y montos inventados). Nunca en el repo | P1 |
 | `ALERT_RADIUS_METERS` | p.ej. `1500` | P3 |
 | `NOTIFY_DRY_RUN` | `true` = no envía, solo registra | P3 |
 

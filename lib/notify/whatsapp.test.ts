@@ -13,7 +13,7 @@ const CONFIG: WhatsAppConfig = {
   graphVersion: 'v23.0',
   dryRun: false,
 }
-const MESSAGE = { to: '+58 412-000-0001', body: 'VíaClara (demo). Hola', callbackData: 'fine:fine_1' }
+const MESSAGE = { to: '+58 412-000-0001', body: 'SmartTraffic (demo). Hola', callbackData: 'fine:fine_1' }
 
 function fakeFetch(status: number, body: unknown) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
@@ -23,6 +23,17 @@ describe('whatsappConfigFromEnv', () => {
   it('sin NOTIFY_DRY_RUN no envía nada', () => {
     expect(whatsappConfigFromEnv({}).dryRun).toBe(true)
     expect(whatsappConfigFromEnv({ NOTIFY_DRY_RUN: '' }).dryRun).toBe(true)
+  })
+
+  it('ignora espacios y saltos de línea pegados en el panel de Vercel', () => {
+    expect(
+      whatsappConfigFromEnv({
+        NOTIFY_DRY_RUN: ' False\n',
+        WHATSAPP_ACCESS_TOKEN: 't\n',
+        WHATSAPP_PHONE_NUMBER_ID: ' 123 ',
+        WHATSAPP_GRAPH_VERSION: 'v23.0\n',
+      }),
+    ).toEqual({ accessToken: 't', phoneNumberId: '123', graphVersion: 'v23.0', dryRun: false })
   })
 
   it('lee las variables de WhatsApp', () => {
@@ -59,7 +70,7 @@ describe('sendWhatsAppText', () => {
       recipient_type: 'individual',
       to: '584120000001',
       type: 'text',
-      text: { body: 'VíaClara (demo). Hola', preview_url: true },
+      text: { body: 'SmartTraffic (demo). Hola', preview_url: true },
       biz_opaque_callback_data: 'fine:fine_1',
     })
   })

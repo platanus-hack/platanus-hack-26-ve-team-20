@@ -123,6 +123,8 @@ model Person {
   email     String?
   vehicles  Vehicle[]
   createdAt DateTime @default(now())
+  citizenAccount      CitizenAccount?
+  citizenRegistration CitizenRegistration?
 }
 
 model Vehicle {
@@ -232,8 +234,32 @@ model Officer {
   name      String
   phone     String
   onDuty    Boolean  @default(false)
+  // Cuenta propia (por invitación del admin). Los oficiales del seed no la tienen y entran con OFFICER_PASSCODE.
+  email        String?  @unique
+  passwordHash String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
   locations OfficerLocation[]
   alerts    Alert[]
+  invitation OfficerInvitation?
+}
+
+// Invitación por correo que crea un admin para un oficial de tránsito. El token (256 bits) solo viaja en el
+// enlace del correo; aquí se guarda su SHA-256. Un solo uso; al aceptarla nace el Officer.
+model OfficerInvitation {
+  id          String    @id @default(cuid())
+  email       String                              // normalizado en minúsculas
+  name        String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id])
+  officerId   String?   @unique
+  officer     Officer?  @relation(fields: [officerId], references: [id])
+  createdAt   DateTime  @default(now())
+  @@index([email])
 }
 
 model OfficerLocation {
@@ -288,4 +314,108 @@ model AuditLog {
   ip         String?
   createdAt  DateTime  @default(now())
   @@index([entity, entityId])
+  @@index([action, createdAt])           // límites de intentos (login, portal)
+}
+
+// Cuentas de admin/operador (login de /admin y /camaras). La contraseña se guarda con hash scrypt:
+// `scrypt$N$r$p$salt$hash` (lib/auth/password.ts). Nunca en claro.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique               // normalizado en minúsculas
+  name         String
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+  officerInvitations OfficerInvitation[]
+}
+
+// Cuenta del ciudadano (cédula + contraseña). Una cuenta por titular (Person). La contraseña se guarda con
+// hash scrypt (lib/auth/password.ts). Se crea al verificar el código de WhatsApp enviado al teléfono que
+// el sistema ya tiene para esa cédula (docs/04 §0c).
+model CitizenAccount {
+  id           String    @id @default(cuid())
+  personId     String    @unique
+  person       Person    @relation(fields: [personId], references: [id])
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+// Registro pendiente de verificar: la contraseña elegida y el código (solo su HMAC) hasta que el
+// ciudadano lo confirma. Una fila por titular; al confirmarse se borra.
+model CitizenRegistration {
+  id           String   @id @default(cuid())
+  personId     String   @unique
+  person       Person   @relation(fields: [personId], references: [id])
+  passwordHash String
+  email        String?
+  phone        String?                       // E.164 sin "+": teléfono al que se envió el código, si lo escribió la persona
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  lastSentAt   DateTime
+  createdAt    DateTime @default(now())
+}
+
+// ---- Red de choques en vivo (/choques/nodo y /choques/vivo). Datos de demo: el teléfono elige su punto en el
+// mapa de la demo (metros, no GPS). Los clips van como bytes mientras no haya Vercel Blob; los incidentes de más
+// de una hora se borran al crear uno nuevo (con sus alertas y clips).
+enum CrashAlertStatus {
+  PENDING
+  CAPTURING
+  UPLOADED
+  MISSED
+}
+
+model CrashNode {
+  id         String       @id @default(cuid())
+  name       String
+  x          Float
+  y          Float
+  heading    Float // grados, 0 = este, 90 = sur
+  recording  Boolean      @default(false)
+  lastSeenAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
+  alerts     CrashAlert[]
+
+  @@index([lastSeenAt])
+}
+
+model CrashIncident {
+  id         String       @id @default(cuid())
+  x          Float
+  y          Float
+  radiusM    Int
+  centerX    Float
+  centerY    Float
+  reporterId String?
+  occurredAt DateTime     @default(now())
+  alerts     CrashAlert[]
+
+  @@index([occurredAt])
+}
+
+model CrashAlert {
+  id            String           @id @default(cuid())
+  incidentId    String
+  incident      CrashIncident    @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  nodeId        String
+  node          CrashNode        @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  nodeX         Float // posición y rumbo del nodo en T0
+  nodeY         Float
+  nodeHeading   Float
+  distanceM     Float
+  status        CrashAlertStatus @default(PENDING)
+  deliveredAt   DateTime?
+  clip          Bytes?
+  clipType      String?
+  clipT0S       Float? // segundo del clip en que ocurrió el choque
+  clipDurationS Float?
+  uploadedAt    DateTime?
+  createdAt     DateTime         @default(now())
+
+  @@unique([incidentId, nodeId])
+  @@index([nodeId, status])
 }

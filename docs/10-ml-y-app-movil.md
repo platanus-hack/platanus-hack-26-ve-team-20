@@ -1,4 +1,4 @@
-# 10 — Modelo ML y app móvil de cámara · VíaClara
+# 10 — Modelo ML y app móvil de cámara · SmartTraffic
 
 Dueño: **P2**. Complementa `02-arquitectura.md` §5 y el contrato `04-api.md` §8. Base de las decisiones: `docs/velocidad-y-contravia-en-fotomultas.md` (investigación). Todo el proyecto es TypeScript; la única excepción es `ml/` (Python), porque el ajuste fino y la inferencia viven en ese ecosistema.
 

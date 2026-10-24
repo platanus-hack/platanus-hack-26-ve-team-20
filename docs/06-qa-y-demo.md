@@ -1,4 +1,4 @@
-# 06 — QA y demo · VíaClara
+# 06 — QA y demo · SmartTraffic
 
 Coordinador de QA: **P1** (después de h12); cada dueño prueba su vertical.
 
@@ -62,13 +62,13 @@ Correr con `NOTIFY_DRY_RUN=true` y `DEMO_VISION_CACHE=true` en CI/local para no 
 ## 4. Guion de pitch (3:00)
 | Tiempo | Quién | Qué se dice / hace |
 |---|---|---|
-| 0:00–0:20 | Presentador | Gancho: "Un carro se come la luz roja frente a una escuela. Hoy, si no hay un fiscal ahí, no pasa nada. Y si te multan, ni te enteras ni sabes por qué." Nombre: **VíaClara — la multa llega con la prueba, y se paga en un minuto.** |
+| 0:00–0:20 | Presentador | Gancho: "Un carro se come la luz roja frente a una escuela. Hoy, si no hay un fiscal ahí, no pasa nada. Y si te multan, ni te enteras ni sabes por qué." Nombre: **SmartTraffic — la multa llega con la prueba, y se paga en un minuto.** |
 | 0:20–0:35 | Presentador | Cómo funciona en 3 pasos (slide): Detecta → Notifica → Paga. Track Trust: evidencia + revisión humana + apelación. |
 | 0:35–1:25 | Operador (demo en vivo) | El teléfono-cámara (app Expo, CAM-001) apunta a la maqueta/pantalla con el set "luz roja" y se pulsa **Grabar evento**; `/camaras` lo muestra en vivo. Se ve paso a paso: semáforo ROJO, placa leída, cruce de línea, multa creada. **Suena el teléfono**: WhatsApp con el link. Se muestra en pantalla. |
 | 1:25–1:55 | Operador | Abre el link: evidencia con hora y luz roja; "Pagar con Pago Móvil C2P" (banner: simulado); banco, teléfono, cédula, clave → comprobante. Estado PAGADA en consola. |
 | 1:55–2:15 | Operador | `/consulta` con cédula ficticia: historial, datos limitados (placa enmascarada). |
 | 2:15–2:35 | Operador + teléfono 2 | Set "vehículo con deuda": la cámara lo ve → **teléfono del oficial vibra**: alerta con placa y distancia, en el mapa. |
 | 2:35–2:50 | Presentador | Confianza: si la IA duda, va a revisión humana (mostrar cola 3 s); toda acción auditada; datos ficticios. Producción: detección en el borde (YOLO + ALPR) y Claude como segundo revisor; integración C2P con banco/agregador. |
-| 2:50–3:00 | Presentador | Cierre: "Calles más seguras con multas justas, transparentes y fáciles de pagar. VíaClara." Stack: modelo propio entrenado con Kaggle, app Expo, WhatsApp Cloud API de Meta, Vercel. |
+| 2:50–3:00 | Presentador | Cierre: "Calles más seguras con multas justas, transparentes y fáciles de pagar. SmartTraffic." Stack: modelo propio entrenado con Kaggle, app Expo, WhatsApp Cloud API de Meta, Vercel. |
 
 Reglas del pitch: nadie lee slides; si algo falla > 5 s, pasar al video plan B sin disculpas largas; ensayar 3 veces con cronómetro (h30, h32, h34).
