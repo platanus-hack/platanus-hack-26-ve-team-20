@@ -9,6 +9,8 @@ Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 | `Camera` | Cámara (teléfono con app Expo) en una intersección, con calibración (homografía, línea de pare, carriles, zona de velocidad) |
 | `LightChange` | Cambio de estado del semáforo simulado de una cámara (con hora del servidor) |
 | `AdminUser` | Cuenta de admin/operador (login de `/admin` y `/camaras`); contraseña con hash scrypt |
+| `CitizenAccount` | Cuenta del ciudadano (cédula + contraseña con hash scrypt), una por titular |
+| `CitizenRegistration` | Registro pendiente de verificar: contraseña elegida y HMAC del código enviado por WhatsApp |
 | `Person` | Propietario (cédula, nombre, teléfono, email) — **datos falsos** |
 | `Vehicle` | Placa, marca, modelo, color, dueño |
 | `Violation` | Evento de infracción detectado (con estado y salida de IA) |
@@ -86,6 +88,8 @@ model Person {
   email     String?
   vehicles  Vehicle[]
   createdAt DateTime @default(now())
+  citizenAccount      CitizenAccount?
+  citizenRegistration CitizenRegistration?
 }
 
 model Vehicle {
@@ -264,6 +268,32 @@ model AdminUser {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+}
+
+// Cuenta del ciudadano (cédula + contraseña). Una por titular (Person). Se crea al verificar el código de
+// WhatsApp enviado al teléfono que el sistema ya tiene para esa cédula (docs/04 §0c).
+model CitizenAccount {
+  id           String    @id @default(cuid())
+  personId     String    @unique
+  person       Person    @relation(fields: [personId], references: [id])
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+// Registro pendiente: la contraseña elegida y el HMAC del código hasta que el ciudadano lo confirma.
+model CitizenRegistration {
+  id           String   @id @default(cuid())
+  personId     String   @unique
+  person       Person   @relation(fields: [personId], references: [id])
+  passwordHash String
+  email        String?
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  lastSentAt   DateTime
+  createdAt    DateTime @default(now())
 }
 ```
 

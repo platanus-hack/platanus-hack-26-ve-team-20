@@ -71,6 +71,32 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
+// ---- Cuenta del ciudadano: cédula + contraseña (P1, docs/04 §0c)
+const citizenCedula = z.string().min(5).max(20).transform(normalizeCedula).pipe(z.string().regex(/^[VE]\d{5,9}$/));
+export const CITIZEN_MIN_PASSWORD = 8;
+const citizenPassword = z.string().min(CITIZEN_MIN_PASSWORD).max(200);
+
+/** Paso 1 del registro. El código va por WhatsApp al teléfono que el sistema ya tiene para la cédula. */
+export const CitizenRegisterSchema = z.object({
+  cedula: citizenCedula,
+  password: citizenPassword,
+  /** Opcional; se guarda en el perfil solo cuando el código se verifica. */
+  email: z.string().trim().toLowerCase().pipe(z.email().max(200)).nullish().or(z.literal("").transform(() => null)),
+});
+export type CitizenRegisterRequest = z.infer<typeof CitizenRegisterSchema>;
+
+export const CitizenVerifySchema = z.object({ cedula: citizenCedula, code: z.string().regex(/^\d{6}$/) });
+export type CitizenVerifyRequest = z.infer<typeof CitizenVerifySchema>;
+
+export const CitizenResendSchema = z.object({ cedula: citizenCedula });
+export type CitizenResendRequest = z.infer<typeof CitizenResendSchema>;
+
+export const CitizenLoginSchema = z.object({ cedula: citizenCedula, password: z.string().min(1).max(200) });
+export type CitizenLoginRequest = z.infer<typeof CitizenLoginSchema>;
+
+export const CitizenPasswordSchema = z.object({ current: z.string().min(1).max(200), next: citizenPassword });
+export type CitizenPasswordRequest = z.infer<typeof CitizenPasswordSchema>;
+
 // ---- §2 revisión (P1)
 export const ReviewRequestSchema = z.discriminatedUnion("action", [
   z.object({

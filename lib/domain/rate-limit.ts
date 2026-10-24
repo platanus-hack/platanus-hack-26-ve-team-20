@@ -40,20 +40,33 @@ export async function assertUnderLimit(db: Pick<PrismaClient, "auditLog">, rule:
 }
 
 /**
- * Cuenta y registra en un solo paso atómico: bloquea por `lockKey` dentro de una transacción, lanza
- * `RateLimitedError` si ya se alcanzó el máximo y, si no, escribe `entry` en el AuditLog. Al contar
- * y registrar bajo el mismo bloqueo, las peticiones simultáneas no pueden pasarse del límite.
- * Las peticiones bloqueadas no se registran: la ventana no se alarga por insistir.
+ * Comprueba VARIAS reglas y registra UNA entrada de auditoría en un solo paso atómico: bloquea todas las
+ * claves (en orden, para no provocar interbloqueos) dentro de una transacción, lanza `RateLimitedError`
+ * si alguna regla ya está en su máximo y, si no, escribe `entry`. Al contar y registrar bajo el mismo
+ * bloqueo, las peticiones simultáneas no pueden pasarse del límite. Las bloqueadas no se registran: la
+ * ventana no se alarga por insistir.
  */
-export async function consumeLimit(
+export async function consumeLimits(
+  db: PrismaClient,
+  rules: Array<LimitRule & { lockKey: string }>,
+  entry: AuditEntry,
+  now: Date = new Date(),
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    for (const key of [...new Set(rules.map((r) => r.lockKey))].sort()) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+    }
+    for (const rule of rules) await assertUnderLimit(tx, rule, now);
+    await audit(tx, entry);
+  }, { maxWait: 10_000, timeout: 20_000 });
+}
+
+/** Una sola regla: ver {@link consumeLimits}. */
+export function consumeLimit(
   db: PrismaClient,
   rule: LimitRule & { lockKey: string },
   entry: AuditEntry,
   now: Date = new Date(),
 ): Promise<void> {
-  await db.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${rule.lockKey}))`;
-    await assertUnderLimit(tx, rule, now);
-    await audit(tx, entry);
-  }, { maxWait: 10_000, timeout: 20_000 });
+  return consumeLimits(db, [rule], entry, now);
 }

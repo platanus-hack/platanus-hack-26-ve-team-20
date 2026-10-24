@@ -76,6 +76,31 @@ Cuenta en la tabla `AdminUser` (correo + contraseña con hash scrypt). La sesió
 - **Cuenta inicial**: `pnpm db:seed` la crea con `ADMIN_EMAIL` / `ADMIN_PASSWORD` (solo se guarda el hash). Cambiar `ADMIN_PASSWORD` y volver a sembrar actualiza el hash.
 - Guardas disponibles en `api/_lib/auth.ts`: `requireAdmin(db, req)`, `requireCamera(req)`, `requireCameraOrAdmin(db, req)`, `requireOfficer(req)` y, para P3, `issueOfficerSession(res, officerId)`.
 
+## 0c. Cuenta del ciudadano: cédula + contraseña (P1)
+El ciudadano crea su propia contraseña al registrarse y entra con su cédula. Sesión: cookie `vc_citizen` firmada (HttpOnly, SameSite=Lax, Secure en Vercel) de **30 min que se renueva con cada llamada autenticada** (`GET /api/citizen/me?renew=0` comprueba sin renovar, para sondeos). Como en el admin, los `POST` rechazan un `Origin` ajeno.
+
+**Verificación de propiedad.** El registro exige un código de 6 dígitos que se envía por WhatsApp **al teléfono que el sistema ya tiene para esa cédula**, nunca a uno que teclee quien se registra, así nadie puede apropiarse de la cuenta de otra persona. El servidor solo devuelve ese teléfono enmascarado (`0426-***0319`). El código se guarda como HMAC (con `SESSION_SECRET`), vence a los 10 min y admite 5 intentos.
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/citizen/register` `{ cedula, password, email? }` | public | Paso 1: guarda la contraseña elegida (mín. 8) y envía el código. 200 `{ telefono }`. |
+| `POST /api/citizen/register/resend` `{ cedula }` | public | Código nuevo (30 s entre envíos). 200 `{ telefono }`. |
+| `POST /api/citizen/register/verify` `{ cedula, code }` | public | Paso 2: crea la cuenta y abre la sesión. 200 `{ user, vehicles }` + `Set-Cookie`. |
+| `POST /api/citizen/login` `{ cedula, password }` | public | 200 `{ user }` + `Set-Cookie`. |
+| `POST /api/citizen/logout` | public | Borra la cookie. Idempotente. |
+| `GET /api/citizen/me[?renew=0]` | citizen | `{ user: { cedula, telefono, correo } }` (el teléfono en formato local `04264180319`). |
+| `POST /api/citizen/password` `{ current, next }` | citizen | Cambia la contraseña; emite una sesión nueva y cierra las demás. |
+| `GET /api/citizen/fines` | citizen | `{ items: CitizenFineDTO[] }`: sus multas, la infracción más reciente primero, con `token` para pagar en `POST /api/payments/c2p`. |
+| `GET /api/citizen/fines/:id` | citizen | Una multa propia; una ajena responde 404 igual que una inexistente. |
+| `POST /api/citizen/fines/:id/appeal` | citizen | Apela una multa pendiente o vencida (→ `APPEALED`). |
+| `GET /api/citizen/vehicles` | citizen | `{ items: CitizenVehicleDTO[] }`. |
+
+**Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
+
+**Límites.** Registro/reenvío: 10 por IP cada 10 min y 5 por cédula por hora. Verificación: 20 por IP cada 10 min. Login: 5 fallos por cédula y 10 por IP cada 10 min (bloquea aun con la contraseña correcta). Cambio de contraseña: 5 intentos por cuenta cada 10 min. Los fallos se auditan con una huella de la cédula, nunca con la cédula ni la contraseña.
+
+**Solo para demos.** `CITIZEN_DEMO_CODE` (6 dígitos) junto con `DEMO_CEDULA` hacen que ese código valga para esa cédula **sin enviar nada** (la presentación no depende de la ventana de 24 h). Sin esas dos variables no existe. No debe configurarse en un entorno con datos reales.
+
 ## 1. Detecciones y cámaras (P2)
 
 ### `GET /api/time` (public)

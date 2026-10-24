@@ -70,6 +70,7 @@ api/                                # Vercel Functions (TypeScript, Node)
   sightings.ts                      # POST placa vista (P2 → lib/alerts de P3)
   p1.ts                             # ÚNICA función de P1: auth, violaciones, revisión (rutas en api/_p1/, URLs por vercel.json)
   fines/[token].ts                  # GET multa pública (P1)
+  # /api/citizen/* (registro con código por WhatsApp, login por cédula, multas, apelación) → dentro de p1.ts
   portal/lookup.ts                  # POST consulta por cédula (P1)
   payments/c2p.ts                   # POST pago simulado (P3)
   officers/location.ts              # POST ubicación oficial (P3)
@@ -140,6 +141,7 @@ docs/               # esta documentación
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
+| `CITIZEN_DEMO_CODE` | SOLO DEMOS: 6 dígitos que valen como código de verificación para la cédula `DEMO_CEDULA`, sin enviar WhatsApp. Sin esta variable no hay atajo | P1 |
 | `DEMO_CEDULA` | cédula REAL de quien presenta; `pnpm db:seed` le crea un titular de la demo con multas FALSAS (placas, nombre y montos inventados). Nunca en el repo | P1 |
 | `ALERT_RADIUS_METERS` | p.ej. `1500` | P3 |
 | `NOTIFY_DRY_RUN` | `true` = no envía, solo registra | P3 |

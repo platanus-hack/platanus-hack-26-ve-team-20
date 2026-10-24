@@ -8,6 +8,17 @@ import { sendError } from "./_lib/respond.ts";
 import authLogin from "./_p1/auth-login.ts";
 import authLogout from "./_p1/auth-logout.ts";
 import authMe from "./_p1/auth-me.ts";
+import citizenAppeal from "./_p1/citizen-appeal.ts";
+import citizenFine from "./_p1/citizen-fine.ts";
+import citizenFines from "./_p1/citizen-fines.ts";
+import citizenLogin from "./_p1/citizen-login.ts";
+import citizenLogout from "./_p1/citizen-logout.ts";
+import citizenMe from "./_p1/citizen-me.ts";
+import citizenPassword from "./_p1/citizen-password.ts";
+import citizenRegister from "./_p1/citizen-register.ts";
+import citizenResend from "./_p1/citizen-resend.ts";
+import citizenVehicles from "./_p1/citizen-vehicles.ts";
+import citizenVerify from "./_p1/citizen-verify.ts";
 import violationDetail from "./_p1/violation-detail.ts";
 import violationReview from "./_p1/violation-review.ts";
 import violationsList from "./_p1/violations-list.ts";
@@ -22,6 +33,17 @@ export const P1_ROUTES: Record<string, Handler> = {
   "violations-list": violationsList, //   GET  /api/violations
   "violation-detail": violationDetail, // GET  /api/violations/:id
   "violation-review": violationReview, // POST /api/violations/:id/review
+  "citizen-register": citizenRegister, // POST /api/citizen/register
+  "citizen-resend": citizenResend, // POST /api/citizen/register/resend
+  "citizen-verify": citizenVerify, // POST /api/citizen/register/verify
+  "citizen-login": citizenLogin, // POST /api/citizen/login
+  "citizen-logout": citizenLogout, // POST /api/citizen/logout
+  "citizen-me": citizenMe, // GET  /api/citizen/me
+  "citizen-password": citizenPassword, // POST /api/citizen/password
+  "citizen-fines": citizenFines, // GET  /api/citizen/fines
+  "citizen-fine": citizenFine, // GET  /api/citizen/fines/:id
+  "citizen-appeal": citizenAppeal, // POST /api/citizen/fines/:id/appeal
+  "citizen-vehicles": citizenVehicles, // GET  /api/citizen/vehicles
 };
 
 export default function p1(req: VercelRequest, res: VercelResponse) {

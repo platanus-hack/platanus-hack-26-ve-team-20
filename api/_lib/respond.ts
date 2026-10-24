@@ -9,19 +9,21 @@ export function sendOk<T>(res: VercelResponse, data: T, status = 200): void {
   res.status(status).json(body);
 }
 
-export function sendError(res: VercelResponse, code: ErrorCode, message: string): void {
-  const body: ApiResponse<never> = { ok: false, error: { code, message } };
+export function sendError(res: VercelResponse, code: ErrorCode, message: string, reason?: string): void {
+  const body: ApiResponse<never> = { ok: false, error: { code, message, ...(reason && { reason }) } };
   res.status(ERROR_HTTP_STATUS[code]).json(body);
 }
 
 /** Error de dominio con código de la API; los handlers lo convierten en respuesta. */
 export class ApiError extends Error {
   readonly code: ErrorCode;
+  readonly reason: string | undefined;
 
-  constructor(code: ErrorCode, message: string) {
+  constructor(code: ErrorCode, message: string, reason?: string) {
     super(message);
     this.name = "ApiError";
     this.code = code;
+    this.reason = reason;
   }
 }
 
@@ -45,7 +47,7 @@ export function handler(methods: readonly string[], fn: Handler): Handler {
       if (err instanceof ZodError) {
         return sendError(res, "VALIDATION_ERROR", err.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
       }
-      if (err instanceof ApiError || err instanceof DomainError) return sendError(res, err.code, err.message);
+      if (err instanceof ApiError || err instanceof DomainError) return sendError(res, err.code, err.message, err.reason);
       console.error("[api] error no controlado", err);
       sendError(res, "INTERNAL_ERROR", "Error interno");
     }

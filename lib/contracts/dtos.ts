@@ -28,6 +28,39 @@ export interface SightingResultDTO {
 // ---- Autenticación (P1)
 export interface AdminSessionDTO { id: string; email: string; name: string }
 
+// ---- Cuenta del ciudadano (P1, docs/04 §0c)
+export interface CitizenProfileDTO {
+  cedula: string;
+  /** Teléfono del titular en formato local (`04264180319`); solo se muestra a su dueño ya autenticado. */
+  telefono: string;
+  correo: string | null;
+}
+
+/** Multa propia de un ciudadano autenticado. Lleva la placa completa y el token (para pagar). */
+export interface CitizenFineDTO {
+  id: string;
+  /** `publicToken` de la multa: lo usa `POST /api/payments/c2p`. */
+  token: string;
+  plate: string;
+  type: ViolationType;
+  /** `OVERDUE` se calcula (pendiente con fecha vencida). */
+  status: FineStatus;
+  occurredAt: string;
+  intersection: string;
+  cameraCode: string;
+  amountCents: number;
+  currency: string;
+  dueAt: string;
+  verification: "AUTO" | "HUMAN";
+  confidence: number;
+  paidAt: string | null;
+  paymentReference: string | null;
+  voidReason: string | null;
+  appealedAt: string | null;
+}
+
+export interface CitizenVehicleDTO { plate: string; brand: string; model: string; color: string; year: number | null }
+
 // ---- §2 violaciones y revisión (P1)
 export interface ViolationListItemDTO {
   id: string;

@@ -15,7 +15,7 @@ import {
   signSession,
   verifySession,
 } from "../../lib/auth/session.ts";
-import type { PrismaClient } from "../../lib/generated/prisma/client.ts";
+import type { CitizenAccount, Person, PrismaClient } from "../../lib/generated/prisma/client.ts";
 import { ApiError } from "./respond.ts";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest();
@@ -111,4 +111,39 @@ export function requireOfficer(req: VercelRequest): { officerId: string } {
   const session = verifySession(readCookie(header(req, "cookie"), COOKIE_NAMES.officer), "officer");
   if (!session) throw unauthorized();
   return { officerId: session.s };
+}
+
+// ---------------------------------------------------------------- ciudadano
+type CitizenDb = Pick<PrismaClient, "citizenAccount">;
+export interface CitizenAuth { account: CitizenAccount; person: Person }
+
+/** Emite (o renueva) la cookie de sesión del ciudadano: 30 min desde ahora. */
+export function issueCitizenSession(res: VercelResponse, account: Pick<CitizenAccount, "id" | "passwordHash">): void {
+  const token = signSession({ role: "citizen", sub: account.id, ph: passwordFingerprint(account.passwordHash) });
+  res.setHeader("Set-Cookie", sessionCookie("citizen", token));
+}
+
+export function clearCitizenSession(res: VercelResponse): void {
+  res.setHeader("Set-Cookie", clearCookie("citizen"));
+}
+
+/**
+ * Exige una sesión de ciudadano válida: cookie firmada y vigente, cuenta activa y contraseña sin cambios
+ * desde que se emitió. Con `res`, la sesión se renueva (30 min más) salvo `renew: false` (sondeos que no
+ * deben mantener la sesión abierta). Mismo 401 para todos los fallos.
+ */
+export async function requireCitizen(
+  db: CitizenDb,
+  req: VercelRequest,
+  res?: VercelResponse,
+  opts: { renew?: boolean } = {},
+): Promise<CitizenAuth> {
+  assertSameOrigin(req);
+  const session = verifySession(readCookie(header(req, "cookie"), COOKIE_NAMES.citizen), "citizen");
+  if (!session) throw unauthorized();
+  const account = await db.citizenAccount.findUnique({ where: { id: session.s }, include: { person: true } });
+  if (!account || !account.active || !session.ph || session.ph !== passwordFingerprint(account.passwordHash)) throw unauthorized();
+  if (res && opts.renew !== false) issueCitizenSession(res, account);
+  const { person, ...plain } = account;
+  return { account: plain, person };
 }
