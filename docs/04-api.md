@@ -112,15 +112,25 @@ Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, offic
 
 ## 2. Violaciones y revisión (P1)
 ### `GET /api/violations?status=NEEDS_REVIEW&since=ISO&limit=50` (admin)
+`status` acepta uno o varios estados separados por coma (`FINED,NOTIFIED`). `limit` 1–200 (50 por defecto). Orden: la **modificación más reciente primero** (`updatedAt`). `since` devuelve solo lo modificado después de ese instante (estricto): el feed en vivo de `/camaras` sondea cada 2–3 s con `since = nextSince`, así un cambio de estado (DETECTED → NOTIFIED) vuelve a aparecer. `nextSince` es el `updatedAt` más reciente devuelto, o `null` si no hay novedades (el cliente conserva el anterior). Con más de `limit` novedades se devuelven las más nuevas.
 ```json
 { "ok": true, "data": { "items": [ {
-  "id": "vio_cuid", "type": "RED_LIGHT", "status": "NEEDS_REVIEW", "reviewReason": "LOW_CONFIDENCE",
+  "id": "vio_cuid", "type": "RED_LIGHT", "status": "NEEDS_REVIEW", "verdict": "NEEDS_REVIEW",
+  "reviewReason": "LOW_CONFIDENCE", "voidReason": null,
   "camera": { "code": "CAM-001", "intersection": "Av. Demo Norte con Calle 1 (ejemplo)" },
-  "plateRead": "AB12?CD", "confidence": 0.62, "occurredAt": "ISO",
+  "plateRead": "AB12?CD", "plateConfidence": 0.55, "confidence": 0.62,
+  "lightState": "RED",
+  "motion": { "speedKmh": 42.1, "laneId": "C1", "relation": "WITH_FLOW" },
+  "occurredAt": "ISO", "updatedAt": "ISO",
   "evidence": [{ "kind": "FRAME", "url": "..." }],
-  "fine": null
+  "fine": { "token": "x7Gq...", "status": "PENDING", "amountCents": 2500000, "currency": "VES" }
 } ], "nextSince": "ISO" } }
 ```
+- `verdict` lo deduce el servidor: `NEEDS_REVIEW`, `NO_VIOLATION` (un `VOID` con `voidReason = "NO_VIOLATION"`, ver `03` §4) o `VIOLATION`.
+- `fine` es `null` si no hay multa; su `status` incluye `OVERDUE` (calculado). `lightState` es la luz en el cruce (`null` en datos del seed).
+- **Auth provisional**: `Authorization: Bearer <ADMIN_PASSCODE>`. Sin `ADMIN_PASSCODE` configurada nadie entra (falla cerrada). F9 lo cambia por la cookie firmada de `02` §7.
+- Devuelve los tokens de multa (llave de acceso): jamás debe quedar público.
+
 ### `POST /api/violations/[id]/review` (admin)
 Request `{ "action": "APPROVE", "plate": "AB123CD", "note": "placa legible en frame 2" }` o `{ "action": "VOID", "reason": "Vehículo de emergencia" }`.
 Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transición inválida.
@@ -138,7 +148,7 @@ Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transi
   "paidAt": null, "paymentReference": null
 }}
 ```
-El token es la "llave" de acceso: quien lo tiene ve la evidencia de esa multa. No muestra cédula ni teléfono.
+El token es la "llave" de acceso: quien lo tiene ve la evidencia de esa multa. No muestra cédula ni teléfono. Un token inexistente o mal formado responde igual (404 `NOT_FOUND`), sin revelar cuál de los dos. `status` es el estado guardado (`PENDING`, `PAID`, `APPEALED`, `VOID`) y `overdue` se calcula aparte. `verification` es `HUMAN` si la violación pasó por revisión y `AUTO` si no. `paymentReference` es la del pago aprobado. Respuestas con `Cache-Control: no-store`.
 
 ## 4. Portal por cédula (P1)
 ### `POST /api/portal/lookup` (public, rate limit 10/10min/IP)

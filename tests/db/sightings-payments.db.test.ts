@@ -113,9 +113,10 @@ describe('registerSighting', () => {
   })
 
   it('cámara inexistente → NotFoundError y no guarda nada', async () => {
-    const before = await db.sighting.count()
-    await expect(registerSighting({ cameraId: 'no-existe', plate: 'AB123CD', seenAt: new Date().toISOString() })).rejects.toBeInstanceOf(NotFoundError)
-    expect(await db.sighting.count()).toBe(before)
+    // Se cuenta por una placa propia: la base es compartida y otros procesos también crean avistamientos.
+    const plate = `ZC${SUFFIX}Q`
+    await expect(registerSighting({ cameraId: 'no-existe', plate, seenAt: new Date().toISOString() })).rejects.toBeInstanceOf(NotFoundError)
+    expect(await db.sighting.count({ where: { plateRead: plate } })).toBe(0)
   })
 })
 
