@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router'
 import AuthLayout from './components/cuenta/AuthLayout.tsx'
 import { Protegida } from './components/cuenta/Shell.tsx'
+import { ProtegidaOficial } from './components/oficial/Shell.tsx'
 import AdminRevision from './pages/AdminRevision.tsx'
 import Camaras from './pages/Camaras.tsx'
 import Consulta from './pages/Consulta.tsx'
@@ -20,6 +21,10 @@ import Perfil from './pages/cuenta/Perfil.tsx'
 import Registro from './pages/cuenta/Registro.tsx'
 import RegistroCodigo from './pages/cuenta/RegistroCodigo.tsx'
 import Vehiculos from './pages/cuenta/Vehiculos.tsx'
+import IngresarOficial from './pages/oficial/Ingresar.tsx'
+import InvitacionOficial from './pages/oficial/Invitacion.tsx'
+import MultaOficial from './pages/oficial/MultaDetalle.tsx'
+import MultasOficial from './pages/oficial/Multas.tsx'
 
 export default function App() {
   return (
@@ -37,6 +42,14 @@ export default function App() {
         <Route path="/ingresar" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
         <Route path="/registro/codigo" element={<RegistroCodigo />} />
+        <Route path="/oficial/ingresar" element={<IngresarOficial />} />
+        <Route path="/oficial/invitacion" element={<InvitacionOficial />} />
+      </Route>
+
+      {/* Historial de multas del policía (docs/12) */}
+      <Route element={<ProtegidaOficial />}>
+        <Route path="/oficial/multas" element={<MultasOficial />} />
+        <Route path="/oficial/multas/:id" element={<MultaOficial />} />
       </Route>
       <Route element={<Protegida />}>
         <Route path="/inicio" element={<Inicio />} />

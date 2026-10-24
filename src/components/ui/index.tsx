@@ -37,11 +37,13 @@ export function SelectCedula({ value, onChange }: { value: string; onChange: (v:
 }
 
 // ---------------------------------------------------------------- Sheet y modal sobre <dialog> (foco atrapado, Escape y velo del navegador)
-export function Hoja({ abierta, onCerrar, etiqueta, modo = 'sheet', children }: {
+export function Hoja({ abierta, onCerrar, etiqueta, modo = 'sheet', bloqueada = false, children }: {
   abierta: boolean
   onCerrar: () => void
   etiqueta: string
   modo?: 'sheet' | 'modal'
+  /** Mientras se envía algo: ni Escape ni clic fuera la cierran. */
+  bloqueada?: boolean
   children: ReactNode
 }) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -57,7 +59,8 @@ export function Hoja({ abierta, onCerrar, etiqueta, modo = 'sheet', children }: 
       aria-label={etiqueta}
       className={modo}
       onClose={onCerrar}
-      onClick={(e) => { if (e.target === e.currentTarget) onCerrar() }}
+      onCancel={(e) => { if (bloqueada) e.preventDefault() }}
+      onClick={(e) => { if (e.target === e.currentTarget && !bloqueada) onCerrar() }}
     >
       {modo === 'sheet' ? (
         <div className="flex flex-col rounded-t-card bg-card px-4 pt-2.5 pb-6 shadow-sheet">

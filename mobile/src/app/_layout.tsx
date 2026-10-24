@@ -6,9 +6,10 @@ import { Stack } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { leerSesion } from '@/lib/dispositivo';
 import { color } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -23,16 +24,22 @@ export default function RootLayout() {
     JetBrainsMono_700Bold,
   });
 
+  // La guardia de rutas (lib/guardia) necesita la sesión leída antes de montar los grupos.
+  const [sesionLista, setSesionLista] = useState(false);
   useEffect(() => {
-    if (listas || error) SplashScreen.hideAsync().catch(() => {});
-  }, [listas, error]);
+    leerSesion().catch(() => null).finally(() => setSesionLista(true));
+  }, []);
+
+  useEffect(() => {
+    if ((listas || error) && sesionLista) SplashScreen.hideAsync().catch(() => {});
+  }, [listas, error, sesionLista]);
 
   useEffect(() => {
     // Ciudadano y policía van en vertical; la pantalla de cámara fija su propia orientación.
     if (Platform.OS !== 'web') ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
   }, []);
 
-  if (!listas && !error) return null;
+  if ((!listas && !error) || !sesionLista) return null;
 
   return (
     <>

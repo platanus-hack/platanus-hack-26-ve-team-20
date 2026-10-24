@@ -1,7 +1,5 @@
-import { Stack } from 'expo-router';
-
-import { color } from '@/theme';
+import { StackDeRol } from '@/lib/guardia';
 
 export default function PoliciaLayout() {
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.fondo } }} />;
+  return <StackDeRol modo="policia" protegidas={['policia/(tabs)']} />;
 }
