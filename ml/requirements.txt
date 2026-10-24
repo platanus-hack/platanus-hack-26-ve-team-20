@@ -1,0 +1,6 @@
+# Servicio /predict. Los paquetes del motor (ultralytics, easyocr, lap) vienen en motor/requirements.txt.
+fastapi==0.115.12
+uvicorn==0.34.2
+opencv-python-headless==4.11.0.86
+pytest==8.3.5
+httpx==0.28.1

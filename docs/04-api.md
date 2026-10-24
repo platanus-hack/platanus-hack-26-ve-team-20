@@ -269,7 +269,9 @@ Response 200:
   "plateCropBase64": "..."
 }
 ```
-Reglas: coordenadas normalizadas 0–1 (origen arriba-izquierda), instantes en ms desde el inicio del clip (PTS). `speedKmh` es `null` con `speedValid: false` si hay huecos, oclusión, cambio de ID sospechado o fps < 24. La placa con caracteres dudosos usa `?` (→ `NO_PLATE`/revisión). El servicio **no** conoce el semáforo: la luz en el instante del cruce la evalúa `lib/vision/rules.ts` con los `LightChange`. `GET /health` devuelve `{ ok: true, modelVersion }`.
+Reglas: coordenadas normalizadas 0–1 (origen arriba-izquierda), instantes en ms desde el inicio del clip (PTS). `speedKmh` es `null` con `speedValid: false` si hay huecos, oclusión, cambio de ID sospechado o fps < 24. La placa con caracteres dudosos usa `?` (→ `NO_PLATE`/revisión). El servicio **no** conoce el semáforo: la luz en el instante del cruce la evalúa `lib/vision/rules.ts` con los `LightChange`. `GET /health` devuelve `{ ok: true, modelVersion, mode: "motor" | "simulado" }`.
+
+Implementación actual (`ml/app/pipeline.py`, envuelve `MotorInfracciones`): `tracks` solo trae los vehículos que cruzaron `stopLine`; `firstMs`, `lastMs`, `framesSeen`, `framesConfirmed`, `laneId`, `speedKmh` y `directionDeg` pueden venir `null` (el motor no los expone todavía); `plates[].rawReads` trae las lecturas crudas del OCR para revisión; `simulated: true` cuando el servicio corre sin pesos.
 
 Post-proceso (`lib/vision/analyze.ts`): Zod parse → elegir el track que cruzó `stopLine` → `normalizePlate` → `rules.ts` (luz en `atMs`, doble llave) → subir `keyFrames` y recorte a Blob → `VisionResult` (con `clipUrl`, `crossing`, `motion`).
 
