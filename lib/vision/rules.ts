@@ -10,8 +10,11 @@ import type { PredictResponse } from "./ml-client.ts";
 /** Parámetro de arranque, no validado: si la luz cambia a menos de esto del cruce, decide un humano. */
 export const LIGHT_CHANGE_MARGIN_MS = 300;
 
-/** Formatos venezolanos: particular LLDDDLL, moto LLDLDDL, carga LDDLLDL (guía de integración §5). */
-const VE_PLATE = /^(?:[A-Z]{2}\d{3}[A-Z]{2}|[A-Z]{2}\d[A-Z]\d{2}[A-Z]|[A-Z]\d{2}[A-Z]{2}\d[A-Z])$/;
+/** Formatos venezolanos: particular LLDDDLL, moto LLDLDDL, carga LDDLLDL (guía de integración §5) y antiguo LLLDDL. */
+const VE_PLATE = /^(?:[A-Z]{2}\d{3}[A-Z]{2}|[A-Z]{2}\d[A-Z]\d{2}[A-Z]|[A-Z]\d{2}[A-Z]{2}\d[A-Z]|[A-Z]{3}\d{2}[A-Z])$/;
+
+/** Lecturas de OCR que deben coincidir: una sola lectura sale con confianza 1.0 aunque sea basura. */
+export const MIN_PLATE_VOTES = 2;
 
 export interface LightChangeLike { state: string; at: Date | string }
 
@@ -97,6 +100,6 @@ export function evaluate(
     || (ctx.stopLineFrames !== undefined && framesConfirmed != null && framesConfirmed < ctx.stopLineFrames);
   if (lightState === "UNKNOWN" || weakTrack || changesNear(ctx.lightChanges, crossedAt)) return review("MODEL_RULE_DISAGREE");
   if (!plate || !isPlausiblePlate(plate) || !VE_PLATE.test(plate)) return review("NO_PLATE");
-  if (plateConfidence < ctx.threshold) return review("LOW_CONFIDENCE");
+  if (plateConfidence < ctx.threshold || (read?.votes ?? 0) < MIN_PLATE_VOTES) return review("LOW_CONFIDENCE");
   return { ...base, verdict: "VIOLATION" };
 }

@@ -57,6 +57,8 @@ def test_predict_simulado_cumple_contrato(client: TestClient, monkeypatch: pytes
 def test_camara_json_escala_a_pixeles() -> None:
     cfg = pipeline.camara_json(Calibracion.model_validate(CAL), 1280, 720)
     assert cfg == {"resolucion": [1280, 720], "linea_pare": [[320, 360], [960, 360]], "punto_despues": [640, 288]}
+    hacia_camara = Calibracion.model_validate({**CAL, "parameters": {"stopLineAfterBelow": 1}})
+    assert pipeline.camara_json(hacia_camara, 1280, 720)["punto_despues"] == [640, 432]
 
 
 # ---------------------------------------------------------------- adaptador con motor falso

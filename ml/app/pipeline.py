@@ -43,7 +43,7 @@ def _device() -> int | str:
 
 def crear_motor(**kwargs: Any) -> Any:
     sys.path.insert(0, str(MOTOR_DIR))
-    from motor_infracciones import LectorPlacas, MotorInfracciones  # type: ignore[import-not-found]
+    from motor_infracciones import PLANTILLAS_VE, LectorPlacas, MotorInfracciones  # type: ignore[import-not-found]
 
     placas, senales = WEIGHTS_DIR / "placas.pt", WEIGHTS_DIR / "senales.pt"
     device = _device()
@@ -51,7 +51,10 @@ def crear_motor(**kwargs: Any) -> Any:
     # con mps las placas van en CPU (los vehículos siguen en GPU).
     # shortcut: con mps se omite senales.pt (solo agrega evidencia); habilitarlo cuando corra en NVIDIA o CPU.
     en_mps = device == "mps"
-    lector = LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device) if placas.exists() else None
+    # Además de los formatos de 7 del motor, el antiguo de 6 (AHA79M) que todavía circula.
+    plantillas = {**PLANTILLAS_VE, "antigua": "LLLDDL"}
+    lector = (LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas)
+              if placas.exists() else None)
     return MotorInfracciones(
         pesos_vehiculos="yolo11n.pt" if USAR_COCO else str(WEIGHTS_DIR / "vehiculos.pt"),
         lector_placas=lector,
@@ -70,9 +73,10 @@ def camara_json(cal: Calibracion, ancho: int, alto: int) -> dict[str, Any]:
 
     a, b = cal.stopLine
     medio = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-    # shortcut: asume la intersección "arriba" de la línea (cámara mirando a lo largo del carril, docs/10 §4);
-    # si se monta al revés, agregar el punto a la calibración.
-    despues = (medio[0], max(0.0, medio[1] - 0.1))
+    # La intersección queda "arriba" de la línea (el carro se aleja de la cámara, docs/10 §4), salvo que la
+    # calibración diga parameters.stopLineAfterBelow = 1 (el carro viene hacia la cámara).
+    abajo = cal.parameters.get("stopLineAfterBelow", 0) == 1
+    despues = (medio[0], min(1.0, medio[1] + 0.1) if abajo else max(0.0, medio[1] - 0.1))
     # shortcut: solo la línea de pare (MVP luz roja); homografía, carriles y velocidad quedan para después.
     return {"resolucion": [ancho, alto], "linea_pare": [px(a), px(b)], "punto_despues": px(despues)}
 

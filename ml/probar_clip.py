@@ -16,12 +16,14 @@ from app.schemas import Calibracion
 ap = argparse.ArgumentParser()
 ap.add_argument("clip", type=Path)
 ap.add_argument("--linea", default="0,0.6,1,0.6", help="x1,y1,x2,y2 de la línea de pare (0–1)")
+ap.add_argument("--hacia-camara", action="store_true", help="el carro viene hacia la cámara (cruza hacia abajo)")
 args = ap.parse_args()
 
 if not pipeline.motor_disponible():
     raise SystemExit("Falta ml/motor/motor_infracciones.py o los pesos en ml/weights/ (o usa ML_USAR_COCO=true)")
 x1, y1, x2, y2 = (float(v) for v in args.linea.split(","))
-res = pipeline.analizar(args.clip, Calibracion(configVersion=0, stopLine=((x1, y1), (x2, y2))))
+params = {"stopLineAfterBelow": 1.0} if args.hacia_camara else {}
+res = pipeline.analizar(args.clip, Calibracion(configVersion=0, stopLine=((x1, y1), (x2, y2)), parameters=params))
 
 out = res.model_dump(by_alias=True)
 for k in out["keyFrames"]:

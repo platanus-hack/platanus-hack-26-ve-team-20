@@ -6,8 +6,8 @@ const STARTED = '2026-10-24T14:03:10.000Z'
 const T0 = Date.parse(STARTED)
 
 // Respuesta del servicio ML: un carro cruza a los 1800 ms con placa AB123CD.
-function response(overrides: { atMs?: number | null; plate?: string | null; conf?: number; idSwitch?: boolean } = {}): PredictResponse {
-  const { atMs = 1800, plate = 'AB123CD', conf = 0.9, idSwitch = false } = overrides
+function response(overrides: { atMs?: number | null; plate?: string | null; conf?: number; idSwitch?: boolean; votes?: number } = {}): PredictResponse {
+  const { atMs = 1800, plate = 'AB123CD', conf = 0.9, idSwitch = false, votes = 6 } = overrides
   return PredictResponseSchema.parse({
     modelVersion: 'vc-0.1',
     latencyMs: 10,
@@ -16,7 +16,7 @@ function response(overrides: { atMs?: number | null; plate?: string | null; conf
       trackId: 1, class: 'car', idSwitchSuspected: idSwitch,
       stopLine: { crossed: atMs !== null, atMs, framesConfirmed: 5 },
     }],
-    plates: plate === null ? [] : [{ trackId: 1, text: plate, ocrConfidence: conf, votes: 6, bestFrameMs: 1500 }],
+    plates: plate === null ? [] : [{ trackId: 1, text: plate, ocrConfidence: conf, votes, bestFrameMs: 1500 }],
     keyFrames: [],
   })
 }
@@ -79,6 +79,7 @@ describe('evaluate (doble llave)', () => {
     ['placa con ?', { plate: 'AB12?CD' }, 'NO_PLATE'],
     ['placa fuera de formato venezolano', { plate: 'ABC1234' }, 'NO_PLATE'],
     ['confianza bajo el umbral', { conf: 0.6 }, 'LOW_CONFIDENCE'],
+    ['una sola lectura de OCR (confianza 1.0 engañosa)', { conf: 1, votes: 1 }, 'LOW_CONFIDENCE'],
     ['cambio de ID sospechado', { idSwitch: true }, 'MODEL_RULE_DISAGREE'],
   ] as const)('%s → NEEDS_REVIEW', (_name, overrides, reason) => {
     const r = evaluate(response(overrides), ctx(red))
@@ -92,8 +93,9 @@ describe('evaluate (doble llave)', () => {
     expect(evaluate(response(), ctx([])).reviewReason).toBe('MODEL_RULE_DISAGREE')
   })
 
-  it('acepta placas de moto y de carga', () => {
+  it('acepta placas de moto, de carga y del formato antiguo', () => {
     expect(evaluate(response({ plate: 'AB1C23D' }), ctx(red)).verdict).toBe('VIOLATION')
+    expect(evaluate(response({ plate: 'AHA79M' }), ctx(red)).verdict).toBe('VIOLATION')
     expect(evaluate(response({ plate: 'a12-bc3d' }), ctx(red)).plate).toBe('A12BC3D')
   })
 })
