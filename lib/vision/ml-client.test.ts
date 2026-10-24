@@ -35,6 +35,19 @@ describe('predict', () => {
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer token-de-prueba')
   })
 
+  it('acepta respuestas sin choques (servicio viejo) y valida los choques cuando vienen', async () => {
+    const sinChoques = await predict(REQ, { config: CONFIG, fetchImpl: vi.fn(async () => json(200, OK_BODY)) })
+    expect(sinChoques.incidents).toEqual([])
+    const incident = {
+      kind: 'CRASH', atMs: 2100, confidence: 0.81, box: { x: 0.3, y: 0.3, w: 0.2, h: 0.2 },
+      vehicles: [{ trackId: 3, class: 'car', plate: null, ocrConfidence: 0, votes: 0 }],
+    }
+    const conChoque = await predict(REQ, { config: CONFIG, fetchImpl: vi.fn(async () => json(200, { ...OK_BODY, incidents: [incident] })) })
+    expect(conChoque.incidents[0]).toMatchObject({ kind: 'CRASH', vehicles: [{ trackId: 3, plate: null, rawReads: [] }] })
+    const malo = vi.fn(async () => json(200, { ...OK_BODY, incidents: [{ ...incident, kind: 'MULTA' }] }))
+    await expect(predict(REQ, { config: CONFIG, fetchImpl: malo })).rejects.toThrow('inválida')
+  })
+
   it('reintenta una vez ante un 5xx', async () => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(json(503, {})).mockResolvedValueOnce(json(200, OK_BODY))
     await expect(predict(REQ, { config: CONFIG, fetchImpl })).resolves.toMatchObject({ modelVersion: 'vc-0.1' })

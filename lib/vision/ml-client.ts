@@ -63,6 +63,22 @@ export const PredictResponseSchema = z.object({
     plateBox: box.nullish(),
   })),
   plateCropBase64: z.string().nullish(),
+  // Posibles choques (choques.pt): avisos para revisar, nunca multas.
+  incidents: z.array(z.object({
+    kind: z.literal("CRASH"),
+    atMs: z.number(),
+    confidence: z.number().min(0).max(1),
+    box,
+    vehicles: z.array(z.object({
+      trackId: z.number().int(),
+      class: z.string(),
+      plate: z.string().nullable(),
+      ocrConfidence: z.number().min(0).max(1),
+      votes: z.number().int(),
+      rawReads: z.array(z.string()).default([]),
+    })),
+    sceneJpegBase64: z.string().nullish(),
+  })).default([]),
 });
 export type PredictResponse = z.infer<typeof PredictResponseSchema>;
 

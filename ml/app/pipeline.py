@@ -13,7 +13,10 @@ from typing import Any
 
 import cv2
 
-from .schemas import Calibracion, ClipInfo, CruceLinea, KeyFrame, Placa, PredictRequest, PredictResponse, Track
+from .schemas import (
+    Box, Calibracion, ClipInfo, CruceLinea, Incidente, KeyFrame, Placa, PredictRequest, PredictResponse, Track,
+    VehiculoIncidente,
+)
 
 ML_DIR = Path(__file__).resolve().parents[1]
 MOTOR_DIR = Path(os.getenv("ML_MOTOR_DIR", ML_DIR / "motor"))
@@ -22,6 +25,8 @@ EVIDENCE_DIR = Path(os.getenv("ML_EVIDENCE_DIR", ML_DIR / "evidencias"))
 # Sin vehiculos.pt: YOLO genérico de COCO (se descarga solo). Sin placas.pt la placa sale "NO LEIDA".
 USAR_COCO = os.getenv("ML_USAR_COCO", "false") == "true"
 MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "vc-0.1") + ("-coco" if USAR_COCO else "")
+# Umbral sugerido por el notebook de choques (INTEGRACION_CAPA_CHOQUES.md §8); calibrar en el sitio de la demo.
+CONF_CHOQUES = float(os.getenv("ML_CONF_CHOQUES", "0.3"))
 MAX_CLIP_BYTES = 100 * 1024 * 1024
 PLACA_NO_LEIDA = "NO LEIDA"
 
@@ -45,7 +50,7 @@ def crear_motor(**kwargs: Any) -> Any:
     sys.path.insert(0, str(MOTOR_DIR))
     from motor_infracciones import PLANTILLAS_VE, LectorPlacas, MotorInfracciones  # type: ignore[import-not-found]
 
-    placas, senales = WEIGHTS_DIR / "placas.pt", WEIGHTS_DIR / "senales.pt"
+    placas, senales, choques = WEIGHTS_DIR / "placas.pt", WEIGHTS_DIR / "senales.pt", WEIGHTS_DIR / "choques.pt"
     device = _device()
     # La GPU de Mac (mps) no admite dos hilos a la vez y el motor lee placas y señales en un hilo aparte:
     # con mps las placas van en CPU (los vehículos siguen en GPU).
@@ -59,6 +64,9 @@ def crear_motor(**kwargs: Any) -> Any:
         pesos_vehiculos="yolo11n.pt" if USAR_COCO else str(WEIGHTS_DIR / "vehiculos.pt"),
         lector_placas=lector,
         pesos_senales=str(senales) if senales.exists() and not en_mps else None,
+        # choques.pt corre en el hilo principal del motor: sirve también con mps.
+        pesos_choques=str(choques) if choques.exists() else None,
+        conf_choques=CONF_CHOQUES,
         usar_coco=USAR_COCO,
         device=device,
         **kwargs,
@@ -125,7 +133,7 @@ def analizar(clip: Path, cal: Calibracion, fabrica: Callable[..., Any] = crear_m
                 fuente, ms = "fps", n * 1000 / fps if fps else 0.0
             ultimo_ms = ms
             salida = motor.procesar_frame(frame, "rojo", t=ms / 1000)
-            infracciones += [i for i in salida["infracciones_nuevas"] if i.get("tipo") == "semaforo_rojo"]
+            infracciones += salida["infracciones_nuevas"]
             n += 1
     finally:
         motor.finalizar()  # cierra las multas pendientes (llama en_multa)
@@ -136,6 +144,8 @@ def analizar(clip: Path, cal: Calibracion, fabrica: Callable[..., Any] = crear_m
     def at_ms(d: dict[str, Any]) -> int:
         return round(float(d["segundo"]) * 1000)
 
+    incidents = _incidentes(infracciones, multas, ancho, alto, at_ms)
+    infracciones = [i for i in infracciones if i.get("tipo") == "semaforo_rojo"]
     tracks = [
         Track(trackId=int(i["id"]), clase=str(i["clase"]), stopLine=CruceLinea(crossed=True, atMs=at_ms(i)))
         for i in infracciones
@@ -168,7 +178,44 @@ def analizar(clip: Path, cal: Calibracion, fabrica: Callable[..., Any] = crear_m
         plates=plates,
         keyFrames=key_frames,
         plateCropBase64=placa_jpg,
+        incidents=incidents,
     )
+
+
+def _incidentes(
+    infracciones: list[dict[str, Any]], multas: list[dict[str, Any]], ancho: int, alto: int,
+    at_ms: Callable[[dict[str, Any]], int],
+) -> list[Incidente]:
+    """Agrupa los registros `choque` del motor: uno por vehículo involucrado, misma clave (frame, caja)."""
+
+    def clave(d: dict[str, Any]) -> tuple[int, tuple[int, ...]]:
+        return int(d["frame"]), tuple(d["detalle"]["caja"])
+
+    por_clave: dict[tuple[int, tuple[int, ...]], Incidente] = {}
+    for i in infracciones:
+        if i.get("tipo") != "choque" or clave(i) in por_clave:
+            continue
+        x1, y1, x2, y2 = i["detalle"]["caja"]
+        por_clave[clave(i)] = Incidente(
+            atMs=at_ms(i),
+            confidence=float(i["detalle"]["conf"]),
+            box=Box(x=x1 / ancho, y=y1 / alto, w=(x2 - x1) / ancho, h=(y2 - y1) / alto),
+            vehicles=[],
+            sceneJpegBase64=_b64(Path(i["carpeta"]) / "escena.jpg"),
+        )
+    for m in multas:
+        inc = por_clave.get(clave(m)) if m.get("tipo") == "choque" else None
+        if inc is None or int(m["id"]) < 0:  # id negativo = registro de escena, sin vehículo
+            continue
+        inc.vehicles.append(VehiculoIncidente(
+            trackId=int(m["id"]),
+            clase=str(m["clase"]),
+            plate=None if m.get("placa") in (None, PLACA_NO_LEIDA) else str(m["placa"]),
+            ocrConfidence=float(m.get("confianza_placa", 0)),
+            votes=int(m.get("lecturas_validas", 0)),
+            rawReads=[str(x) for x in m.get("lecturas_crudas", [])],
+        ))
+    return list(por_clave.values())
 
 
 def simulado(req: PredictRequest) -> PredictResponse:

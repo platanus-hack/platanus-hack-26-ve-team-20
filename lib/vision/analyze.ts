@@ -72,7 +72,12 @@ export function createAnalyze(deps: AnalyzeDeps): Analyze {
       modelVersion: res.modelVersion,
       ...(plateCropUrl ? { plateCropUrl } : {}),
       // Sin los JPEG en base64: ya están en Blob y pesarían en la DB.
-      aiOutput: { ...res, keyFrames: res.keyFrames.map((k) => ({ ms: k.ms, vehicleBox: k.vehicleBox, plateBox: k.plateBox })), plateCropBase64: undefined },
+      aiOutput: {
+        ...res,
+        keyFrames: res.keyFrames.map((k) => ({ ms: k.ms, vehicleBox: k.vehicleBox, plateBox: k.plateBox })),
+        plateCropBase64: undefined,
+        incidents: res.incidents.map((i) => ({ ...i, sceneJpegBase64: undefined })),
+      },
       ruleOutput: rule,
       idempotencyKey: input.idempotencyKey,
     };

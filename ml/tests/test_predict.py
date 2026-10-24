@@ -130,6 +130,47 @@ def test_analizar_omite_placa_no_leida(tmp_path: Path, monkeypatch: pytest.Monke
     assert len(res.tracks) == 1 and res.plates == []
 
 
+def test_analizar_agrupa_choques_aparte_de_las_multas(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pipeline, "EVIDENCE_DIR", tmp_path / "evid")
+
+    class ConChoques(MotorFalso):
+        """En el fotograma 20: un choque con los vehículos 3 y 4, y otro que solo ve la escena (id -1)."""
+
+        def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
+            if self.n != 20:
+                self.n += 1
+                return {"frame": frame, "estado": estado, "infracciones_nuevas": [], "multas_listas": []}
+            carpeta = self.carpeta / "choque"
+            carpeta.mkdir(parents=True)
+            cv2.imwrite(str(carpeta / "escena.jpg"), frame)
+            base = {"tipo": "choque", "segundo": t, "frame": 20, "carpeta": str(carpeta)}
+            caja = {"conf": 0.81, "caja": [16, 12, 48, 36], "vehiculos": [3, 4]}
+            self.registros = [
+                {**base, "id": 3, "clase": "car", "detalle": caja},
+                {**base, "id": 4, "clase": "motorcycle", "detalle": caja},
+                {**base, "id": -1, "clase": "escena", "detalle": {"conf": 0.4, "caja": [0, 0, 8, 8], "vehiculos": []}},
+            ]
+            self.n += 1
+            return {"frame": frame, "estado": estado, "infracciones_nuevas": self.registros, "multas_listas": []}
+
+        def finalizar(self) -> None:
+            lecturas = {3: ("AB123CD", 0.9, 4), 4: ("NO LEIDA", 0.0, 0), -1: ("NO LEIDA", 0.0, 0)}
+            for r in self.registros:
+                placa, conf, n = lecturas[r["id"]]
+                self.en_multa({**r, "placa": placa, "confianza_placa": conf, "lecturas_validas": n, "lecturas_crudas": []})
+
+    res = pipeline.analizar(_video(tmp_path / "c.mp4"), Calibracion.model_validate(CAL), ConChoques)
+
+    assert res.tracks == [] and res.plates == []  # un choque nunca es una multa
+    assert len(res.incidents) == 2
+    choque, escena = res.incidents
+    assert choque.confidence == 0.81 and choque.box.model_dump() == {"x": 0.25, "y": 0.25, "w": 0.5, "h": 0.5}
+    assert [(v.trackId, v.clase, v.plate) for v in choque.vehicles] == [(3, "car", "AB123CD"), (4, "motorcycle", None)]
+    assert choque.sceneJpegBase64 and abs(choque.atMs - 667) <= 40
+    assert escena.vehicles == []
+    assert '"class": "car"' in res.model_dump_json(by_alias=True).replace('":"', '": "')
+
+
 def test_analizar_clip_ilegible(tmp_path: Path) -> None:
     roto = tmp_path / "roto.mp4"
     roto.write_bytes(b"no es video")

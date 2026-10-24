@@ -50,6 +50,13 @@ class ClipInfo(BaseModel):
     timestampSource: Literal["pts", "fps"]
 
 
+class Box(BaseModel):
+    x: float
+    y: float
+    w: float
+    h: float
+
+
 class CruceLinea(BaseModel):
     crossed: bool
     atMs: int | None
@@ -72,13 +79,6 @@ class Track(BaseModel):
     relation: Literal["WITH_FLOW", "AGAINST_FLOW", "UNKNOWN"] = "UNKNOWN"
 
 
-class Box(BaseModel):
-    x: float
-    y: float
-    w: float
-    h: float
-
-
 class Placa(BaseModel):
     trackId: int
     text: str
@@ -95,6 +95,26 @@ class KeyFrame(BaseModel):
     plateBox: Box | None = None
 
 
+class VehiculoIncidente(BaseModel):
+    trackId: int
+    clase: str = Field(serialization_alias="class")
+    plate: str | None  # None si el OCR no la leyó
+    ocrConfidence: float
+    votes: int
+    rawReads: list[str] = []
+
+
+class Incidente(BaseModel):
+    """Posible choque (choques.pt): aviso para revisar, nunca una multa."""
+
+    kind: Literal["CRASH"] = "CRASH"
+    atMs: int
+    confidence: float
+    box: Box
+    vehicles: list[VehiculoIncidente]  # vacío si el modelo de vehículos no vio los carros chocados
+    sceneJpegBase64: str | None = None
+
+
 class PredictResponse(BaseModel):
     modelVersion: str
     latencyMs: int
@@ -104,3 +124,4 @@ class PredictResponse(BaseModel):
     plates: list[Placa]
     keyFrames: list[KeyFrame]
     plateCropBase64: str | None = None
+    incidents: list[Incidente] = []
