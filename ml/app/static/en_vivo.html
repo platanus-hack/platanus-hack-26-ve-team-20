@@ -80,7 +80,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const ANCHO_ENVIO = 1280; // el motor lee la placa del recorte: no bajar mucho la resolución
-let ws, enVuelo = false, total = 0, ultimo = performance.now(), cuadros = 0;
+let ws, enVuelo = false, total = 0, ultimo = performance.now(), cuadros = 0, errorServidor = '';
 const tarjetas = new Map();
 
 try { $('clave').value = localStorage.getItem('vc_clave') || ''; $('camara').value = localStorage.getItem('vc_camara') || 'CAM-001'; } catch {}
@@ -100,10 +100,10 @@ function conectar(clave, camara) {
   const url = location.origin.replace(/^http/, 'ws') + '/en-vivo/ws';
   ws = new WebSocket(url);
   ws.onopen = () => ws.send(JSON.stringify({ tipo: 'auth', clave, camara }));
-  ws.onclose = () => { $('estadoConexion').textContent = 'Desconectado — recarga para reconectar'; };
+  ws.onclose = () => { $('estadoConexion').textContent = (errorServidor || 'Desconectado') + ' — recarga para reconectar'; };
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
-    if (m.tipo === 'error') { $('estadoConexion').textContent = m.mensaje; return; }
+    if (m.tipo === 'error') { errorServidor = m.mensaje; $('estadoConexion').textContent = m.mensaje; return; }
     if (m.tipo === 'listo') { $('estadoConexion').textContent = 'Conectado · ' + m.modelVersion; enviarLinea(); enviarCuadro(); return; }
     if (m.tipo === 'cuadro') {
       enVuelo = false;
