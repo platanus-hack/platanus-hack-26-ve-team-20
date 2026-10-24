@@ -1,3 +1,7 @@
+import { Navigate } from 'react-router'
+import { getSesion } from '@/lib/demo/api.ts'
+
+/** `/`: con sesión va al inicio del ciudadano; sin sesión, al login. */
 export default function Landing() {
-  return <main className="p-6">Landing (pendiente: P4)</main>
+  return <Navigate to={getSesion() ? '/inicio' : '/ingresar'} replace />
 }

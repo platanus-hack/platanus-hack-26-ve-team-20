@@ -1,1 +1,198 @@
 @import "tailwindcss";
+
+/* Dirección C · "Asfalto y Señal" (docs/p4-prompt-claude-design-c.md). El lima solo vive sobre tinta. */
+@theme {
+  --color-tinta: #0e1726;
+  --color-tinta-2: #151c28;
+  --color-tinta-3: #2a3446;
+  --color-niebla: #a9b4c4;
+  --color-brand: #c6f24e;
+  --color-fondo: #f3f5f8;
+  --color-card: #fcfdfe;
+  --color-suave: #eef1f5;
+  --color-texto-2: #4b5565;
+  --color-texto-3: #667085;
+  --color-borde: #dde2e9;
+  --color-input: #7d8797;
+  --color-rojo: #c8281c;
+  --color-rojo-osc: #a91f15;
+  --color-rojo-bg: #fdecea;
+  --color-verde: #12723a;
+  --color-verde-osc: #0f6332;
+  --color-verde-bg: #e6f4ea;
+  --color-ambar: #f5a524;
+  --color-ambar-osc: #7a4300;
+  --color-ambar-bg: #fef2d6;
+  --color-azul: #1f5fd1;
+  --color-azul-osc: #1a4fb0;
+  --color-azul-bg: #e8f0fd;
+  --color-gris-bg: #eceff3;
+
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --text-display: 40px;
+  --text-display--line-height: 44px;
+  --text-display-m: 32px;
+  --text-display-m--line-height: 38px;
+  --text-h1: 32px;
+  --text-h1--line-height: 38px;
+  --text-h1-m: 28px;
+  --text-h1-m--line-height: 34px;
+  --text-h2: 24px;
+  --text-h2--line-height: 30px;
+  --text-h2-m: 20px;
+  --text-h2-m--line-height: 28px;
+  --text-h3: 18px;
+  --text-h3--line-height: 26px;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-placa: 6px;
+
+  --shadow-card: 0 1px 2px rgba(14, 23, 38, 0.06), 0 0 0 1px rgba(14, 23, 38, 0.06);
+  --shadow-sheet: 0 8px 24px -6px rgba(14, 23, 38, 0.14);
+  --shadow-modal: 0 24px 48px -12px rgba(14, 23, 38, 0.22);
+
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
+  --ease-entrada: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --animate-brillo: brillo 1.4s linear infinite;
+  --animate-fundido: fundido 120ms linear;
+
+  @keyframes brillo {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes fundido {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-fondo);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-azul);
+    outline-offset: 2px;
+  }
+  .tinta :focus-visible {
+    outline-color: var(--color-brand);
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .press {
+    transition: transform 120ms var(--ease-press);
+  }
+  .press:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .sk {
+    display: block;
+    background: linear-gradient(90deg, #eef1f5 0%, #f7f9fb 50%, #eef1f5 100%);
+    background-size: 200% 100%;
+    animation: var(--animate-brillo);
+    border-radius: 8px;
+  }
+
+  .check {
+    stroke-dasharray: 24;
+    animation: dibuja 400ms var(--ease-entrada) both;
+  }
+
+  /* Entrada de listas: 240 ms + 30 ms de escalonado (--i lo pone cada fila). */
+  .entra {
+    animation: entra 240ms var(--ease-entrada) both;
+    animation-delay: calc(var(--i, 0) * 30ms);
+  }
+
+  /* Sheet y diálogo sobre <dialog> nativo (foco atrapado y Escape vienen del navegador). */
+  dialog.sheet {
+    margin: auto 0 0;
+    width: 100%;
+    max-width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    transition: transform 280ms var(--ease-sheet), display 280ms allow-discrete, overlay 280ms allow-discrete;
+    transform: translateY(110%);
+  }
+  dialog.sheet[open] {
+    transform: translateY(0);
+  }
+  @starting-style {
+    dialog.sheet[open] {
+      transform: translateY(110%);
+    }
+  }
+  dialog.modal {
+    margin: auto;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    width: calc(100% - 32px);
+    max-width: 420px;
+  }
+  dialog::backdrop {
+    background: rgb(14 23 38 / 0.4);
+    transition: opacity 280ms var(--ease-sheet), display 280ms allow-discrete, overlay 280ms allow-discrete;
+    opacity: 0;
+  }
+  dialog[open]::backdrop {
+    opacity: 1;
+  }
+  @starting-style {
+    dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+}
+
+@keyframes dibuja {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes solo-fundido {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
+@media (prefers-reduced-motion: reduce) {
+  .press:active:not(:disabled) { transform: none; }
+  .sk { animation: none; }
+  .check { animation: solo-fundido 120ms linear both; stroke-dashoffset: 0; }
+  .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
+  dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
+  dialog.sheet[open] { opacity: 1; }
+  @starting-style { dialog.sheet[open] { opacity: 0; } }
+}
+
+/* Botón de pago: el relleno tinta avanza mientras el banco responde (1,2 s). */
+@keyframes llenar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
