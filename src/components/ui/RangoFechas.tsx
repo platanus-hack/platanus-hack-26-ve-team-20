@@ -27,6 +27,13 @@ export function RangoFechas({ desde, hasta, min, max, onCambio, className }: {
   const boton = useRef<HTMLButtonElement>(null)
   const id = useId()
 
+  const cerrar = (devolverFoco: boolean) => {
+    setAbierto(false)
+    setInicio(null)
+    setSobre(null)
+    if (devolverFoco) boton.current?.focus()
+  }
+
   useEffect(() => {
     if (!abierto) return
     const fuera = (e: PointerEvent) => { if (!caja.current?.contains(e.target as Node)) cerrar(false) }
@@ -34,17 +41,11 @@ export function RangoFechas({ desde, hasta, min, max, onCambio, className }: {
     document.addEventListener('pointerdown', fuera)
     document.addEventListener('keydown', tecla)
     return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', tecla) }
-  }, [abierto]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [abierto])
 
   // En pantallas bajas el panel puede quedar bajo el borde o la barra inferior: se desplaza hasta verlo entero.
   useEffect(() => { if (abierto) panel.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [abierto])
 
-  const cerrar = (devolverFoco: boolean) => {
-    setAbierto(false)
-    setInicio(null)
-    setSobre(null)
-    if (devolverFoco) boton.current?.focus()
-  }
   const abrir = () => { setMes(mesDe(hasta)); setInicio(null); setSobre(null); setAbierto(true) }
   const aplicar = (a: string, b: string) => {
     const [d, h] = ordenar(a, b)
