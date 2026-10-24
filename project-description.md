@@ -19,7 +19,7 @@ Comerse la luz roja casi nunca tiene consecuencia si no hay un fiscal presente. 
 - Auditoría de cada acción. Demo con **datos 100 % ficticios**.
 
 ## Tecnología
-React + TypeScript en **Vercel** · Postgres (Neon) + Prisma · Vercel Blob · **detector de visión afinado** (Python) · **Expo** (app de cámara) · **WhatsApp Cloud API de Meta**.
+React + TypeScript en **Vercel** · Postgres (Supabase) + Prisma · Vercel Blob · **detector de visión afinado** (Python) · **Expo** (app de cámara) · **WhatsApp Cloud API de Meta**.
 
 En producción: cámaras reales con el mismo modelo en el borde, ALPR especializado en placas venezolanas e integración C2P real vía banco o agregador.
 

@@ -15,7 +15,7 @@ Horas relativas al inicio del hack (h0). Ajustar a la hora real de inicio.
 | Hora | Checkpoint | Criterio "hecho" |
 |---|---|---|
 | **h1** | Contratos congelados | `lib/contracts/index.ts` mergeado con tipos y firmas (doc 04 §0); mocks por módulo acordados; env vars repartidas |
-| **h4** | Esqueleto en Vercel | Vite/React + Tailwind + shadcn + Prisma/Neon + seed corriendo en prod; todas las rutas y funciones `/api` existen (placeholder); repo espejo y Vercel conectados |
+| **h4** | Esqueleto en Vercel | Vite/React + Tailwind + shadcn + Prisma/Supabase + seed corriendo en prod; todas las rutas y funciones `/api` existen (placeholder); repo espejo y Vercel conectados |
 | **h8** | Verticales con mocks | Cada vertical funciona aislada contra mocks: P2 analiza clips reales del teléfono, P3 envía WhatsApp real, P1 crea multas por API, P4 pantallas con datos seed |
 | **h12** | **E2E happy path** | frame demo A → multa → WhatsApp real → pago simulado → PAID, en prod |
 | h16 | Flujos secundarios | Revisión humana + portal cédula + alerta a oficial funcionando en prod |
@@ -31,7 +31,7 @@ Horas relativas al inicio del hack (h0). Ajustar a la hora real de inicio.
 | Bloque | P1 Backend core | P2 Visión | P3 Notif. y pagos | P4 UI + pitch |
 |---|---|---|---|---|
 | h0–1 | Repo, base Vite/React/TS, contratos (con todos), `.env.example` | Revisar contratos `VisionResult` y `/predict`; elegir datasets de Kaggle; grabar clips demo con el teléfono | App de Meta con WhatsApp, número de prueba, destinatarios verificados, token permanente; revisar contratos notify/pay | Dirección de diseño, tokens, revisar contratos de pantallas |
-| h1–4 | Prisma schema, Neon, migración, seed v1, deploy Vercel + espejo | Ajuste fino v0 del detector (notebook de Kaggle); app Expo v0 (grabar clip y subirlo); `/api/blob/upload`; `/camaras` básico (ver feed) | `lib/notify/whatsapp.ts` enviando mensaje real; `templates.ts` | shadcn tematizado, `components/vc/*`, layout, landing |
+| h1–4 | Prisma schema, Supabase, migración, seed v1, deploy Vercel + espejo | Ajuste fino v0 del detector (notebook de Kaggle); app Expo v0 (grabar clip y subirlo); `/api/blob/upload`; `/camaras` básico (ver feed) | `lib/notify/whatsapp.ts` enviando mensaje real; `templates.ts` | shadcn tematizado, `components/vc/*`, layout, landing |
 | h4–8 | `lib/domain` (state machine, registerDetection, dedup, fines, audit); `/api/violations`, `/api/fines/[token]` | Servicio `ml/` `/predict` v0; `lib/vision/ml-client.ts` + Zod; `rules.ts`; `/api/detections` contra mock de dominio | `lib/payments/c2p.ts` + `/api/payments/c2p`; páginas `/multa/[token]` y `/pagar` | `/consulta` y `/admin/revision` con mocks; `<Evidencia>`, `<Placa>` |
 | h8–12 | Integrar P2→dominio→P3; auth passcode; `markFinePaid` | Modelo v1 (placa, tracking, homografía y velocidad); semáforo simulado; sets demo A/B/C/D calibrados; feed en vivo en consola | Webhook de WhatsApp (verificación y estados); integrar pago con dominio | Pulir pantallas de multa/pago (con P3); estado de pasos en consola (con P2) |
 | **h12** | **E2E happy path (todos)** | | | |

@@ -10,7 +10,7 @@
 | Servicio de inferencia | `ml/` (Python/FastAPI), **fuera de Vercel** | Detector preentrenado afinado, ByteTrack, EasyOCR; homografía, velocidad, carril y dirección |
 | Pipeline de visión | `lib/vision/*` en Vercel Function (Node) | Llama al servicio ML, valida con Zod, aplica reglas (luz en el cruce, placa) y doble llave |
 | Dominio | `lib/domain/*` | Máquina de estados, creación de multas, deduplicación, auditoría |
-| Base de datos | Neon Postgres + Prisma | Persistencia |
+| Base de datos | Supabase (Postgres) + Prisma | Persistencia; acceso solo desde el servidor |
 | Evidencia | Vercel Blob | Clip, fotogramas clave y recorte de placa (URLs con sufijo aleatorio) |
 | Notificaciones | `lib/notify/*` → WhatsApp Cloud API de Meta (número de prueba, texto) | Multas, confirmaciones, alertas a oficiales |
 | Pagos | `lib/payments/c2p.ts` | **Simulador** de C2P con la misma interfaz que tendría un adaptador bancario real |
@@ -36,7 +36,7 @@ flowchart LR
     ALR[lib/alerts + geo]
   end
   BLOB[(Vercel Blob)]
-  DB[(Neon Postgres)]
+  DB[(Supabase Postgres)]
   ML[Servicio ML Python<br/>modelo propio, fuera de Vercel]
   KP[WhatsApp Cloud API<br/>Meta]
 
@@ -158,7 +158,7 @@ Nota: la ubicación usada para la distancia es la **de la cámara** (GPS del tel
 - La inferencia **no** corre en Vercel: se sirve desde `ml/` en una máquina del equipo con túnel (ngrok/Cloudflare) o un host gratuito. Si el servicio cae, el flujo cae a `NEEDS_REVIEW`.
 - Vercel no procesa video: solo guarda el clip y pasa la URL; el servicio ML lo decodifica.
 - Sin WebSockets garantizados en el MVP: "tiempo real" = polling cada 2–3 s (`/api/violations?since=`).
-- Región: alinear región de Functions con la de Neon para latencia.
+- Región: alinear región de Functions con la del proyecto de Supabase para latencia.
 
 ## 7. Seguridad mínima
 - La app móvil y el botón de sets demo autentican con `X-Camera-Key` (`CAMERA_API_KEY`); el servicio ML solo acepta `Authorization: Bearer ML_SERVICE_TOKEN`.

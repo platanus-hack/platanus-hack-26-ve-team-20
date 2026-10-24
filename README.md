@@ -18,7 +18,7 @@ Todos los datos de la demo son ficticios.
 https://<pendiente>.vercel.app
 
 ## Stack
-React + Vite (TypeScript) y Vercel Functions en Vercel · Tailwind + shadcn/ui · Neon Postgres + Prisma · Vercel Blob · detector de visión afinado (Python) · Expo · WhatsApp Cloud API (Meta).
+React + Vite (TypeScript) y Vercel Functions en Vercel · Tailwind + shadcn/ui · Supabase (Postgres) + Prisma · Vercel Blob · detector de visión afinado (Python) · Expo · WhatsApp Cloud API (Meta).
 
 ## Correr localmente
 ```bash
