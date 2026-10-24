@@ -1,10 +1,10 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import ack from '../../api/alerts/[id]/ack.ts'
 import alerts from '../../api/officers/[id]/alerts.ts'
 import location from '../../api/officers/location.ts'
 import session from '../../api/officers/session.ts'
 import { db } from '../../lib/db.ts'
+import { call, sessionCookieFrom } from './_http.ts'
 
 // APIs del oficial contra la base real (`pnpm test:db`), llamando a los handlers con peticiones simuladas.
 const RUN = `test_ofc_${Date.now().toString(36)}`
@@ -15,24 +15,6 @@ let previousPass: string | undefined
 let mineAlertId = ''
 let otherAlertId = ''
 
-interface FakeRes { statusCode: number; body: unknown; headers: Record<string, string> }
-
-async function call(
-  fn: (req: VercelRequest, res: VercelResponse) => unknown,
-  { method = 'GET', body, query = {}, cookie }: { method?: string; body?: unknown; query?: Record<string, string>; cookie?: string },
-) {
-  const res: FakeRes & Partial<VercelResponse> = { statusCode: 200, body: undefined, headers: {} }
-  Object.assign(res, {
-    status(code: number) { res.statusCode = code; return res },
-    json(b: unknown) { res.body = b; return res },
-    setHeader(k: string, v: string) { res.headers[k.toLowerCase()] = v; return res },
-  })
-  const req = { method, body, query, headers: { 'x-forwarded-for': '203.0.113.9' }, cookies: cookie ? { vc_officer: cookie } : {}, socket: {} }
-  await fn(req as unknown as VercelRequest, res as unknown as VercelResponse)
-  return res as FakeRes
-}
-
-const tokenFrom = (res: FakeRes) => /vc_officer=([^;]*)/.exec(res.headers['set-cookie'] ?? '')?.[1] ?? ''
 
 beforeAll(async () => {
   previousPass = process.env.OFFICER_PASSCODE
@@ -72,7 +54,7 @@ describe('APIs del oficial (docs/04 §6)', () => {
     expect(ok.statusCode).toBe(200)
     expect(ok.body).toMatchObject({ ok: true, data: { id: `${RUN}_a`, badge: BADGE } })
     expect(ok.headers['set-cookie']).toMatch(/HttpOnly; SameSite=Lax/)
-    cookie = tokenFrom(ok)
+    cookie = sessionCookieFrom(ok)
     expect(cookie).not.toBe('')
   })
 
