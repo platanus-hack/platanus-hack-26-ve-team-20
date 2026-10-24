@@ -12,6 +12,5 @@
   // Must be a valid URL, for example: https://my-project.vercel.app
   // If your project is an app, put the download link here instead
   // (for example, a URL to download an APK).
-  // TODO: reemplazar con la URL real del deploy en Vercel (repo espejo personal) antes de entregar.
-  "deploy-url": "https://<pendiente>.vercel.app"
+  "deploy-url": "https://smartvia-smart-via.vercel.app"
 }
