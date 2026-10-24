@@ -62,8 +62,8 @@ export function Mapa({ nodos, incidente: inc, ahora, estadoDe, onClic, etiquetar
       {CALLES_X.map((x) => <line key={`x${x}`} x1={x} y1={0} x2={x} y2={MUNDO.alto} stroke={CALLE} strokeWidth={20} />)}
       {CALLES_Y.map((y) => <line key={`dy${y}`} x1={0} y1={y} x2={MUNDO.ancho} y2={y} stroke={LINEA} strokeOpacity={0.25} strokeWidth={1} strokeDasharray="8 10" />)}
       {CALLES_X.map((x) => <line key={`dx${x}`} x1={x} y1={0} x2={x} y2={MUNDO.alto} stroke={LINEA} strokeOpacity={0.25} strokeWidth={1} strokeDasharray="8 10" />)}
-      {CALLES_Y.map((y, i) => <text key={`ty${y}`} x={8} y={y - 14} fill={LINEA} fillOpacity={0.6} fontSize={11} fontFamily="Geist">Calle {i + 1}</text>)}
-      {CALLES_X.map((x, i) => <text key={`tx${x}`} x={x + 14} y={MUNDO.alto - 10} fill={LINEA} fillOpacity={0.6} fontSize={11} fontFamily="Geist">Av. {i + 1}</text>)}
+      {CALLES_Y.map((y, i) => <text key={`ty${y}`} x={8} y={y - 14} fill={LINEA} fillOpacity={0.6} fontSize={11} fontFamily="Plus Jakarta Sans">Calle {i + 1}</text>)}
+      {CALLES_X.map((x, i) => <text key={`tx${x}`} x={x + 14} y={MUNDO.alto - 10} fill={LINEA} fillOpacity={0.6} fontSize={11} fontFamily="Plus Jakarta Sans">Av. {i + 1}</text>)}
 
       {/* conos de visión */}
       {nodos.map((n) => {

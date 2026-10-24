@@ -136,7 +136,7 @@ export function cerrarSesion() {
 }
 
 /** Paso 1 del registro: el código va al teléfono que el sistema tiene para esa cédula. */
-export async function solicitarCodigo(datos: Cuenta & { clave: string }): Promise<{ telefono: string }> {
+export async function solicitarCodigo(datos: Cuenta & { clave: string }): Promise<{ telefono: string; vehiculos?: Vehiculo[] }> {
   await esperar()
   const ced = normalizeCedula(datos.cedula)
   if (ced === CEDULA_REGISTRADA || cuentas().some((c) => c.cedula === ced)) throw new DemoError('YA_REGISTRADA')

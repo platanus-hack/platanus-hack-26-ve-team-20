@@ -34,9 +34,13 @@
   --color-primario: light-dark(#0e1726, #c6f24e);
   --color-sobre-primario: light-dark(#fcfdfe, #0e1726);
   --color-boli-on: light-dark(#c6f24e, #0e1726);
+  /* Botón de entrar y crear cuenta: el azul tinta del panel en claro, azul de confianza en oscuro. */
+  --color-acceso: light-dark(#0e1726, #1d4ed8);
+  --color-acceso-hover: light-dark(#1c2a44, #1e40af);
 
-  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
-  --font-sans: "Geist", system-ui, sans-serif;
+  /* Una sola familia (Plus Jakarta Sans) para títulos y texto; JetBrains Mono para montos, placas y cédulas. */
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --text-display: 40px;
@@ -212,6 +216,42 @@
 /* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
 .vista { animation: entra 260ms var(--ease-entrada) both; }
 
+/* Ilustración de acceso: un carro se aleja por el carril derecho y otro se acerca por el izquierdo.
+   Las posiciones siguen la perspectiva de la carretera (punto de fuga en 320,360 del dibujo). */
+@keyframes se-aleja {
+  0% { transform: translate(480px, 560px) scale(1.5); opacity: 0; }
+  6% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(333px, 363px) scale(0.052); opacity: 0; }
+}
+@keyframes se-acerca {
+  0% { transform: translate(308px, 363px) scale(0.052); opacity: 0; }
+  12% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translate(130px, 580px) scale(1.62); opacity: 0; }
+}
+.carro-se-aleja { animation: se-aleja 9s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; opacity: 0; }
+.carro-se-acerca { animation: se-acerca 7s cubic-bezier(0.6, 0, 0.8, 0.4) 3.5s infinite; opacity: 0; }
+
+/* Semáforo de la ilustración: verde 43 %, amarillo 14 %, rojo 43 % de un ciclo de 9,2 s, con cambios secos. */
+@keyframes luz-verde { 0%, 42.9% { opacity: 1; } 43%, 100% { opacity: 0; } }
+@keyframes luz-ambar { 0%, 42.9% { opacity: 0; } 43%, 56.9% { opacity: 1; } 57%, 100% { opacity: 0; } }
+@keyframes luz-roja { 0%, 56.9% { opacity: 0; } 57%, 100% { opacity: 1; } }
+.luz-verde { animation: luz-verde 9.2s infinite; }
+.luz-ambar { animation: luz-ambar 9.2s infinite; opacity: 0; }
+.luz-roja { animation: luz-roja 9.2s infinite; }
+
+/* Barra lima de la sección activa: crece desde el centro (220 ms). */
+@keyframes barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.barra-activa { animation: barra 220ms var(--ease-entrada) both; }
+
+/* Latido suave del punto rojo de una multa vencida: un anillo que se expande y se apaga cada 2,4 s. */
+@keyframes latido {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 55%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+.latido { animation: latido 2.4s ease-out infinite; }
+
 /* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
 @media (prefers-reduced-motion: reduce) {
   .press:active:not(:disabled) { transform: none; }
@@ -219,6 +259,10 @@
   .check { animation: solo-fundido 120ms linear both; stroke-dashoffset: 0; }
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
   .vista { animation: solo-fundido 120ms linear both; }
+  .barra-activa, .latido { animation: none; }
+  .carro-se-aleja, .carro-se-acerca { animation: none; display: none; }
+  .luz-verde, .luz-ambar, .luz-roja { animation: none; }
+  .luz-verde, .luz-ambar { opacity: 0; }
   dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
   dialog.sheet[open] { opacity: 1; }
   @starting-style { dialog.sheet[open] { opacity: 0; } }

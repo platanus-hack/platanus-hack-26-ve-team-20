@@ -4,6 +4,7 @@
 # aquí el motor sí recibe el color real en cada cuadro (guía de integración §7: "el servidor guarda el
 # estado y lo pasa en cada procesar_frame").
 import asyncio
+import base64
 import json
 import os
 import queue
@@ -27,14 +28,62 @@ from .schemas import Calibracion
 router = APIRouter()
 PAGINA = Path(__file__).parent / "static" / "en_vivo.html"
 ESTADOS = {"rojo", "amarillo", "verde"}
+# Ajustes del motor para el modo en vivo, solo con parámetros del constructor (guía de integración §4):
+# pocos cuadros por segundo por la red y carros chicos o lejanos (p. ej. desde un puente).
+AJUSTES_VIVO: dict[str, Any] = {
+    "tracker": str(Path(__file__).parent / "bytetrack_vivo.yaml"),
+    "imgsz_vehiculos": 960,  # defecto 640: carros pequeños en cuadros de 960–1280 px
+    "conf_vehiculos": 0.25,  # defecto 0.35
+    "conf_placas": 0.25,  # defecto 0.30
+    "leer_cada": 1,  # defecto 3: con pocos cuadros por segundo cada cuadro cuenta para leer la placa
+    "max_lecturas": 15,  # defecto 10
+    "frames_despues": 20,  # defecto 30 (pensado para 30 fps): a ~6 fps la multa cerraría muy tarde
+}
+
+
+# Lupa de placa: por cada vehículo seguido se busca la placa dentro de su recorte (como el motor) a resolución
+# completa y se manda una miniatura ampliada. Tope por cuadro y refresco por vehículo para cuidar red y GPU.
+LUPA_MAX_POR_CUADRO = 6
+LUPA_CADA = 3  # cuadros entre refrescos de la lupa de un mismo vehículo
+LUPA_ALTO_PX = 72  # alto de la miniatura que viaja a la página
+
+DetectorPlacas = Callable[[list[Any]], list[tuple[float, float, float, float] | None]]
+_detector_yolo: DetectorPlacas | None = None
+
+
+def detector_placas_yolo() -> DetectorPlacas | None:
+    """placas.pt en el dispositivo del servicio, cargado una vez. None si no están los pesos."""
+    global _detector_yolo
+    pesos = pipeline.WEIGHTS_DIR / "placas.pt"
+    if _detector_yolo is None and pesos.exists():
+        from ultralytics import YOLO
+
+        modelo, device = YOLO(str(pesos)), pipeline._device()
+
+        def detectar(recortes: list[Any]) -> list[tuple[float, float, float, float] | None]:
+            out: list[tuple[float, float, float, float] | None] = []
+            for r in modelo.predict(recortes, imgsz=320, conf=0.25, device=device, verbose=False):
+                if r.boxes is None or not len(r.boxes):
+                    out.append(None)
+                    continue
+                x1, y1, x2, y2 = r.boxes.xyxy[int(r.boxes.conf.argmax())].tolist()
+                out.append((float(x1), float(y1), float(x2), float(y2)))
+            return out
+
+        _detector_yolo = detectar
+    return _detector_yolo
 
 
 class Sesion:
     """Una cámara en vivo: su propio motor (el tracker guarda estado) y el color actual del semáforo."""
 
     def __init__(self, camara: str, fabrica: Callable[..., Any] = pipeline.crear_motor,
-                 registrar: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> None:
+                 registrar: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+                 detector_placas: DetectorPlacas | None = None) -> None:
         self.camara, self.fabrica = camara, fabrica
+        self.detector_placas = detector_placas
+        self.lupa, self.n = True, 0
+        self._lupa_ultimo: dict[int, int] = {}  # id de tracking → cuadro del último refresco
         self.registrar = registrar if registrar is not None else registrar_en_vercel
         self.estado, self.linea_y, self.hacia_camara = "verde", 0.6, False
         self.motor: Any = None
@@ -58,7 +107,7 @@ class Sesion:
                               parameters={"stopLineAfterBelow": 1.0} if self.hacia_camara else {})
             carpeta = pipeline.EVIDENCE_DIR / f"en-vivo-{uuid.uuid4().hex[:8]}"
             self.motor = self.fabrica(config=pipeline.camara_json(cal, ancho, alto),
-                                      carpeta_evidencias=str(carpeta), en_multa=self.multas.put)
+                                      carpeta_evidencias=str(carpeta), en_multa=self.multas.put, **AJUSTES_VIVO)
             self.tam = (ancho, alto)
             self._capturar_cajas(self.motor)
         return self.motor
@@ -94,17 +143,55 @@ class Sesion:
                         "multa": "semaforo_rojo" in tipos})
         return out
 
+    def _lupas(self, frame: Any, cajas: list[dict[str, Any]]) -> None:
+        """Agrega `placa` (posición relativa a la caja del vehículo + miniatura) a los vehículos que toca refrescar."""
+        alto, ancho = frame.shape[:2]
+        toca = [c for c in sorted(cajas, key=lambda c: -c["w"] * c["h"])
+                if self.n - self._lupa_ultimo.get(c["id"], -LUPA_CADA) >= LUPA_CADA][:LUPA_MAX_POR_CUADRO]
+        recortes, origenes = [], []
+        for c in toca:
+            x1, y1 = max(0, int(c["x"] * ancho)), max(0, int(c["y"] * alto))
+            x2, y2 = min(ancho, int((c["x"] + c["w"]) * ancho)), min(alto, int((c["y"] + c["h"]) * alto))
+            if x2 - x1 < 24 or y2 - y1 < 24:
+                continue
+            recortes.append(frame[y1:y2, x1:x2])
+            origenes.append((c, x1, y1, x2, y2))
+        detector = self.detector_placas or detector_placas_yolo() if recortes else None
+        if detector is None:
+            return
+        for (c, x1, y1, x2, y2), placa in zip(origenes, detector(recortes)):
+            self._lupa_ultimo[c["id"]] = self.n
+            if placa is None:
+                continue
+            px1, py1, px2, py2 = placa
+            mx, my = (px2 - px1) * 0.12, (py2 - py1) * 0.2
+            recorte = frame[max(0, int(y1 + py1 - my)):int(y1 + py2 + my), max(0, int(x1 + px1 - mx)):int(x1 + px2 + mx)]
+            if recorte.size == 0:
+                continue
+            escala = LUPA_ALTO_PX / recorte.shape[0]
+            mini = cv2.resize(recorte, (max(1, round(recorte.shape[1] * escala)), LUPA_ALTO_PX), interpolation=cv2.INTER_CUBIC)
+            ok, jpg = cv2.imencode(".jpg", mini, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            if ok:
+                vw, vh = x2 - x1, y2 - y1
+                c["placa"] = {"x": round(px1 / vw, 4), "y": round(py1 / vh, 4), "w": round((px2 - px1) / vw, 4),
+                              "h": round((py2 - py1) / vh, 4), "jpg": base64.b64encode(jpg.tobytes()).decode()}
+
     def procesar(self, jpg: bytes) -> dict[str, Any]:
         frame = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
-        if frame is None:
-            return {"tipo": "error", "mensaje": "Cuadro ilegible"}
+        if frame is None:  # responde igual: la página empareja respuestas y cuadros por orden de llegada
+            return {"tipo": "cuadro", "cajas": [], "estado": self.estado, "cruces": [], "multas": [],
+                    "registros": [], "aviso": "Cuadro ilegible"}
         motor = self._motor(frame.shape[1], frame.shape[0])
         with pipeline.GPU_LOCK:
             salida = motor.procesar_frame(frame, self.estado)
+            cajas = self._cajas(frame.shape[1], frame.shape[0])
+            if self.lupa:
+                self._lupas(frame, cajas)
+        self.n += 1
         cruces = [{"id": i["id"], "clase": i["clase"]} for i in salida["infracciones_nuevas"]
                   if i.get("tipo") == "semaforo_rojo"]
         # Solo datos (unos cientos de bytes): la página muestra su propio video y dibuja las cajas encima.
-        return {"tipo": "cuadro", "cajas": self._cajas(frame.shape[1], frame.shape[0]), "estado": salida["estado"],
+        return {"tipo": "cuadro", "cajas": cajas, "estado": salida["estado"],
                 "cruces": cruces, "multas": self._multas_cerradas(), "registros": _vaciar(self.registros)}
 
     def _multas_cerradas(self) -> list[dict[str, Any]]:
@@ -199,6 +286,8 @@ async def ws(websocket: WebSocket) -> None:
                 orden = json.loads(msg["text"])
                 if orden.get("tipo") == "semaforo" and orden.get("estado") in ESTADOS:
                     sesion.estado = orden["estado"]
+                elif orden.get("tipo") == "lupa":
+                    sesion.lupa = bool(orden.get("activa"))
                 elif orden.get("tipo") == "linea":
                     await asyncio.to_thread(sesion.configurar, orden.get("y"), orden.get("haciaCamara"))
     except WebSocketDisconnect:
