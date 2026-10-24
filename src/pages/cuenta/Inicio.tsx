@@ -50,8 +50,8 @@ export default function Inicio() {
   const actual = puntos[5]!
 
   return (
-    <div className="absolute inset-0 flex min-h-[540px] flex-col gap-4 px-4 pt-4 pb-5 lg:min-h-[480px] lg:px-0 lg:pt-1 lg:pb-0">
-      <h1 className="text-[26px] font-semibold tracking-[-0.01em] lg:text-[36px]">Resumen de multas</h1>
+    <div className="absolute inset-0 flex min-h-[540px] flex-col gap-4 px-4 pt-4 pb-5 lg:min-h-[480px] lg:px-0 lg:pt-0 lg:pb-0">
+      <h1 className="text-[26px] font-semibold tracking-[-0.01em] lg:flex lg:h-11 lg:items-center lg:text-[36px] lg:leading-none">Resumen de multas</h1>
 
       {cargando && <SkeletonLista grande />}
       {error && error.code !== 'SESION' && (
