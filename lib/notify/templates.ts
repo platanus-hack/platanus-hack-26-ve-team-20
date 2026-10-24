@@ -71,7 +71,7 @@ export interface FineIssuedInput {
 
 export function fineIssuedText(i: FineIssuedInput): string {
   return (
-    `VíaClara (demo). Se registró una posible infracción: ${VIOLATION_LABELS[i.type]} en ${i.intersection}, ` +
+    `SmartTraffic (demo). Se registró una posible infracción: ${VIOLATION_LABELS[i.type]} en ${i.intersection}, ` +
     `${formatCaracasDateTime(i.occurredAt)} (hora de Caracas), vehículo placa ${maskPlate(i.plate)}. ` +
     `Monto de ejemplo: ${formatAmount(i.amountCents, i.currency)}. ` +
     `Vea la evidencia, pague o apele aquí: ${fineUrl(i.appBaseUrl, i.fineToken)}`
@@ -84,7 +84,7 @@ export interface PaymentConfirmedInput {
 }
 
 export function paymentConfirmedText(i: PaymentConfirmedInput): string {
-  return `VíaClara (demo). Pago simulado recibido. Ref ${i.reference}. Multa ${maskPlate(i.plate)} saldada.`;
+  return `SmartTraffic (demo). Pago simulado recibido. Ref ${i.reference}. Multa ${maskPlate(i.plate)} saldada.`;
 }
 
 export interface OfficerAlertInput {
@@ -101,7 +101,7 @@ export interface OfficerAlertInput {
 export function officerAlertText(i: OfficerAlertInput): string {
   const fines = i.unpaidCount === 1 ? "1 multa impaga" : `${i.unpaidCount} multas impagas`;
   return (
-    `VíaClara · Alerta: vehículo ${normalizePlate(i.plate)} (${i.vehicle}) con ${fines} visto en ${i.intersection} ` +
+    `SmartTraffic · Alerta: vehículo ${normalizePlate(i.plate)} (${i.vehicle}) con ${fines} visto en ${i.intersection} ` +
     `${minutesAgo(i.seenAt, i.now ?? new Date())}, a ${formatDistance(i.distanceM)} de su posición. ` +
     `Verifique antes de actuar.`
   );

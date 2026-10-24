@@ -13,7 +13,7 @@ const CONFIG: WhatsAppConfig = {
   graphVersion: 'v23.0',
   dryRun: false,
 }
-const MESSAGE = { to: '+58 412-000-0001', body: 'VíaClara (demo). Hola', callbackData: 'fine:fine_1' }
+const MESSAGE = { to: '+58 412-000-0001', body: 'SmartTraffic (demo). Hola', callbackData: 'fine:fine_1' }
 
 function fakeFetch(status: number, body: unknown) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
@@ -59,7 +59,7 @@ describe('sendWhatsAppText', () => {
       recipient_type: 'individual',
       to: '584120000001',
       type: 'text',
-      text: { body: 'VíaClara (demo). Hola', preview_url: true },
+      text: { body: 'SmartTraffic (demo). Hola', preview_url: true },
       biz_opaque_callback_data: 'fine:fine_1',
     })
   })

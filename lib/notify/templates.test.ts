@@ -56,7 +56,7 @@ describe('mensajes de WhatsApp (docs/04 §7)', () => {
         appBaseUrl: 'https://smartvia-smart-via.vercel.app',
       }),
     ).toBe(
-      'VíaClara (demo). Se registró una posible infracción: luz roja en Av. Demo Norte con Calle 1 (ejemplo), ' +
+      'SmartTraffic (demo). Se registró una posible infracción: luz roja en Av. Demo Norte con Calle 1 (ejemplo), ' +
         '24/10/2026, 10:03 a. m. (hora de Caracas), vehículo placa AB***CD. Monto de ejemplo: Bs. 1.234,56. ' +
         'Vea la evidencia, pague o apele aquí: https://smartvia-smart-via.vercel.app/multa/x7GqToken',
     )
@@ -64,7 +64,7 @@ describe('mensajes de WhatsApp (docs/04 §7)', () => {
 
   it('confirmación de pago simulado', () => {
     expect(paymentConfirmedText({ reference: 'SIM-48213977', plate: 'AB123CD' })).toBe(
-      'VíaClara (demo). Pago simulado recibido. Ref SIM-48213977. Multa AB***CD saldada.',
+      'SmartTraffic (demo). Pago simulado recibido. Ref SIM-48213977. Multa AB***CD saldada.',
     )
   })
 
@@ -80,7 +80,7 @@ describe('mensajes de WhatsApp (docs/04 §7)', () => {
         now: new Date('2026-10-24T14:03:30Z'),
       }),
     ).toBe(
-      'VíaClara · Alerta: vehículo XY987ZT (Camioneta blanca (ejemplo)) con 2 multas impagas visto en ' +
+      'SmartTraffic · Alerta: vehículo XY987ZT (Camioneta blanca (ejemplo)) con 2 multas impagas visto en ' +
         'Av. Demo Norte con Calle 1 (ejemplo) hace 3 min, a 420 m de su posición. Verifique antes de actuar.',
     )
   })
