@@ -1,5 +1,5 @@
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
-import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useRef, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { useTema, type Tema } from '@/hooks/useTema.ts'
 import { boton, cx, type Variante } from './estilos.ts'
@@ -166,6 +166,46 @@ export function BotonTema({ className }: { className?: string }) {
       className={cx('flex size-11 items-center justify-center rounded-control text-texto-2 hover:text-tinta', className)}
     >
       <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
+    </button>
+  )
+}
+
+const OSCURO_MQ = '(prefers-color-scheme: dark)'
+const sistemaOscuro = () => typeof window !== 'undefined' && window.matchMedia?.(OSCURO_MQ).matches === true
+const oirSistema = (f: () => void) => {
+  const mq = window.matchMedia?.(OSCURO_MQ)
+  mq?.addEventListener('change', f)
+  return () => mq?.removeEventListener('change', f)
+}
+
+/** Interruptor claro/oscuro: el círculo se desliza en 220 ms entre el sol y la luna. Con «sistema» muestra el tema que rige. */
+export function InterruptorTema({ className }: { className?: string }) {
+  const [tema, cambiar] = useTema()
+  const delSistema = useSyncExternalStore(oirSistema, sistemaOscuro, () => false)
+  const oscuro = tema === 'oscuro' || (tema === 'sistema' && delSistema)
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={oscuro}
+      aria-label="Modo oscuro"
+      title={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      onClick={() => cambiar(oscuro ? 'claro' : 'oscuro')}
+      className={cx('group flex h-11 items-center rounded-full', className)}
+    >
+      <span className="relative flex h-8 w-[60px] items-center justify-between rounded-full border border-borde bg-suave px-2 text-texto-3 transition-colors duration-200 group-hover:border-input">
+        <Sun size={14} strokeWidth={2} aria-hidden="true" />
+        <Moon size={14} strokeWidth={2} aria-hidden="true" />
+        <span
+          aria-hidden="true"
+          className={cx(
+            'absolute top-[3px] left-[3px] flex size-6 items-center justify-center rounded-full bg-card text-tinta shadow-card transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none',
+            oscuro && 'translate-x-7',
+          )}
+        >
+          {oscuro ? <Moon size={14} strokeWidth={2} /> : <Sun size={14} strokeWidth={2} className="text-ambar-osc" />}
+        </span>
+      </span>
     </button>
   )
 }

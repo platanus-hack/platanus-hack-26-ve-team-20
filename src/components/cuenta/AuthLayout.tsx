@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router'
-import { BotonTema } from '@/components/ui/index.tsx'
+import { InterruptorTema } from '@/components/ui/index.tsx'
 import { Logo } from '@/components/vc/index.tsx'
 
 const LEMA = 'La multa llega con la prueba, y se paga en un minuto.'
@@ -11,11 +11,11 @@ export default function AuthLayout() {
     <div className="flex min-h-dvh flex-col">
       <div className="flex flex-1 flex-col lg:flex-row">
         <div className="relative flex flex-1 flex-col items-center px-4 pt-4 pb-6 lg:justify-center lg:p-12">
-          <div className="flex w-full max-w-[400px] items-center justify-between pb-4 lg:hidden">
-            <Logo />
-            <BotonTema />
+          {/* Tema arriba a la izquierda; en móvil el logo queda a la derecha. */}
+          <div className="flex w-full items-center justify-between pb-4 lg:absolute lg:top-4 lg:left-6 lg:w-auto lg:pb-0">
+            <InterruptorTema />
+            <span className="lg:hidden"><Logo /></span>
           </div>
-          <div className="absolute top-2 right-2 hidden lg:block"><BotonTema /></div>
           <div key={pathname} className="vista flex w-full max-w-[400px] flex-col gap-5">
             <Outlet />
           </div>
