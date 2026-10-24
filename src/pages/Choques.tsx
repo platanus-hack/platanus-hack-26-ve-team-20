@@ -1,5 +1,6 @@
-import { Pause, Play, RotateCcw, Siren, Users } from 'lucide-react'
+import { ArrowRight, Pause, Play, RotateCcw, Siren, Smartphone, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { Grabadora, type ClipReal } from '@/lib/choques/grabadora.ts'
 import {
   BUFFER_MS, POST_MS, PRE_MS, avanzar, bitacora, choqueAlAzar, conPropio, crearRed, estadoCaptura, formatT,
@@ -11,7 +12,7 @@ import { DemoBanner, Logo } from '@/components/vc/index.tsx'
 import { Pagina, Titulo, h2 } from '@/components/cuenta/piezas.tsx'
 import { Cobertura, TarjetaAngulo } from '@/components/choques/Angulo.tsx'
 import { Mapa } from '@/components/choques/Mapa.tsx'
-import { COLOR, ETIQUETA, type EstadoNodo } from '@/components/choques/estados.ts'
+import { COLOR, ETIQUETA, estadoNodo, type EstadoNodo } from '@/components/choques/estados.ts'
 
 type Radio = '150' | '300' | '500'
 const RADIOS: Array<{ id: Radio; nombre: string }> = [
@@ -80,7 +81,8 @@ export default function Choques() {
     if (!inc || !propia || !capturandoPropia || pedido.current === inc.id || !grabadora.current?.activa) return
     pedido.current = inc.id
     const id = inc.id
-    grabadora.current.capturar(propia.finCaptura - estado.ahora).then(
+    // T0 en el reloj del dispositivo: la simulación corre a velocidad real.
+    grabadora.current.capturar(Date.now() - (estado.ahora - inc.t0), propia.finCaptura - estado.ahora).then(
       (clip) => { urls.current.push(clip.url); setClips((m) => ({ ...m, [id]: clip })) },
       () => {},
     )
@@ -149,7 +151,14 @@ export default function Choques() {
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_1fr] lg:gap-x-6 lg:gap-y-4">
           <section aria-label="Mapa de la red" className="tinta flex flex-col self-start overflow-hidden rounded-card bg-tinta lg:col-start-1 lg:row-start-1">
-            <Mapa estado={estado} onClic={enPunto} />
+            <Mapa
+              nodos={estado.nodos}
+              incidente={inc}
+              ahora={estado.ahora}
+              estadoDe={(id) => estadoNodo(inc, id, estado.ahora)}
+              onClic={enPunto}
+              etiqueta="Mapa de la red: haga clic en una calle para provocar un choque ahí"
+            />
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-xs text-niebla">
               {LEYENDA.map((s) => (
                 <span key={s} className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full" style={{ background: COLOR[s] }} />{ETIQUETA[s]}</span>
@@ -183,6 +192,15 @@ export default function Choques() {
                 <Boton variante="outline" onClick={reiniciar}><RotateCcw size={16} strokeWidth={2} aria-hidden="true" />Nueva red</Boton>
               </div>
             </div>
+
+            <Link to="/choques/vivo" className="tinta press flex items-center gap-3 rounded-card bg-tinta p-4 text-card">
+              <Smartphone size={20} strokeWidth={1.75} aria-hidden="true" className="flex-none text-brand" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm font-semibold">Probar con celulares reales</span>
+                <span className="text-caption text-niebla">Red en vivo: cada celular graba y sube su clip</span>
+              </span>
+              <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+            </Link>
 
             <div className={cx(tarjeta, 'flex flex-col gap-2 p-4')}>
               <span className="flex items-center gap-2 text-sm font-semibold"><Users size={16} strokeWidth={2} aria-hidden="true" />La red ahora</span>
@@ -218,7 +236,7 @@ export default function Choques() {
         {inc && res && (
           <section aria-label={`Ángulos del incidente ${inc.id}`} className="flex flex-col gap-4">
             <div className="tinta flex flex-col gap-4 rounded-card bg-tinta p-5 text-card sm:flex-row sm:items-center">
-              <Cobertura inc={inc} ahora={estado.ahora} />
+              <Cobertura pos={inc.pos} listos={inc.capturas.filter((c) => estadoCaptura(c, estado.ahora) === 'LISTO')} />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="font-mono text-sm text-niebla">{inc.id} · {lugar(inc.pos)}</span>
                 <h2 className={h2}>

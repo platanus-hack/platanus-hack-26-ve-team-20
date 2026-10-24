@@ -4,6 +4,8 @@ import { Protegida } from './components/cuenta/Shell.tsx'
 import AdminRevision from './pages/AdminRevision.tsx'
 import Camaras from './pages/Camaras.tsx'
 import Choques from './pages/Choques.tsx'
+import ChoquesNodo from './pages/ChoquesNodo.tsx'
+import ChoquesVivo from './pages/ChoquesVivo.tsx'
 import Consulta from './pages/Consulta.tsx'
 import Landing from './pages/Landing.tsx'
 import Multa from './pages/Multa.tsx'
@@ -31,6 +33,8 @@ export default function App() {
       <Route path="/multa/:token/pagar" element={<Pagar />} />
       <Route path="/camaras" element={<Camaras />} />
       <Route path="/choques" element={<Choques />} />
+      <Route path="/choques/nodo" element={<ChoquesNodo />} />
+      <Route path="/choques/vivo" element={<ChoquesVivo />} />
       <Route path="/oficial" element={<Oficial />} />
       <Route path="/admin/revision" element={<AdminRevision />} />
 

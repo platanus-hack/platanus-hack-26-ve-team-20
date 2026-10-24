@@ -39,6 +39,8 @@ const CHOQUE_ADELANTE_M = 18
 
 export interface Nodo {
   id: string
+  /** Nombre visible (red en vivo); en la simulación se muestra el id. */
+  nombre?: string
   tipo: TipoNodo
   /** El dispositivo desde el que se abre la página, si activó su cámara. */
   propio: boolean

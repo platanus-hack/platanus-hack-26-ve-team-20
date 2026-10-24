@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react'
-import { CALLES_X, CALLES_Y, DURACION_ONDA_MS, MUNDO, type Estado, type Nodo, type Punto } from '@/lib/choques/sim.ts'
-import { COLOR, estadoNodo, type EstadoNodo } from './estados.ts'
+import { CALLES_X, CALLES_Y, DURACION_ONDA_MS, MUNDO, type Incidente, type Nodo, type Punto } from '@/lib/choques/sim.ts'
+import { cx } from '@/components/ui/estilos.ts'
+import { COLOR, type EstadoNodo } from './estados.ts'
 
 const CALLE = '#2A3446'
 const MANZANA = '#151C28'
@@ -20,17 +21,26 @@ function cono(n: Pick<Nodo, 'pos' | 'rumbo' | 'fov' | 'alcance'>) {
 }
 
 /**
- * Mapa esquemático de la red: calles, teléfonos en marcha (dashcam), cámaras de semáforo y el choque
- * con su radio de alerta. Clic en el mapa = choque en la calle más cercana.
+ * Mapa esquemático de la red: calles, teléfonos (dashcam), cámaras de semáforo y el choque con su radio de
+ * alerta. Lo usan la simulación y la red en vivo; cada una dice el estado de cada nodo con `estadoDe`.
+ * `onClic` recibe el punto en metros del mapa.
  */
-export function Mapa({ estado, onClic }: { estado: Estado; onClic: (p: Punto) => void }) {
-  const { incidente: inc, ahora, nodos } = estado
+export function Mapa({ nodos, incidente: inc, ahora, estadoDe, onClic, etiquetarTodos = false, etiqueta = 'Mapa de la red' }: {
+  nodos: Nodo[]
+  incidente: Incidente | null
+  /** Mismo reloj que `incidente.servidorEn` (para la onda de alerta). */
+  ahora: number
+  estadoDe: (nodoId: string) => EstadoNodo
+  onClic?: (p: Punto) => void
+  etiquetarTodos?: boolean
+  etiqueta?: string
+}) {
   const enIncidente = new Set(inc?.capturas.map((c) => c.nodoId))
   const directos = new Set(inc?.capturas.filter((c) => c.enCuadro).map((c) => c.nodoId))
 
   const clic = (e: MouseEvent<SVGSVGElement>) => {
     const ctm = e.currentTarget.getScreenCTM()
-    if (!ctm) return
+    if (!ctm || !onClic) return
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse())
     onClic({ x: p.x, y: p.y })
   }
@@ -42,9 +52,9 @@ export function Mapa({ estado, onClic }: { estado: Estado; onClic: (p: Punto) =>
   return (
     <svg
       viewBox={`0 0 ${MUNDO.ancho} ${MUNDO.alto}`}
-      className="block h-auto w-full cursor-crosshair select-none"
+      className={cx('block h-auto w-full select-none', onClic && 'cursor-crosshair')}
       role="img"
-      aria-label="Mapa de la red: haga clic en una calle para provocar un choque ahí"
+      aria-label={etiqueta}
       onClick={clic}
     >
       <rect width={MUNDO.ancho} height={MUNDO.alto} fill={MANZANA} />
@@ -57,7 +67,7 @@ export function Mapa({ estado, onClic }: { estado: Estado; onClic: (p: Punto) =>
 
       {/* conos de visión */}
       {nodos.map((n) => {
-        const s = estadoNodo(inc, n.id, ahora)
+        const s = estadoDe(n.id)
         const activo = directos.has(n.id) && s !== 'GRABANDO' && s !== 'PERDIDO'
         return <path key={`c${n.id}`} d={cono(n)} fill={activo ? COLOR[s] : LINEA} fillOpacity={activo ? 0.13 : n.propio ? 0.1 : 0.045} />
       })}
@@ -72,7 +82,7 @@ export function Mapa({ estado, onClic }: { estado: Estado; onClic: (p: Punto) =>
 
       {/* líneas de captura: del nodo al choque, punteadas si no lo tiene en cuadro */}
       {inc?.capturas.map((c) => {
-        const s = estadoNodo(inc, c.nodoId, ahora)
+        const s = estadoDe(c.nodoId)
         const n = nodos.find((x) => x.id === c.nodoId)
         if (!n || (s !== 'CAPTURANDO' && s !== 'SUBIENDO' && s !== 'LISTO')) return null
         return <line key={`l${c.nodoId}`} x1={n.pos.x} y1={n.pos.y} x2={inc.pos.x} y2={inc.pos.y} stroke={COLOR[s]} strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray={c.enCuadro ? undefined : '3 4'} />
@@ -91,8 +101,8 @@ export function Mapa({ estado, onClic }: { estado: Estado; onClic: (p: Punto) =>
 
       {/* nodos */}
       {nodos.map((n) => {
-        const s = estadoNodo(inc, n.id, ahora)
-        return <NodoMapa key={n.id} n={n} s={s} etiqueta={n.propio || enIncidente.has(n.id)} reportero={inc?.reportero === n.id} />
+        const s = estadoDe(n.id)
+        return <NodoMapa key={n.id} n={n} s={s} etiqueta={etiquetarTodos || n.propio || enIncidente.has(n.id)} reportero={inc?.reportero === n.id} />
       })}
     </svg>
   )
@@ -123,7 +133,7 @@ function NodoMapa({ n, s, etiqueta, reportero }: { n: Nodo; s: EstadoNodo; etiqu
       )}
       {etiqueta && (
         <text x={n.pos.x + 12} y={n.pos.y - 10} fill={n.propio ? LIMA : '#F2F5F9'} fontSize={11} fontWeight={700} fontFamily="JetBrains Mono" paintOrder="stroke" stroke="#0E1726" strokeWidth={3}>
-          {n.propio ? 'ESTE DISPOSITIVO' : n.id}{reportero ? ' · REPORTÓ' : ''}
+          {n.propio ? (n.nombre ? `${n.nombre} (TÚ)` : 'ESTE DISPOSITIVO') : (n.nombre ?? n.id)}{reportero ? ' · REPORTÓ' : ''}
         </text>
       )}
     </g>

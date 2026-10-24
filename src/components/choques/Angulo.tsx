@@ -1,7 +1,7 @@
 import { CloudUpload, EyeOff, Radio, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, type CSSProperties } from 'react'
 import type { ClipReal } from '@/lib/choques/grabadora.ts'
-import { POST_MS, PRE_MS, estadoCaptura, formatM, formatT, rumboHacia, type Captura, type Incidente } from '@/lib/choques/sim.ts'
+import { POST_MS, PRE_MS, estadoCaptura, formatM, formatT, rumboHacia, type Captura, type Incidente, type Punto } from '@/lib/choques/sim.ts'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { PastillaTinta } from '@/components/vc/index.tsx'
 import { COLOR, ETIQUETA, orientacion } from './estados.ts'
@@ -150,16 +150,15 @@ export function TarjetaAngulo({ c, inc, ahora, tauRepro, clipReal, stream, i }: 
   )
 }
 
-/** Rosa de ángulos: desde dónde quedó grabado el choque (norte arriba). */
-export function Cobertura({ inc, ahora }: { inc: Incidente; ahora: number }) {
-  const listos = inc.capturas.filter((c) => estadoCaptura(c, ahora) === 'LISTO')
+/** Rosa de ángulos: desde dónde quedó grabado el choque en `pos` (norte arriba). `listos`: los clips ya subidos. */
+export function Cobertura({ pos, listos }: { pos: Punto; listos: Captura[] }) {
   return (
     <svg viewBox="-60 -60 120 120" className="size-[120px] flex-none" role="img" aria-label={`${listos.filter((c) => c.enCuadro).length} ángulos con vista directa`}>
       <circle r={50} fill="none" stroke="#2A3446" strokeWidth={1} />
       <circle r={30} fill="none" stroke="#2A3446" strokeWidth={1} />
       <text y={-52} textAnchor="middle" fontSize={9} fill="#A9B4C4" fontFamily="Geist">N</text>
       {listos.map((c) => {
-        const a = (rumboHacia(inc.pos, c.pos) * Math.PI) / 180
+        const a = (rumboHacia(pos, c.pos) * Math.PI) / 180
         const x = 46 * Math.cos(a)
         const y = 46 * Math.sin(a)
         const color = c.enCuadro ? COLOR.LISTO : COLOR.GRABANDO
