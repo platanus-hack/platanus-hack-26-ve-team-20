@@ -36,5 +36,6 @@ __pycache__/
 *.pt
 *.onnx
 
-# Prisma
+# Prisma (el cliente se genera en postinstall)
+lib/generated/
 prisma/*.db
