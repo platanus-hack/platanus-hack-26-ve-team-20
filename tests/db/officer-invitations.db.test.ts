@@ -198,4 +198,14 @@ describe('invitaciones de oficiales', () => {
     const blocked = await http('officer-login', { body: { email: e, password: 'mala-clave-larga' }, ip: 7 })
     expect(blocked.code).toBe(429)
   })
+
+  it('intentos simultáneos no se pasan del límite: solo 5 obtienen respuesta, el resto 429', async () => {
+    const e = email()
+    await http('officer-accept', { body: { token: tokenOf(await invite(e, 'Concurrente', 8)), phone: PHONE, password: PASSWORD }, ip: 8 })
+    const results = await Promise.all(Array.from({ length: 12 }, () => http('officer-login', { body: { email: e, password: 'mala-clave-larga' }, ip: 9 })))
+    expect(results.filter((r) => r.code === 401)).toHaveLength(5)
+    expect(results.filter((r) => r.code === 429)).toHaveLength(7)
+    // ya bloqueado: ni la contraseña correcta entra
+    expect((await http('officer-login', { body: { email: e, password: PASSWORD }, ip: 9 })).code).toBe(429)
+  })
 })

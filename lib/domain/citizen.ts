@@ -18,7 +18,7 @@ import { CITIZEN_MIN_PASSWORD } from "../contracts/index.ts";
 import type { CitizenAccount, Person, PrismaClient } from "../generated/prisma/client.ts";
 import { audit } from "./audit.ts";
 import { DomainError } from "./errors.ts";
-import { assertUnderLimit, consumeLimits } from "./rate-limit.ts";
+import { assertUnderLimit, consumeLimits, settleLoginAttempt } from "./rate-limit.ts";
 
 export const CODE_TTL_MS = 10 * 60_000;
 export const RESEND_COOLDOWN_MS = 30_000;
@@ -227,10 +227,17 @@ export function createCitizenService(deps: CitizenDeps) {
     const person = await db.person.findUnique({ where: { cedula: input.cedula }, include: { citizenAccount: true } });
     const account = person?.citizenAccount ?? null;
     const ok = await verifyPassword(input.password, account?.passwordHash ?? (await dummyHash()));
-    if (!person || !account || !account.active || !ok) {
-      await audit(db, { actor: { type: "CITIZEN", ip }, action: A_LOGIN_FAILED, entity: "Person", entityId: key });
-      throw new DomainError("UNAUTHORIZED", "Cédula o contraseña incorrectas.", "CREDENCIALES");
-    }
+    const good = Boolean(person && account && account.active && ok);
+    await settleLoginAttempt(
+      db,
+      [
+        { action: A_LOGIN_FAILED, ip, max: 10, windowMs: WINDOW_10_MIN, lockKey: `citizen-login:ip:${ip}` },
+        { action: A_LOGIN_FAILED, entityId: key, max: 5, windowMs: WINDOW_10_MIN, lockKey: `citizen-login:ced:${key}` },
+      ],
+      good ? null : { actor: { type: "CITIZEN", ip }, action: A_LOGIN_FAILED, entity: "Person", entityId: key },
+      now,
+    );
+    if (!person || !account || !good) throw new DomainError("UNAUTHORIZED", "Cédula o contraseña incorrectas.", "CREDENCIALES");
     const updated = await db.citizenAccount.update({ where: { id: account.id }, data: { lastLoginAt: now } });
     await audit(db, { actor: { type: "CITIZEN", id: account.id, ip }, action: "CITIZEN_LOGIN", entity: "CitizenAccount", entityId: account.id });
     const { citizenAccount: _omit, ...plain } = person;
