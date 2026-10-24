@@ -55,16 +55,32 @@ const EnvSchema = z.object({
 });
 
 /**
+ * Deja solo los caracteres válidos de un token o id. Al copiar el token desde algunas apps se cuelan caracteres
+ * invisibles (U+2060, espacios no separables, comillas tipográficas); en el header Authorization hacen que
+ * `fetch` lance un TypeError antes de llegar a Meta. Los tokens de Meta son alfanuméricos y los ids, dígitos.
+ */
+export function cleanCredential(value: string | undefined, allowed: RegExp): { value: string | undefined; removed: number } {
+  if (value === undefined) return { value: undefined, removed: 0 };
+  const kept = [...value].filter((ch) => allowed.test(ch)).join("");
+  return { value: kept || undefined, removed: [...value].length - [...kept].length };
+}
+
+/**
  * Lee la configuración de `process.env`. Sin `NOTIFY_DRY_RUN=false` explícito, no se envía nada.
- * Recorta espacios y saltos de línea (pegar el token en el panel de Vercel suele dejar uno al final, y un
- * `\n` en el header Authorization hace fallar el fetch).
+ * Recorta espacios y saltos de línea, y quita del token y del id cualquier carácter que no les corresponda.
  */
 export function whatsappConfigFromEnv(env: Record<string, string | undefined> = process.env): WhatsAppConfig {
   const v = (k: string) => env[k]?.trim() || undefined;
+  const token = cleanCredential(v("WHATSAPP_ACCESS_TOKEN"), /[A-Za-z0-9._-]/);
+  const phoneId = cleanCredential(v("WHATSAPP_PHONE_NUMBER_ID"), /\d/);
+  if (token.removed || phoneId.removed) {
+    // Solo cuántos: nunca el valor.
+    console.warn(`[whatsapp] se quitaron caracteres inválidos de las variables: token ${token.removed}, id ${phoneId.removed}`);
+  }
   const e = EnvSchema.parse({
     NOTIFY_DRY_RUN: v("NOTIFY_DRY_RUN")?.toLowerCase(),
-    WHATSAPP_ACCESS_TOKEN: v("WHATSAPP_ACCESS_TOKEN"),
-    WHATSAPP_PHONE_NUMBER_ID: v("WHATSAPP_PHONE_NUMBER_ID"),
+    WHATSAPP_ACCESS_TOKEN: token.value,
+    WHATSAPP_PHONE_NUMBER_ID: phoneId.value,
     WHATSAPP_GRAPH_VERSION: v("WHATSAPP_GRAPH_VERSION"),
   });
   return {
