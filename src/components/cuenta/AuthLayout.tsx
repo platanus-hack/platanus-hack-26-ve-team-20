@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router'
 import { InterruptorTema } from '@/components/ui/index.tsx'
 import { Logo } from '@/components/vc/index.tsx'
+import { Isotipo } from '@/components/vc/Isotipo.tsx'
 
 const LEMA = 'La multa llega con la prueba, y se paga en un minuto.'
 
@@ -37,8 +38,14 @@ export default function AuthLayout() {
             <Outlet />
           </div>
         </div>
-        <div className="tinta m-4 hidden flex-1 flex-col overflow-hidden rounded-card bg-tinta text-card lg:flex">
-          <div className="px-10 py-8"><Logo claro /></div>
+        <div className="tinta @container m-4 hidden flex-1 flex-col overflow-hidden rounded-card bg-tinta text-card lg:flex">
+          {/* El nombre del producto ocupa el ancho del panel: el tamaño sale del ancho del contenedor (cqw). */}
+          <div className="px-10 pt-10 pb-8">
+            <span className="entra flex items-center gap-[0.26em] font-display text-[clamp(2rem,calc((100cqw-80px)/7.4),7rem)] leading-none font-bold tracking-[-0.035em] whitespace-nowrap">
+              <Isotipo size={96} className="h-[0.8em] w-auto flex-none" />
+              SmartTraffic
+            </span>
+          </div>
           <div className="relative min-h-0 flex-1">
             <svg viewBox="0 0 640 520" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Ilustración: calle de Caracas al atardecer" className="absolute inset-0 block h-full w-full">
               <defs>
