@@ -34,16 +34,6 @@ export function T({ style, ...props }: TextProps) {
   return <Text {...props} style={[tipo.cuerpo, { color: c.texto }, style]} />;
 }
 
-export function DemoBanner() {
-  const { c } = useTema();
-  return (
-    <View accessibilityRole="text" style={[s.banner, { backgroundColor: c.suave, borderBottomColor: c.borde }]}>
-      <View style={[s.bannerPunto, { backgroundColor: c.ambar }]} />
-      <T style={[tipo.caption, { color: c.texto2 }]}>Demo · datos ficticios · pagos simulados</T>
-    </View>
-  );
-}
-
 const APressable = Animated.createAnimatedComponent(Pressable);
 
 // Presionar: spring a .97 (sin escala con movimiento reducido).
@@ -322,8 +312,6 @@ export function Aviso({ children, tono = 'ambar', icono: I, style }: { children:
 }
 
 const s = StyleSheet.create({
-  banner: { height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderBottomWidth: 1 },
-  bannerPunto: { width: 6, height: 6, borderRadius: 3 },
   boton: { borderRadius: radio.control, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
   enlace: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
   ojo: { position: 'absolute', right: 2, top: 2, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

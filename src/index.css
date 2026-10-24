@@ -3,33 +3,37 @@
 /* Dirección C · "Asfalto y Señal" (docs/p4-prompt-claude-design-c.md). El lima solo vive sobre tinta. */
 @theme {
   /* Cada token lleva su par claro/oscuro con light-dark(); `color-scheme` (abajo) decide cuál rige. */
-  --color-tinta: light-dark(#0e1726, #f2f5f9);
-  --color-tinta-2: light-dark(#151c28, #1f2838);
-  --color-tinta-3: #2a3446;
-  --color-niebla: #a9b4c4;
+  --color-tinta: light-dark(#0e1726, #f4f5f7);
+  --color-tinta-2: light-dark(#151c28, #1f2228);
+  --color-tinta-3: light-dark(#2a3446, #2a2e35);
+  --color-niebla: light-dark(#a9b4c4, #a1a7b3);
   --color-brand: #c6f24e;
-  --color-fondo: light-dark(#f3f5f8, #0a0f18);
-  --color-card: light-dark(#fcfdfe, #151c28);
-  --color-suave: light-dark(#eef1f5, #1c2433);
-  --color-texto-2: light-dark(#4b5565, #a9b4c4);
-  --color-texto-3: light-dark(#636d82, #8b96a8);
-  --color-borde: light-dark(#dde2e9, #2a3446);
-  --color-input: light-dark(#7d8797, #5e6a7e);
+  --color-fondo: light-dark(#f3f5f8, #0b0c0e);
+  --color-card: light-dark(#fcfdfe, #16181c);
+  --color-suave: light-dark(#eef1f5, #1f2228);
+  --color-texto-2: light-dark(#4b5565, #a1a7b3);
+  --color-texto-3: light-dark(#636d82, #8b919c);
+  --color-borde: light-dark(#dde2e9, #26292f);
+  --color-input: light-dark(#7d8797, #717783);
   /* Texto sobre rellenos rojo/verde/ámbar: claro en modo claro, tinta en oscuro (AA sobre #FF6B5E). */
   --color-contraste: light-dark(#fcfdfe, #0e1726);
-  --color-rojo: light-dark(#c8281c, #ff6b5e);
-  --color-rojo-osc: light-dark(#a91f15, #ff8a7e);
-  --color-rojo-bg: light-dark(#fdecea, #2a1618);
-  --color-verde: light-dark(#12723a, #3dd68c);
-  --color-verde-osc: light-dark(#0f6332, #5ee3a3);
-  --color-verde-bg: light-dark(#e6f4ea, #12281c);
-  --color-ambar: light-dark(#f5a524, #ffb224);
-  --color-ambar-osc: light-dark(#7a4300, #ffc65a);
-  --color-ambar-bg: light-dark(#fef2d6, #2a2410);
-  --color-azul: light-dark(#1f5fd1, #7ab0ff);
-  --color-azul-osc: light-dark(#1a4fb0, #9cc3ff);
-  --color-azul-bg: light-dark(#e8f0fd, #14213a);
-  --color-gris-bg: light-dark(#eceff3, #1f2838);
+  --color-rojo: light-dark(#c8281c, #f2706b);
+  --color-rojo-osc: light-dark(#a91f15, #ff9a94);
+  --color-rojo-bg: light-dark(#fdecea, #2a1716);
+  --color-verde: light-dark(#12723a, #4cc38a);
+  --color-verde-osc: light-dark(#0f6332, #6fd9a3);
+  --color-verde-bg: light-dark(#e6f4ea, #10241a);
+  --color-ambar: light-dark(#f5a524, #f5b544);
+  --color-ambar-osc: light-dark(#7a4300, #f8cb75);
+  --color-ambar-bg: light-dark(#fef2d6, #2a2212);
+  --color-azul: light-dark(#1f5fd1, #7faeff);
+  --color-azul-osc: light-dark(#1a4fb0, #a3c4ff);
+  --color-azul-bg: light-dark(#e8f0fd, #15203a);
+  --color-gris-bg: light-dark(#eceff3, #1f2228);
+  /* Acción principal: tinta en claro, lima en oscuro (grafito). El rojo queda para estados. */
+  --color-primario: light-dark(#0e1726, #c6f24e);
+  --color-sobre-primario: light-dark(#fcfdfe, #0e1726);
+  --color-boli-on: light-dark(#c6f24e, #0e1726);
 
   --font-display: "Bricolage Grotesque", system-ui, sans-serif;
   --font-sans: "Geist", system-ui, sans-serif;
@@ -56,9 +60,9 @@
   --radius-card: 16px;
   --radius-placa: 6px;
 
-  --shadow-card: 0 1px 2px rgba(14, 23, 38, 0.06), 0 0 0 1px rgba(14, 23, 38, 0.06);
-  --shadow-sheet: 0 8px 24px -6px rgba(14, 23, 38, 0.14);
-  --shadow-modal: 0 24px 48px -12px rgba(14, 23, 38, 0.22);
+  --shadow-card: 0 1px 2px light-dark(rgba(14, 23, 38, 0.06), transparent), 0 0 0 1px light-dark(rgba(14, 23, 38, 0.06), rgba(255, 255, 255, 0.05));
+  --shadow-sheet: 0 8px 24px -6px light-dark(rgba(14, 23, 38, 0.14), rgba(0, 0, 0, 0.6));
+  --shadow-modal: 0 24px 48px -12px light-dark(rgba(14, 23, 38, 0.22), rgba(0, 0, 0, 0.75)), 0 0 0 1px light-dark(transparent, rgba(255, 255, 255, 0.06));
 
   --ease-press: cubic-bezier(0.2, 0, 0, 1);
   --ease-entrada: cubic-bezier(0.16, 1, 0.3, 1);
@@ -88,11 +92,11 @@
   :root[data-tema="oscuro"] {
     color-scheme: dark;
   }
-  /* Panel tinta (sidebar, bento, pastillas): en oscuro es superficie #151C28 con texto claro y un hilo #2A3446. */
+  /* Panel tinta (sidebar, resumen, pastillas): en oscuro es la superficie grafito #16181C con un filo blanco al 6 %. */
   .tinta {
-    --color-tinta: light-dark(#0e1726, #151c28);
-    --color-card: light-dark(#fcfdfe, #f2f5f9);
-    box-shadow: inset 0 0 0 1px light-dark(transparent, var(--color-tinta-3));
+    --color-tinta: light-dark(#0e1726, #16181c);
+    --color-card: light-dark(#fcfdfe, #f4f5f7);
+    box-shadow: inset 0 0 0 1px light-dark(transparent, rgba(255, 255, 255, 0.06));
   }
   /* La placa es un objeto físico: blanca con borde tinta en los dos modos. */
   .placa {
@@ -133,7 +137,7 @@
 
   .sk {
     display: block;
-    background: linear-gradient(90deg, var(--color-suave) 0%, light-dark(#f7f9fb, #232c3b) 50%, var(--color-suave) 100%);
+    background: linear-gradient(90deg, var(--color-suave) 0%, light-dark(#f7f9fb, #2a2e35) 50%, var(--color-suave) 100%);
     background-size: 200% 100%;
     animation: var(--animate-brillo);
     border-radius: 8px;
@@ -205,12 +209,16 @@
   to { opacity: 1; }
 }
 
+/* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
+.vista { animation: entra 260ms var(--ease-entrada) both; }
+
 /* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
 @media (prefers-reduced-motion: reduce) {
   .press:active:not(:disabled) { transform: none; }
   .sk { animation: none; }
   .check { animation: solo-fundido 120ms linear both; stroke-dashoffset: 0; }
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
+  .vista { animation: solo-fundido 120ms linear both; }
   dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
   dialog.sheet[open] { opacity: 1; }
   @starting-style { dialog.sheet[open] { opacity: 0; } }

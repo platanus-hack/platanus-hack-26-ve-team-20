@@ -73,9 +73,10 @@ export default function Pago() {
       form="pago-c2p"
       disabled={enviando}
       aria-busy={enviando}
-      className={cx('relative h-12 w-full overflow-hidden rounded-control text-base font-semibold', enviando ? 'tinta cursor-progress bg-tinta-3 text-card' : 'press bg-rojo text-contraste hover:bg-rojo-osc', extra)}
+      className={cx('relative h-12 w-full overflow-hidden rounded-control bg-primario text-base font-semibold text-sobre-primario transition-opacity duration-150', enviando ? 'cursor-progress' : 'press hover:opacity-90', extra)}
     >
-      {enviando && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-full origin-left animate-[llenar_1200ms_linear_both] bg-tinta motion-reduce:animate-none" />}
+      {/* Mientras el banco responde, un velo claro recorre el botón (1,2 s). */}
+      {enviando && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-full origin-left animate-[llenar_1200ms_linear_both] bg-white/30 motion-reduce:animate-none" />}
       <span className="relative">{enviando ? 'Procesando pago…' : `Pagar ${formatBs(total)}`}</span>
     </button>
   )
@@ -103,21 +104,24 @@ export default function Pago() {
       <Pagina className="flex-1">
         {atras}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          <div className="tinta flex flex-col gap-2 self-start rounded-card bg-tinta p-6 lg:col-span-5 lg:col-start-8 lg:row-start-1">
-            <span className="text-sm text-niebla">Total a pagar · monto de ejemplo</span>
+          <div className="tinta flex flex-col gap-1 self-start rounded-card bg-tinta p-6 shadow-card lg:col-span-5 lg:col-start-8 lg:row-start-1">
+            <span className="text-sm text-niebla">Total a pagar</span>
             <span className="num font-mono text-[40px] leading-[44px] font-bold text-card">{formatBs(total)}</span>
-            <div className="flex flex-col gap-2 border-t border-tinta-3 pt-3">
+            <div className="mt-3 flex flex-col gap-2 border-t border-tinta-3 pt-3.5">
               {multas.map((m) => (
-                <span key={m.id} className="flex justify-between gap-3 text-sm text-card">
-                  <span><span className="font-mono font-bold">{m.plate}</span> · {TIPO[m.type]}</span>
+                <span key={m.id} className="flex justify-between gap-3 text-sm text-niebla">
+                  <span>{TIPO[m.type]} · <span className="font-mono font-semibold">{m.plate}</span></span>
                   <span className="num font-mono">{formatBs(m.amountCents)}</span>
                 </span>
               ))}
             </div>
           </div>
 
-          <form id="pago-c2p" onSubmit={pagar} noValidate aria-labelledby="c2p-t" className="flex flex-col gap-3.5 rounded-card bg-card p-4 shadow-card lg:col-span-7 lg:col-start-1 lg:row-start-1 lg:p-6">
-            <h2 id="c2p-t" className="text-h3 font-semibold">Pago Móvil C2P</h2>
+          <form id="pago-c2p" onSubmit={pagar} noValidate aria-labelledby="c2p-t" className="flex flex-col gap-4 lg:col-span-7 lg:col-start-1 lg:row-start-1">
+            <div className="flex flex-col gap-0.5">
+              <h2 id="c2p-t" className="text-h3 font-semibold">Pago Móvil C2P</h2>
+              <p className="text-sm text-texto-2">Pago simulado: no se mueve dinero real.</p>
+            </div>
             {rechazo && !enviando && (
               <div role="alert" className="flex flex-col gap-0.5 rounded-control bg-rojo-bg px-3.5 py-3 text-sm text-rojo-osc">
                 <span className="font-semibold">{RECHAZO[rechazo][0]}</span>

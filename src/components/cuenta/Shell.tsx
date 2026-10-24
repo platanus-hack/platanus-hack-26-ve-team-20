@@ -5,7 +5,7 @@ import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio
 import { formatCedula } from '@/lib/format.ts'
 import { Boton, Hoja, SelectorTema } from '@/components/ui/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
-import { DemoBanner, Logo } from '@/components/vc/index.tsx'
+import { Logo } from '@/components/vc/index.tsx'
 
 type Seccion = 'inicio' | 'multas' | 'estadisticas' | 'vehiculos' | 'en-vivo' | 'perfil'
 const NAV: Array<{ id: Seccion; label: string; Icono: LucideIcon }> = [
@@ -50,7 +50,6 @@ function Shell() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <DemoBanner />
       <div className="flex min-h-0 flex-1">
         <aside className="tinta hidden w-[248px] flex-none flex-col gap-1 bg-tinta px-3 py-5 lg:flex">
           <div className="px-3 pb-5 text-card"><Logo claro /></div>
@@ -62,7 +61,7 @@ function Shell() {
                   key={id}
                   to={`/${id}`}
                   aria-current={on ? 'page' : undefined}
-                  className={cx('relative flex h-11 items-center gap-3 rounded-control px-3 text-[15px]', on ? 'bg-tinta-2 font-semibold text-card' : 'font-medium text-niebla hover:text-card')}
+                  className={cx('relative flex h-11 items-center gap-3 rounded-control px-3 text-[15px] transition-colors duration-150', on ? 'bg-tinta-2 font-semibold text-card' : 'font-medium text-niebla hover:bg-tinta-2/60 hover:text-card')}
                 >
                   {on && <span aria-hidden="true" className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-sm bg-brand" />}
                   <Icono size={20} strokeWidth={1.75} aria-hidden="true" className={on ? 'text-brand' : undefined} />
@@ -95,7 +94,9 @@ function Shell() {
           </header>
 
           <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-            <Outlet />
+            <div key={pathname} className="vista flex flex-1 flex-col">
+              <Outlet />
+            </div>
           </main>
 
           {!enFlujo && (
@@ -105,14 +106,14 @@ function Shell() {
                 className="pointer-events-none absolute top-1.5 left-1 flex h-8 justify-center transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none"
                 style={{ width: 'calc((100% - 8px) / 5)', transform: `translateX(${iAbajo * 100}%)` }}
               >
-                <span className="tinta h-8 w-14 rounded-full bg-tinta" />
+                <span className="h-8 w-14 rounded-full bg-suave" />
               </span>
               {[...ABAJO.map((id) => NAV.find((n) => n.id === id)), null].map((n, i) => {
                 const on = i === iAbajo
                 const Icono = n?.Icono ?? Menu
                 const cuerpo = (
                   <>
-                    <span className="flex h-8 w-14 items-center justify-center"><Icono size={20} strokeWidth={1.75} aria-hidden="true" className={on ? 'text-brand' : 'text-texto-2'} /></span>
+                    <span className="flex h-8 w-14 items-center justify-center"><Icono size={20} strokeWidth={on ? 2 : 1.75} aria-hidden="true" className={on ? 'text-tinta' : 'text-texto-2'} /></span>
                     {n?.label ?? 'Más'}
                   </>
                 )

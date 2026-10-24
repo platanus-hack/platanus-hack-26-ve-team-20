@@ -215,7 +215,7 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
         <button
           type="submit"
           disabled={sending}
-          className="flex min-h-12 items-center justify-center rounded-[6px] bg-rojo px-4 py-3 text-[18px] font-bold text-contraste hover:bg-rojo-osc focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-tinta disabled:cursor-wait disabled:bg-input"
+          className="flex min-h-12 items-center justify-center rounded-control bg-primario px-4 py-3 text-[18px] font-bold text-sobre-primario hover:opacity-90 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-tinta disabled:cursor-wait disabled:bg-input"
         >
           {sending ? <Spinner label="Procesando pago simulado…" /> : `Pagar ${amount}`}
         </button>
