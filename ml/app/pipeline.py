@@ -28,6 +28,7 @@ MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "vc-0.1") + ("-coco" if USAR_COCO 
 # Umbral sugerido por el notebook de choques (INTEGRACION_CAPA_CHOQUES.md §8); calibrar en el sitio de la demo.
 CONF_CHOQUES = float(os.getenv("ML_CONF_CHOQUES", "0.3"))
 MAX_CLIP_BYTES = 100 * 1024 * 1024
+ESCENA_MAX_ANCHO = 1280  # fotos de escena en la respuesta; en disco quedan a resolución completa
 PLACA_NO_LEIDA = "NO LEIDA"
 
 
@@ -106,8 +107,19 @@ def descargar(url: str, destino: Path) -> Path:
     return ruta
 
 
-def _b64(ruta: Path) -> str | None:
-    return base64.b64encode(ruta.read_bytes()).decode() if ruta.exists() else None
+def _b64(ruta: Path, max_ancho: int | None = None) -> str | None:
+    """JPEG en base64; con max_ancho lo reduce para la respuesta (el archivo en disco queda completo)."""
+    if not ruta.exists():
+        return None
+    if max_ancho is None:
+        return base64.b64encode(ruta.read_bytes()).decode()
+    img = cv2.imread(str(ruta))
+    if img is None:
+        return None
+    if img.shape[1] > max_ancho:
+        img = cv2.resize(img, (max_ancho, round(img.shape[0] * max_ancho / img.shape[1])), interpolation=cv2.INTER_AREA)
+    ok, jpg = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return base64.b64encode(jpg.tobytes()).decode() if ok else None
 
 
 def analizar(clip: Path, cal: Calibracion, fabrica: Callable[..., Any] = crear_motor) -> PredictResponse:
@@ -115,22 +127,29 @@ def analizar(clip: Path, cal: Calibracion, fabrica: Callable[..., Any] = crear_m
     cap = cv2.VideoCapture(str(clip))
     if not cap.isOpened():
         raise ClipError("No se pudo abrir el clip")
+    cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)  # el teléfono graba en vertical con la rotación como metadato
     fps = cap.get(cv2.CAP_PROP_FPS) or 0.0
     ancho, alto = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # A 60 fps se procesa uno de cada dos cuadros: el tracking va bien a ~30 y el tiempo sigue saliendo del PTS.
+    paso = max(1, round(fps / 30)) if fps else 1
 
     infracciones: list[dict[str, Any]] = []
     multas: list[dict[str, Any]] = []
     carpeta = EVIDENCE_DIR / uuid.uuid4().hex  # se conserva: es el respaldo de cada multa
     motor = fabrica(config=camara_json(cal, ancho, alto), carpeta_evidencias=str(carpeta), en_multa=multas.append)
-    n, ultimo_ms, fuente = 0, 0.0, "pts"
+    n, leidos, ultimo_ms, fuente = 0, 0, 0.0, "pts"
     try:
         while True:
+            if leidos % paso and cap.grab():  # grab() salta el cuadro sin decodificarlo
+                leidos += 1
+                continue
             ok, frame = cap.read()
             if not ok:
                 break
+            leidos += 1
             ms = cap.get(cv2.CAP_PROP_POS_MSEC)
             if n > 0 and ms <= 0:  # sin PTS: cae a número de fotograma / fps
-                fuente, ms = "fps", n * 1000 / fps if fps else 0.0
+                fuente, ms = "fps", (leidos - 1) * 1000 / fps if fps else 0.0
             ultimo_ms = ms
             salida = motor.procesar_frame(frame, "rojo", t=ms / 1000)
             infracciones += salida["infracciones_nuevas"]
@@ -166,7 +185,7 @@ def analizar(clip: Path, cal: Calibracion, fabrica: Callable[..., Any] = crear_m
     key_frames = [
         KeyFrame(ms=at_ms(i), jpegBase64=jpg)
         for i in infracciones
-        if (jpg := _b64(Path(i["carpeta"]) / "escena.jpg"))
+        if (jpg := _b64(Path(i["carpeta"]) / "escena.jpg", ESCENA_MAX_ANCHO))
     ]
     placa_jpg = next((j for m in multas_rojo if (j := _b64(Path(m["carpeta"]) / "placa.jpg"))), None)
 
@@ -201,7 +220,7 @@ def _incidentes(
             confidence=float(i["detalle"]["conf"]),
             box=Box(x=x1 / ancho, y=y1 / alto, w=(x2 - x1) / ancho, h=(y2 - y1) / alto),
             vehicles=[],
-            sceneJpegBase64=_b64(Path(i["carpeta"]) / "escena.jpg"),
+            sceneJpegBase64=_b64(Path(i["carpeta"]) / "escena.jpg", ESCENA_MAX_ANCHO),
         )
     for m in multas:
         inc = por_clave.get(clave(m)) if m.get("tipo") == "choque" else None
