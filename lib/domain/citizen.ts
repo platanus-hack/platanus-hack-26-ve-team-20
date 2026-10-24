@@ -59,6 +59,22 @@ function sameHex(a: string, b: string): boolean {
 
 export interface CodeSendResult { delivered: boolean; reason?: string }
 
+/** Lo que ve la persona cuando el código no salió: lo bastante concreto para saber qué hacer (o qué revisar). */
+export function sendFailureMessage(reason: string | undefined): string {
+  switch (reason) {
+    case "WINDOW_CLOSED":
+      return "No pudimos enviar el código. Escriba un mensaje al WhatsApp de SmartTraffic y vuelva a intentarlo.";
+    case "RECIPIENT_NOT_ALLOWED":
+      return "Ese número no puede recibir mensajes del WhatsApp de prueba de SmartTraffic. Use un número autorizado.";
+    case "DRY_RUN":
+      return "El envío por WhatsApp está desactivado en este servidor, así que el código no salió.";
+    case "CONFIG":
+      return "WhatsApp no está configurado en este servidor, así que el código no salió.";
+    default:
+      return "No pudimos enviar el código por WhatsApp. Intente de nuevo en unos minutos.";
+  }
+}
+
 export interface CitizenDeps {
   db: PrismaClient;
   /** Envía el código por WhatsApp. Nunca debe lanzar. */
@@ -86,14 +102,7 @@ export function createCitizenService(deps: CitizenDeps) {
     const sent = await deps.sendCode(phone, code);
     if (sent.delivered) return;
     await db.citizenRegistration.deleteMany({ where: { id: registrationId } });
-    const closed = sent.reason === "WINDOW_CLOSED" || sent.reason === "RECIPIENT_NOT_ALLOWED";
-    throw new DomainError(
-      "UPSTREAM_ERROR",
-      closed
-        ? "No pudimos enviar el código. Escriba un mensaje al WhatsApp de SmartTraffic y vuelva a intentarlo."
-        : "No pudimos enviar el código por WhatsApp. Intente de nuevo en unos minutos.",
-      "ENVIO_FALLIDO",
-    );
+    throw new DomainError("UPSTREAM_ERROR", sendFailureMessage(sent.reason), "ENVIO_FALLIDO");
   }
 
   const personOf = (cedula: string) =>

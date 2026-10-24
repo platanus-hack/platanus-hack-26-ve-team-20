@@ -13,6 +13,7 @@ export default function Registro() {
   const [f, setF] = useState({ tipo: 'V' as 'V' | 'E', ced: '', tel: '', correo: '', c1: '', c2: '' })
   const [intento, setIntento] = useState(false)
   const [yaRegistrada, setYaRegistrada] = useState(false)
+  const [fallo, setFallo] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
   if (getSesion()) return <Navigate to="/inicio" replace />
@@ -28,13 +29,17 @@ export default function Registro() {
   const enviar = async (e: FormEvent) => {
     e.preventDefault()
     setIntento(true)
+    setFallo(null)
     if (enviando || !/^\d{6,9}$/.test(f.ced) || !TELEFONO_RE.test(f.tel) || claveTexto) return
     setEnviando(true)
     try {
       await solicitarCodigo({ cedula: `${f.tipo}${f.ced}`, telefono: f.tel, correo: f.correo.trim() || null, clave: f.c1 })
       navigate('/registro/codigo')
     } catch (err) {
-      setYaRegistrada(err instanceof DemoError && err.code === 'YA_REGISTRADA')
+      const ya = err instanceof DemoError && err.code === 'YA_REGISTRADA'
+      setYaRegistrada(ya)
+      // Cualquier otro fallo (no se pudo enviar el WhatsApp, límite de intentos, sin conexión) también se muestra.
+      setFallo(ya ? null : err instanceof Error && err.message ? err.message : 'No pudimos enviar el código. Intente de nuevo.')
       setEnviando(false)
     }
   }
@@ -52,6 +57,9 @@ export default function Registro() {
           <span>Entre con su contraseña o recupérela desde «¿Olvidó su contraseña?».</span>
           <Link to="/ingresar" className="inline-flex min-h-11 items-center self-start font-semibold underline">Ir a Entrar</Link>
         </div>
+      )}
+      {fallo && (
+        <div role="alert" className="rounded-control bg-rojo-bg px-3.5 py-3 text-sm text-rojo-osc">{fallo}</div>
       )}
       <Campo id="r-ced" label="Cédula" error={cedMal && 'Escriba los 6 a 9 dígitos de su cédula.'}>
         <div className="flex gap-2">

@@ -54,13 +54,18 @@ const EnvSchema = z.object({
   WHATSAPP_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default(DEFAULT_GRAPH_VERSION),
 });
 
-/** Lee la configuración de `process.env`. Sin `NOTIFY_DRY_RUN=false` explícito, no se envía nada. */
+/**
+ * Lee la configuración de `process.env`. Sin `NOTIFY_DRY_RUN=false` explícito, no se envía nada.
+ * Recorta espacios y saltos de línea (pegar el token en el panel de Vercel suele dejar uno al final, y un
+ * `\n` en el header Authorization hace fallar el fetch).
+ */
 export function whatsappConfigFromEnv(env: Record<string, string | undefined> = process.env): WhatsAppConfig {
+  const v = (k: string) => env[k]?.trim() || undefined;
   const e = EnvSchema.parse({
-    NOTIFY_DRY_RUN: env.NOTIFY_DRY_RUN || undefined,
-    WHATSAPP_ACCESS_TOKEN: env.WHATSAPP_ACCESS_TOKEN,
-    WHATSAPP_PHONE_NUMBER_ID: env.WHATSAPP_PHONE_NUMBER_ID,
-    WHATSAPP_GRAPH_VERSION: env.WHATSAPP_GRAPH_VERSION || undefined,
+    NOTIFY_DRY_RUN: v("NOTIFY_DRY_RUN")?.toLowerCase(),
+    WHATSAPP_ACCESS_TOKEN: v("WHATSAPP_ACCESS_TOKEN"),
+    WHATSAPP_PHONE_NUMBER_ID: v("WHATSAPP_PHONE_NUMBER_ID"),
+    WHATSAPP_GRAPH_VERSION: v("WHATSAPP_GRAPH_VERSION"),
   });
   return {
     accessToken: e.WHATSAPP_ACCESS_TOKEN,
@@ -167,10 +172,12 @@ async function post(rawTo: string, content: Record<string, unknown>, options: Se
     });
   } catch (err) {
     const timedOut = err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError");
+    // Solo el tipo y el código de la causa: el mensaje de un TypeError de headers incluye el token.
+    const cause = err instanceof Error && err.cause && typeof err.cause === "object" && "code" in err.cause ? ` ${String(err.cause.code)}` : "";
     return fail(
       timedOut
         ? { reason: "TIMEOUT", message: `Meta no respondió en ${TIMEOUT_MS / 1000} s` }
-        : { reason: "NETWORK", message: "No se pudo conectar con Meta" },
+        : { reason: "NETWORK", message: `No se pudo conectar con Meta (${err instanceof Error ? err.name : "error"}${cause})` },
     );
   }
 
