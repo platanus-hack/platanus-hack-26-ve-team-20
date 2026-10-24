@@ -65,7 +65,7 @@ El usuario del sistema es uno que ya existía en el portafolio: no cambiarle rol
 | `WHATSAPP_VERIFY_TOKEN` | texto aleatorio para el GET de verificación del webhook |
 | `WHATSAPP_GRAPH_VERSION` | `v23.0` (con el que se probó el token) |
 
-Además: `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER`, `OFFICER_PASSCODE`, `ALERT_RADIUS_METERS`, `NOTIFY_DRY_RUN`. Ninguna va al repo; solo en Vercel y `.env.local`. El repo **no tiene `.gitignore`**: en esta copia `.env.local` está excluido con `.git/info/exclude`, pero P1 debe agregar el `.gitignore` con el esqueleto.
+Además: `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER`, `OFFICER_PASSCODE`, `ALERT_RADIUS_METERS`, `NOTIFY_DRY_RUN`. Ninguna va al repo; solo en Vercel y `.env.local`, que el `.gitignore` del esqueleto ya ignora.
 
 ### 3.4 Contrato técnico
 **Envío** (`lib/notify/whatsapp.ts`), siempre `type: "text"`:
@@ -87,25 +87,26 @@ La respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Un err
 - Meta reintenta si no recibe 200, así que hay que deduplicar por (wamid, estado) y no bajar de estado (un `delivered` atrasado no pisa un `read`). Responder 200 rápido.
 
 ## 4. Estado actual y qué no depende de nadie
-- El repo solo tiene docs: no hay `package.json`, Prisma ni `lib/contracts`. P1 arma el esqueleto en h0–4.
-- **Sin esperar a nadie** puedes escribir los módulos puros que no tocan DB: `templates.ts` (los textos de los mensajes), el cliente HTTP de `whatsapp.ts`, la verificación de firma del webhook, `haversine.ts`, `banks.ts` y el simulador de `c2p.ts`. Todos se prueban con Vitest apenas exista la config.
+- El esqueleto de P1 ya está en `main` y en esta rama: Vite, Vercel Functions, `lib/contracts` (con las firmas de P3 en `modules.ts` y `C2PRequestSchema` en `requests.ts`), `api/_lib/respond.ts`, Vitest, oxlint y `.gitignore`. Las páginas `src/pages/Multa.tsx` y `Pagar.tsx` existen como placeholder.
+- Todavía **no** hay Prisma, `lib/db.ts` ni `lib/domain` (F4 y F5 del plan de P1, `docs/11`).
+- **Ya se puede** hacer todo lo que solo usa contratos y Vitest: mocks, textos de los mensajes, cliente de WhatsApp, simulador C2P y haversine (pasos 3–7).
 - **Bloquea a otros**: tus mocks (`lib/notify/mock.ts`, `lib/alerts/mock.ts`, `lib/payments/mock.ts`) deben estar antes de h2; P1 los necesita para `registerDetection`.
 
 ## 5. Pasos
 
 **Paso actual: 3.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
 
-Cada paso es **un commit** en la rama `Edwjon` (§6). Columna "Necesita": `—` = se puede hacer ya; **E** = el esqueleto de P1 ya está en `main` y traído a esta rama (Vite, `package.json`, Vitest, Prisma, `lib/db.ts`, `lib/contracts`, `lib/domain`); **S** = además el seed con oficiales y teléfonos demo; **Prod** = hay deploy en Vercel.
+Cada paso es **un commit** en la rama `Edwjon` (§6). Columna "Necesita": `—` = se puede hacer ya; **C** = contratos y Vitest del esqueleto de P1 (ya en esta rama); **E** = además Prisma, `lib/db.ts` y `lib/domain` de P1; **S** = además el seed con oficiales y teléfonos demo; **Prod** = hay deploy en Vercel.
 
 | # | Paso | Archivos | Necesita | Hecho cuando | Commit |
 |---|---|---|---|---|---|
 | [x] 1 | Documentar el cambio de Kapso a Meta en el resto del repo | `AGENTS.md`, `CLAUDE.md`, `docs/00`–`09`, `README.md`, `project-description.md`, `platanus-hack-project.jsonc`, `.env.example` | — | `grep -ri kapso` solo encuentra la nota histórica de este plan; `.env.example` trae las `WHATSAPP_*` de §3.3 | `docs: switch WhatsApp from Kapso to Meta Cloud API` |
 | [x] 2 | Montar WhatsApp en Meta (manual): app, número de prueba, destinatarios verificados, token permanente, clave secreta y verify token (§3.1) | sin código; solo la casilla de este plan | — | `hello_world` llega a los teléfonos de demo; el token responde contra Meta; las variables están en `.env.local` (las de Vercel van en el paso 10) | `docs(p3): mark Meta setup done` |
-| [ ] 3 | Mocks de P3 con las firmas de `lib/contracts` | `lib/notify/mock.ts`, `lib/alerts/mock.ts`, `lib/payments/mock.ts` | E | `pnpm typecheck` verde; P1 los importa con `USE_MOCKS=true` | `feat(notify): add P3 mocks` |
-| [ ] 4 | Textos de los 3 mensajes (`04` §7), fechas en Caracas, placa y montos formateados | `lib/notify/templates.ts` + test | E | test de los 3 textos en verde | `feat(notify): add message templates` |
-| [ ] 5 | Cliente de WhatsApp Cloud API: mensajes de texto, `NOTIFY_DRY_RUN`, errores de Meta tipados (incluido ventana cerrada) | `lib/notify/whatsapp.ts` + test con `fetch` simulado | E | test verde; un script local envía un mensaje real al teléfono de demo | `feat(notify): add WhatsApp Cloud API client` |
-| [ ] 6 | Simulador C2P y lista de bancos de ejemplo | `lib/payments/banks.ts`, `lib/payments/c2p.ts` + test | E | `000000` rechaza, `111111` sin fondos, otra aprueba con `SIM-`; la clave no aparece en nada devuelto | `feat(payments): add simulated C2P` |
-| [ ] 7 | Distancia entre coordenadas | `lib/geo/haversine.ts` + test | E | distancias conocidas dentro de ±1 m | `feat(geo): add haversine` |
+| [ ] 3 | Mocks de P3 con las firmas de `lib/contracts` | `lib/notify/mock.ts`, `lib/alerts/mock.ts`, `lib/payments/mock.ts` | C | `pnpm typecheck` verde; P1 los importa con `USE_MOCKS=true` | `feat(notify): add P3 mocks` |
+| [ ] 4 | Textos de los 3 mensajes (`04` §7), fechas en Caracas, placa y montos formateados | `lib/notify/templates.ts` + test | C | test de los 3 textos en verde | `feat(notify): add message templates` |
+| [ ] 5 | Cliente de WhatsApp Cloud API: mensajes de texto, `NOTIFY_DRY_RUN`, errores de Meta tipados (incluido ventana cerrada) | `lib/notify/whatsapp.ts` + test con `fetch` simulado | C | test verde; un script local envía un mensaje real al teléfono de demo | `feat(notify): add WhatsApp Cloud API client` |
+| [ ] 6 | Simulador C2P y lista de bancos de ejemplo | `lib/payments/banks.ts`, `lib/payments/c2p.ts` + test | C | `000000` rechaza, `111111` sin fondos, otra aprueba con `SIM-`; la clave no aparece en nada devuelto | `feat(payments): add simulated C2P` |
+| [ ] 7 | Distancia entre coordenadas | `lib/geo/haversine.ts` + test | C | distancias conocidas dentro de ±1 m | `feat(geo): add haversine` |
 | [ ] 8 | `notifyFineIssued` y `notifyPaymentConfirmed` reales: guardan `Notification`, nunca lanzan; si WhatsApp falla queda `FAILED` con el error | `lib/notify/index.ts` + test | E, S | crear una multa con el script de P1 envía WhatsApp y deja `Notification` en `SENT` (o `DRY_RUN`) | `feat(notify): send fine and payment notifications` |
 | [ ] 9 | API de pago: Zod, idempotencia, 409 `ALREADY_PAID`, rate limit, `markFinePaid`, `AuditLog` | `api/payments/c2p.ts` + test | E, S | doble envío con la misma llave = un solo `Payment`; segundo pago de la misma multa = 409 | `feat(payments): add C2P payment endpoint` |
 | [ ] 10 | Página de la multa (HU-04, `05` §3.3); cargar las variables de §3.3 en Vercel | `src/pages/Multa.tsx`, `components/multa/**` | E, S, Prod | en el Preview, una multa del seed se ve a 360 px con evidencia, monto y banner demo, sin cédula ni teléfono | `feat(multa): add fine landing page` |
@@ -136,7 +137,7 @@ Referencia de horas de `07`: pasos 1–2 en h0–1, 3 antes de h2, 4–5 en h1�
 ## 7. Decisiones a cerrar en la reunión de contratos (h1)
 1. **Kapso → Meta, solo número de prueba.** Avisar al equipo: cambian env vars (`KAPSO_*` y `RESEND_*`/`EMAIL_FROM` → `WHATSAPP_*`), `.env.example`, nombres de archivo (`kapso.ts` → `whatsapp.ts`) y el webhook (`/api/webhooks/kapso` → `/api/webhooks/whatsapp`, ahora con `GET` de verificación). Las firmas de `notify*` no cambian.
 2. **Quién pasa la violación de `FINED` a `NOTIFIED`.** Propuesta: `notifyFineIssued` solo envía y registra `Notification`; P1, dentro de `registerDetection`, llama `transition()` según el resultado (`SENT`/`DRY_RUN`). Así todo cambio de estado queda en `lib/domain`.
-3. **`C2PRequest` no está definido** en `04` §0. Propongo el Zod de `04` §5 (`fineToken`, `payerBankCode`, `payerPhone`, `payerCedula`, `c2pKey`, `idempotencyKey`) y lo llevo como PR a `lib/contracts`.
+3. ~~`C2PRequest` no está definido.~~ Resuelto: P1 lo publicó como `C2PRequestSchema` en `lib/contracts/requests.ts`.
 4. **De dónde sale la ubicación de la cámara para el haversine.** `Camera` y `Sighting` no tienen lat/lng; el GPS del teléfono queda en `Evidence.meta`. Propuesta MVP: usar `Intersection.lat/lng`. Opcional: que P1 agregue `lat`/`lng` a `Sighting`.
 5. **Qué cuenta para la supresión de 10 min.** Si `NO_OFFICER_NEARBY` también suprime, un oficial que entra en servicio 2 min después no recibe nada. Propuesta: solo cuentan `SENT` y `ACKNOWLEDGED`.
 6. **Sesión del oficial.** `api/_lib/auth.ts` es de P1 y `/api/officers/session` es tuyo. Pedir a P1 un helper `requireOfficer(req)` y otro que firme la cookie con `officerId`.
