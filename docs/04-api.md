@@ -103,6 +103,22 @@ El ciudadano crea su propia contraseña al registrarse y entra con su cédula. S
 
 **Solo para demos.** `CITIZEN_DEMO_CODE` (6 dígitos) junto con `DEMO_CEDULA` hacen que ese código valga para esa cédula **sin enviar nada** (la presentación no depende de la ventana de 24 h). Sin esas dos variables no existe. No debe configurarse en un entorno con datos reales.
 
+## 0d. Invitaciones de oficiales (P1; las pantallas son de P4)
+El admin invita por correo a un oficial; el oficial abre el enlace, elige teléfono y contraseña y nace su cuenta con una placa `OF-NNNN`. Token de 256 bits (43 caracteres base64url), solo se guarda su SHA-256; vence a las 72 h, un solo uso, revocable. Invitar de nuevo al mismo correo anula la pendiente. El correo sale por Resend (`RESEND_API_KEY`, `EMAIL_FROM`; en seco con `NOTIFY_DRY_RUN` ≠ `false`). Enlace del correo: `${APP_BASE_URL}/oficial/invitacion?token=…` (**ruta del SPA que debe crear P4**). La sesión del oficial es la misma cookie `vc_officer` que usa P3 (`/api/officers/*`).
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/admin/officer-invitations` `{ email, name }` | admin | Crea la invitación y envía el correo. 201 `{ invitation, emailSent, inviteUrl? }`; `inviteUrl` solo si el correo no salió (el admin copia el enlace). 409 `CORREO_EN_USO` si ya es oficial. |
+| `GET /api/admin/officer-invitations` | admin | `{ items: OfficerInvitationDTO[] }` (estado `PENDING`/`USED`/`EXPIRED`/`REVOKED`, placa si se usó). Nunca devuelve tokens. |
+| `POST /api/admin/officer-invitations/:id/revoke` | admin | Anula una pendiente (idempotente). 409 `YA_USADA` si ya se usó. |
+| `GET /api/admin/officers` | admin | `{ items: AdminOfficerDTO[] }` con teléfono enmascarado. |
+| `POST /api/admin/officers/:id/active` `{ active }` | admin | Desactiva/reactiva (desactivar lo saca de servicio y le impide el login con correo). |
+| `POST /api/officer/invitation/check` `{ token }` | public | `{ email, name, expiresAt }`. 404 `INVITACION_INVALIDA` igual para inexistente, vencida, usada o revocada. |
+| `POST /api/officer/invitation/accept` `{ token, name?, phone, password }` | public | Contraseña ≥ 10, teléfono venezolano. 201 `{ officer }` + `Set-Cookie vc_officer`. |
+| `POST /api/officer/login` `{ email, password }` | public | 200 `{ officer }` + cookie. Un solo error `CREDENCIALES` (401); 5 fallos por correo y 10 por IP cada 10 min. |
+
+Los oficiales del seed siguen entrando con `OFFICER_PASSCODE` + placa (`POST /api/officers/session`, P3). **Pendiente para P3:** esas rutas deberían comprobar `Officer.active` (hoy una sesión ya emitida a un oficial desactivado sigue valiendo hasta que vence, 12 h).
+
 ## 1. Detecciones y cámaras (P2)
 
 ### `GET /api/time` (public)

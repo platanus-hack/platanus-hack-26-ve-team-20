@@ -234,8 +234,32 @@ model Officer {
   name      String
   phone     String
   onDuty    Boolean  @default(false)
+  // Cuenta propia (por invitación del admin). Los oficiales del seed no la tienen y entran con OFFICER_PASSCODE.
+  email        String?  @unique
+  passwordHash String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
   locations OfficerLocation[]
   alerts    Alert[]
+  invitation OfficerInvitation?
+}
+
+// Invitación por correo que crea un admin para un oficial de tránsito. El token (256 bits) solo viaja en el
+// enlace del correo; aquí se guarda su SHA-256. Un solo uso; al aceptarla nace el Officer.
+model OfficerInvitation {
+  id          String    @id @default(cuid())
+  email       String                              // normalizado en minúsculas
+  name        String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id])
+  officerId   String?   @unique
+  officer     Officer?  @relation(fields: [officerId], references: [id])
+  createdAt   DateTime  @default(now())
+  @@index([email])
 }
 
 model OfficerLocation {
@@ -303,6 +327,7 @@ model AdminUser {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+  officerInvitations OfficerInvitation[]
 }
 
 // Cuenta del ciudadano (cédula + contraseña). Una cuenta por titular (Person). La contraseña se guarda con

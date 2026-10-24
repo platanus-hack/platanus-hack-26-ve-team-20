@@ -91,6 +91,34 @@
       "destination": "/api/p1?route=citizen-fine&id=:id"
     },
     {
+      "source": "/api/admin/officer-invitations/:id/revoke",
+      "destination": "/api/p1?route=admin-invitation-revoke&id=:id"
+    },
+    {
+      "source": "/api/admin/officer-invitations",
+      "destination": "/api/p1?route=admin-invitations"
+    },
+    {
+      "source": "/api/admin/officers/:id/active",
+      "destination": "/api/p1?route=admin-officer-active&id=:id"
+    },
+    {
+      "source": "/api/admin/officers",
+      "destination": "/api/p1?route=admin-officers"
+    },
+    {
+      "source": "/api/officer/invitation/check",
+      "destination": "/api/p1?route=officer-invitation"
+    },
+    {
+      "source": "/api/officer/invitation/accept",
+      "destination": "/api/p1?route=officer-accept"
+    },
+    {
+      "source": "/api/officer/login",
+      "destination": "/api/p1?route=officer-login"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

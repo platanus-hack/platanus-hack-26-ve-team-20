@@ -8,6 +8,7 @@ Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 | `Intersection` | Cruce físico (nombre, lat/lng) |
 | `Camera` | Cámara (teléfono con app Expo) en una intersección, con calibración (homografía, línea de pare, carriles, zona de velocidad) |
 | `LightChange` | Cambio de estado del semáforo simulado de una cámara (con hora del servidor) |
+| `OfficerInvitation` | Invitación por correo a un oficial (hash del token, vence a las 72 h, un uso); al aceptarla nace el `Officer` (que gana `email`, `passwordHash`, `active`) |
 | `AdminUser` | Cuenta de admin/operador (login de `/admin` y `/camaras`); contraseña con hash scrypt |
 | `CitizenAccount` | Cuenta del ciudadano (cédula + contraseña con hash scrypt), una por titular |
 | `CitizenRegistration` | Registro pendiente de verificar: contraseña elegida y HMAC del código enviado por WhatsApp |

@@ -77,7 +77,7 @@ export const CITIZEN_MIN_PASSWORD = 8;
 const citizenPassword = z.string().min(CITIZEN_MIN_PASSWORD).max(200);
 
 /** Teléfono venezolano escrito por la persona (`0412-123 4567`, `+58 412 1234567`) → `584121234567`. */
-const citizenPhone = z
+export const venezuelanPhone = z
   .string()
   .trim()
   .transform((v) => v.replace(/[\s().+-]/g, ""))
@@ -92,7 +92,7 @@ const citizenPhone = z
 export const CitizenRegisterSchema = z.object({
   cedula: citizenCedula,
   password: citizenPassword,
-  phone: citizenPhone.nullish().or(z.literal("").transform(() => null)),
+  phone: venezuelanPhone.nullish().or(z.literal("").transform(() => null)),
   /** Opcional; se guarda en el perfil solo cuando el código se verifica. */
   email: z.string().trim().toLowerCase().pipe(z.email().max(200)).nullish().or(z.literal("").transform(() => null)),
 });
@@ -109,6 +109,33 @@ export type CitizenLoginRequest = z.infer<typeof CitizenLoginSchema>;
 
 export const CitizenPasswordSchema = z.object({ current: z.string().min(1).max(200), next: citizenPassword });
 export type CitizenPasswordRequest = z.infer<typeof CitizenPasswordSchema>;
+
+// ---- invitaciones de oficiales (P1, docs/04 §0d)
+const officerPassword = z.string().min(10).max(200);
+const invitationToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/, "Token inválido");
+
+export const OfficerInvitationCreateSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
+  name: z.string().trim().min(2).max(120),
+});
+export type OfficerInvitationCreateRequest = z.infer<typeof OfficerInvitationCreateSchema>;
+
+export const OfficerInvitationTokenSchema = z.object({ token: invitationToken });
+export const OfficerInvitationAcceptSchema = z.object({
+  token: invitationToken,
+  name: z.string().trim().min(2).max(120).optional(),
+  phone: venezuelanPhone,
+  password: officerPassword,
+});
+export type OfficerInvitationAcceptRequest = z.infer<typeof OfficerInvitationAcceptSchema>;
+
+export const OfficerLoginSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
+  password: z.string().min(1).max(200),
+});
+export type OfficerLoginRequest = z.infer<typeof OfficerLoginSchema>;
+
+export const OfficerActiveSchema = z.object({ active: z.boolean() });
 
 // ---- §2 revisión (P1)
 export const ReviewRequestSchema = z.discriminatedUnion("action", [

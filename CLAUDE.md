@@ -70,6 +70,7 @@ api/                                # Vercel Functions (TypeScript, Node)
   sightings.ts                      # POST placa vista (P2 → lib/alerts de P3)
   p1.ts                             # ÚNICA función de P1: auth, violaciones, revisión (rutas en api/_p1/, URLs por vercel.json)
   fines/[token].ts                  # GET multa pública (P1)
+  # /api/admin/officer-invitations, /api/admin/officers, /api/officer/* (invitaciones y cuentas de oficiales) → dentro de p1.ts
   # /api/citizen/* (registro con código por WhatsApp, login por cédula, multas, apelación) → dentro de p1.ts
   portal/lookup.ts                  # POST consulta por cédula (P1)
   payments/c2p.ts                   # POST pago simulado (P3)
@@ -140,6 +141,7 @@ docs/               # esta documentación
 | `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
 | `SESSION_SECRET` | firma las cookies de sesión (≥ 32 caracteres; `openssl rand -base64 48`). Obligatoria en Vercel | P1 |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
+| `RESEND_API_KEY`, `EMAIL_FROM` | correo de las invitaciones a oficiales (Resend; `EMAIL_FROM` con dominio verificado, p. ej. `SmartTraffic <no-responder@tu-dominio>`); en seco con `NOTIFY_DRY_RUN` ≠ `false` | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
 | `CITIZEN_DEMO_CODE` | SOLO DEMOS: 6 dígitos que valen como código de verificación para la cédula `DEMO_CEDULA`, sin enviar WhatsApp. Sin esta variable no hay atajo | P1 |

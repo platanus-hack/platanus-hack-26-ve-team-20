@@ -43,8 +43,8 @@ describe('migraciones', () => {
     expect(created.filter((t) => !secured.includes(t))).toEqual([])
   })
 
-  it('el schema declara todos los modelos de docs/03 (18, con AdminUser y las cuentas de ciudadano)', () => {
-    expect([...schema.matchAll(/^model (\w+) \{/gm)]).toHaveLength(18)
+  it('el schema declara todos los modelos de docs/03 (19, con AdminUser, cuentas de ciudadano e invitaciones de oficiales)', () => {
+    expect([...schema.matchAll(/^model (\w+) \{/gm)]).toHaveLength(19)
   })
 })
 

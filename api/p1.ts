@@ -5,6 +5,13 @@
 // api/_lib/auth.ts. Un test comprueba que este mapa y vercel.json estén sincronizados.
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { sendError } from "./_lib/respond.ts";
+import adminInvitations from "./_p1/admin-invitations.ts";
+import adminInvitationRevoke from "./_p1/admin-invitation-revoke.ts";
+import adminOfficers from "./_p1/admin-officers.ts";
+import adminOfficerActive from "./_p1/admin-officer-active.ts";
+import officerInvitation from "./_p1/officer-invitation.ts";
+import officerAccept from "./_p1/officer-accept.ts";
+import officerLogin from "./_p1/officer-login.ts";
 import authLogin from "./_p1/auth-login.ts";
 import authLogout from "./_p1/auth-logout.ts";
 import authMe from "./_p1/auth-me.ts";
@@ -44,6 +51,13 @@ export const P1_ROUTES: Record<string, Handler> = {
   "citizen-fine": citizenFine, // GET  /api/citizen/fines/:id
   "citizen-appeal": citizenAppeal, // POST /api/citizen/fines/:id/appeal
   "citizen-vehicles": citizenVehicles, // GET  /api/citizen/vehicles
+  "admin-invitations": adminInvitations, // GET/POST /api/admin/officer-invitations
+  "admin-invitation-revoke": adminInvitationRevoke, // POST /api/admin/officer-invitations/:id/revoke
+  "admin-officers": adminOfficers, // GET  /api/admin/officers
+  "admin-officer-active": adminOfficerActive, // POST /api/admin/officers/:id/active
+  "officer-invitation": officerInvitation, // POST /api/officer/invitation/check
+  "officer-accept": officerAccept, // POST /api/officer/invitation/accept
+  "officer-login": officerLogin, // POST /api/officer/login
 };
 
 export default function p1(req: VercelRequest, res: VercelResponse) {
