@@ -110,7 +110,7 @@ describe('notifyPaymentConfirmed', () => {
     const s = setup()
     expect((await s.notifier.notifyPaymentConfirmed('fine_1')).status).toBe('SENT')
     const [msg] = s.send.mock.calls[0] as unknown as [{ body: string; callbackData: string }]
-    expect(msg.body).toBe('VíaClara (demo). Pago simulado recibido. Ref SIM-48213977. Multa AB***CD saldada.')
+    expect(msg.body).toBe('SmartTraffic (demo). Pago simulado recibido. Ref SIM-48213977. Multa AB***CD saldada.')
     expect(msg.callbackData).toBe('payment:fine_1')
     expect(s.rows[0]?.template).toBe('PAYMENT_CONFIRMED')
   })
@@ -130,7 +130,7 @@ describe('notifyOfficerAlert', () => {
     expect(msg.to).toBe('584120000101')
     expect(msg.callbackData).toBe('alert:alr_1')
     expect(msg.body).toBe(
-      'VíaClara · Alerta: vehículo XY987ZT (Ford Explorer blanca) con 2 multas impagas visto en ' +
+      'SmartTraffic · Alerta: vehículo XY987ZT (Ford Explorer blanca) con 2 multas impagas visto en ' +
         'Av. Demo Norte con Calle 1 (ejemplo) hace 2 min, a 420 m de su posición. Verifique antes de actuar.',
     )
     expect(s.rows[0]).toMatchObject({ alertId: 'alr_1', template: 'OFFICER_ALERT', outcome: { status: 'SENT' } })
