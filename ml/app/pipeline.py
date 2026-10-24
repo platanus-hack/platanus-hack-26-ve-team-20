@@ -64,8 +64,10 @@ def crear_motor(**kwargs: Any) -> Any:
     en_mps = device == "mps"
     # Además de los formatos de 7 del motor, el antiguo de 6 (p. ej. XYZ12K) que todavía circula.
     plantillas = {**PLANTILLAS_VE, "antigua": "LLLDDL"}
-    lector = (LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas)
-              if placas.exists() else None)
+    # El lector se arma aquí (no en el motor), así que su umbral se le pasa directo.
+    conf_placas = kwargs.pop("conf_placas", 0.30)
+    lector = (LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas,
+                                       conf=conf_placas) if placas.exists() else None)
     return MotorInfracciones(
         pesos_vehiculos="yolo11n.pt" if USAR_COCO else str(WEIGHTS_DIR / "vehiculos.pt"),
         lector_placas=lector,
