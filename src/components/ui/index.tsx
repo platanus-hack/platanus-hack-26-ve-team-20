@@ -1,5 +1,5 @@
 import { ChevronDown, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
-import { useEffect, useRef, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { useTema, type Tema } from '@/hooks/useTema.ts'
 import { boton, cx, type Variante } from './estilos.ts'
@@ -24,22 +24,79 @@ export function Campo({ id, label, error, ayuda, children }: { id: string; label
   )
 }
 
-/** V/E: la letra y la flecha van centradas juntas; el select nativo, invisible encima, conserva teclado y lector de pantalla. */
+const TIPOS_CEDULA = ['V', 'E'] as const
+
+/** V/E con lista propia: letra y flecha centradas, opciones centradas y con los colores del tema (la lista nativa no se deja centrar). */
 export function SelectCedula({ value, onChange }: { value: string; onChange: (v: 'V' | 'E') => void }) {
+  const [abierta, setAbierta] = useState(false)
+  const [activa, setActiva] = useState(0)
+  const caja = useRef<HTMLDivElement>(null)
+  const boton = useRef<HTMLButtonElement>(null)
+  const id = useId()
+
+  useEffect(() => {
+    if (!abierta) return
+    const fuera = (e: PointerEvent) => { if (!caja.current?.contains(e.target as Node)) setAbierta(false) }
+    document.addEventListener('pointerdown', fuera)
+    return () => document.removeEventListener('pointerdown', fuera)
+  }, [abierta])
+
+  const abrir = () => { setActiva(Math.max(0, TIPOS_CEDULA.indexOf(value as 'V' | 'E'))); setAbierta(true) }
+  const elegir = (v: 'V' | 'E') => { onChange(v); setAbierta(false); boton.current?.focus() }
+
+  const tecla = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!abierta) return abrir()
+      setActiva((i) => (i + (e.key === 'ArrowDown' ? 1 : -1) + TIPOS_CEDULA.length) % TIPOS_CEDULA.length)
+    } else if ((e.key === 'Enter' || e.key === ' ') && abierta) {
+      e.preventDefault()
+      elegir(TIPOS_CEDULA[activa]!)
+    } else if (e.key === 'Escape' && abierta) {
+      e.preventDefault()
+      setAbierta(false)
+    } else if (e.key === 'Tab') {
+      setAbierta(false)
+    }
+  }
+
   return (
-    <span className="relative flex h-12 w-[76px] flex-none items-center justify-center gap-1.5 rounded-control border border-input bg-card font-mono text-base font-bold has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-azul">
-      <span aria-hidden="true">{value}</span>
-      <ChevronDown size={16} strokeWidth={2} aria-hidden="true" className="text-texto-2" />
-      <select
+    <div ref={caja} className="relative w-[76px] flex-none">
+      <button
+        ref={boton}
+        type="button"
+        role="combobox"
         aria-label="Tipo de cédula"
-        value={value}
-        onChange={(e) => onChange(e.target.value === 'E' ? 'E' : 'V')}
-        className="absolute inset-0 cursor-pointer appearance-none opacity-0 outline-none"
+        aria-haspopup="listbox"
+        aria-expanded={abierta}
+        aria-controls={id}
+        aria-activedescendant={abierta ? `${id}-${activa}` : undefined}
+        onClick={() => (abierta ? setAbierta(false) : abrir())}
+        onKeyDown={tecla}
+        className="flex h-12 w-full items-center justify-center gap-1.5 rounded-control border border-input bg-card font-mono text-base font-bold text-tinta"
       >
-        <option value="V">V</option>
-        <option value="E">E</option>
-      </select>
-    </span>
+        {value}
+        <ChevronDown size={16} strokeWidth={2} aria-hidden="true" className={cx('text-texto-2 transition-transform duration-200 motion-reduce:transition-none', abierta && 'rotate-180')} />
+      </button>
+      {abierta && (
+        <ul id={id} role="listbox" aria-label="Tipo de cédula" className="absolute top-full right-0 left-0 z-30 mt-1 overflow-hidden rounded-control border border-borde bg-card p-1 shadow-sheet">
+          {TIPOS_CEDULA.map((t, i) => (
+            <li
+              key={t}
+              id={`${id}-${i}`}
+              role="option"
+              aria-selected={t === value}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => elegir(t)}
+              onPointerEnter={() => setActiva(i)}
+              className={cx('flex h-10 cursor-pointer items-center justify-center rounded-[8px] font-mono text-base font-bold text-tinta', i === activa && 'bg-suave')}
+            >
+              {t}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
