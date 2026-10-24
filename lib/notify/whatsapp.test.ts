@@ -25,6 +25,17 @@ describe('whatsappConfigFromEnv', () => {
     expect(whatsappConfigFromEnv({ NOTIFY_DRY_RUN: '' }).dryRun).toBe(true)
   })
 
+  it('ignora espacios y saltos de línea pegados en el panel de Vercel', () => {
+    expect(
+      whatsappConfigFromEnv({
+        NOTIFY_DRY_RUN: ' False\n',
+        WHATSAPP_ACCESS_TOKEN: 't\n',
+        WHATSAPP_PHONE_NUMBER_ID: ' 123 ',
+        WHATSAPP_GRAPH_VERSION: 'v23.0\n',
+      }),
+    ).toEqual({ accessToken: 't', phoneNumberId: '123', graphVersion: 'v23.0', dryRun: false })
+  })
+
   it('lee las variables de WhatsApp', () => {
     expect(
       whatsappConfigFromEnv({
