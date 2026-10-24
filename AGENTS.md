@@ -141,9 +141,8 @@ docs/               # esta documentación
 | `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
 | `SESSION_SECRET` | firma las cookies de sesión (≥ 32 caracteres; `openssl rand -base64 48`). Obligatoria en Vercel | P1 |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | correo de las invitaciones a oficiales por SMTP (p. ej. Gmail `smtp.gmail.com`:465 con contraseña de aplicación; sin dominio propio). Puerto por defecto 465 (TLS); 587 = STARTTLS. Tiene prioridad sobre Resend | P1 |
-| `EMAIL_FROM` | remitente, p. ej. `SmartTraffic <cuenta@gmail.com>`; con SMTP es opcional (por defecto `SMTP_USER`) | P1 |
-| `RESEND_API_KEY` | alternativa a SMTP (Resend; solo envía a cualquiera con dominio verificado). En seco con `NOTIFY_DRY_RUN` ≠ `false` | P1 |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | correo de las invitaciones a oficiales por SMTP (p. ej. Gmail `smtp.gmail.com`:465 con contraseña de aplicación; sin dominio propio). Puerto por defecto 465 (TLS); 587 = STARTTLS | P1 |
+| `EMAIL_FROM` | remitente, p. ej. `SmartTraffic <cuenta@gmail.com>`; opcional (por defecto `SMTP_USER`; con Gmail debe ser la misma cuenta) | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
 | `CITIZEN_DEMO_CODE` | SOLO DEMOS: 6 dígitos que valen como código de verificación para la cédula `DEMO_CEDULA`, sin enviar WhatsApp. Sin esta variable no hay atajo | P1 |

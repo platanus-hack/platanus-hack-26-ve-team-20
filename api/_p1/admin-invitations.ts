@@ -1,6 +1,6 @@
 // GET  /api/admin/officer-invitations  → lista de invitaciones (más recientes primero).
 // POST /api/admin/officer-invitations  { email, name } → crea la invitación y envía el correo (docs/04 §0d).
-// `emailSent: false` (sin Resend o falló) devuelve además `inviteUrl` para que el admin copie el enlace.
+// `emailSent: false` (sin SMTP configurado, en seco o falló) devuelve además `inviteUrl` para que el admin copie el enlace.
 import { OfficerInvitationCreateSchema } from "../../lib/contracts/index.ts";
 import { db } from "../../lib/db.ts";
 import { officerInvites } from "../../lib/domain/index.ts";
