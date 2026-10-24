@@ -125,11 +125,13 @@ Orden de ejecución: F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F10
 **Commit**: `feat(auth): admin login with signed sessions and guards`
 
 ## F11 — Portal por cédula
-**Alcance**: `POST /api/portal/lookup` con normalización, respuesta de forma idéntica exista o no la cédula, rate limit 10/10 min/IP y `AuditLog(PORTAL_LOOKUP, ip)`.
+**Alcance**: `POST /api/portal/lookup` con normalización, respuesta de forma idéntica exista o no la cédula, rate limit 10/10 min/IP (atómico, `consumeLimit`) y `AuditLog(PORTAL_LOOKUP, ip)`.
 **Criterios de aceptación (HU-05)**
-- [ ] `v-99.000.001` equivale a `V99000001`; placa enmascarada, sin nombre completo ni teléfono; `fineToken` = `null`.
-- [ ] Cédula inexistente → misma forma y "sin infracciones".
-- [ ] La consulta 11 en 10 min → 429 `RATE_LIMITED`.
+- [x] `v-99.000.001` equivale a `V99000001` (y `99000001` se busca como `V` y `E`); placa enmascarada, sin nombre ni teléfono; `fineToken` = `null`.
+- [x] Cédula inexistente → misma forma y "sin infracciones".
+- [x] La consulta 11 en 10 min desde la misma IP → 429; 15 simultáneas dejan pasar exactamente 10.
+- [x] La auditoría guarda la IP y una huella de la cédula, nunca la cédula.
+- [x] Probado empaquetado como función de Vercel contra la base real, con los personajes del seed.
 **Commit**: `feat(api): portal lookup with rate limit and audit`
 
 ## F12 — Revisión humana

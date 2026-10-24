@@ -3,6 +3,7 @@
 // Trade-off: cuenta filas en cada petición; con el volumen de la demo es despreciable (hay índice
 // en action + createdAt).
 import type { PrismaClient } from "../generated/prisma/client.ts";
+import { audit, type AuditEntry } from "./audit.ts";
 import { DomainError } from "./errors.ts";
 
 export class RateLimitedError extends DomainError {
@@ -36,4 +37,23 @@ export function countRecent(db: Pick<PrismaClient, "auditLog">, rule: Omit<Limit
 /** Lanza `RateLimitedError` (429) si ya se alcanzó el máximo en la ventana. */
 export async function assertUnderLimit(db: Pick<PrismaClient, "auditLog">, rule: LimitRule, now: Date = new Date()): Promise<void> {
   if ((await countRecent(db, rule, now)) >= rule.max) throw new RateLimitedError();
+}
+
+/**
+ * Cuenta y registra en un solo paso atómico: bloquea por `lockKey` dentro de una transacción, lanza
+ * `RateLimitedError` si ya se alcanzó el máximo y, si no, escribe `entry` en el AuditLog. Al contar
+ * y registrar bajo el mismo bloqueo, las peticiones simultáneas no pueden pasarse del límite.
+ * Las peticiones bloqueadas no se registran: la ventana no se alarga por insistir.
+ */
+export async function consumeLimit(
+  db: PrismaClient,
+  rule: LimitRule & { lockKey: string },
+  entry: AuditEntry,
+  now: Date = new Date(),
+): Promise<void> {
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${rule.lockKey}))`;
+    await assertUnderLimit(tx, rule, now);
+    await audit(tx, entry);
+  }, { maxWait: 10_000, timeout: 20_000 });
 }

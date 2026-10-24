@@ -176,7 +176,12 @@ Response (siempre 200, misma forma aunque no exista):
                "status": "PENDING", "amountCents": 0, "currency": "VES", "fineToken": null } ]
 }}
 ```
-`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`). Escribe `AuditLog(PORTAL_LOOKUP, ip)`.
+`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`); hasta entonces es siempre `null`.
+- **Cédula**: acepta `V12345678`, `v-12.345.678` y letras `V`, `E`, `J`, `G`, `P`; sin letra se busca como `V` y como `E` (el ciudadano suele escribir solo el número). Formato inválido → 400 `VALIDATION_ERROR`.
+- **Qué lista**: las multas **emitidas** de los vehículos del titular (una violación en revisión aún no es multa y no aparece), la más reciente primero, hasta 50; el `summary` cuenta todas. `pending` = pendientes + vencidas; `status` puede ser `OVERDUE` (calculado). Una cédula sin multas o inexistente responde 200 con la misma forma y todo en cero.
+- **Privacidad**: nunca nombre, teléfono, correo, cédula completa, placa completa ni `publicToken`; un test fija las claves exactas de la respuesta.
+- **Límite**: 10 consultas por IP cada 10 min → 429 `RATE_LIMITED`. El conteo y el registro son atómicos (bloqueo por IP): consultas simultáneas no pueden pasarse del máximo, y las bloqueadas no alargan la ventana.
+- **Auditoría**: cada consulta permitida escribe `AuditLog(PORTAL_LOOKUP, ip)` con una huella de la cédula en `entityId`, nunca la cédula.
 
 ## 5. Pagos C2P SIMULADOS (P3)
 ### Contexto: cómo es C2P real
