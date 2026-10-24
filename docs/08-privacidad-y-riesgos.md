@@ -1,4 +1,4 @@
-# 08 — Privacidad, legalidad, ética y riesgos · VíaClara
+# 08 — Privacidad, legalidad, ética y riesgos · SmartTraffic
 
 > Este proyecto es un prototipo de hackathon. No tiene validez legal ni conexión con organismos oficiales. Todo dato es ficticio.
 

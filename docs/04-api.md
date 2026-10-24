@@ -1,4 +1,4 @@
-# 04 — API · VíaClara
+# 04 — API · SmartTraffic
 
 Convenciones: JSON, Zod en `lib/contracts/`, respuesta `{ ok: true, data }` | `{ ok: false, error: { code, message } }`. Códigos HTTP: 200/201, 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 404 `NOT_FOUND`, 409 `CONFLICT`/`INVALID_TRANSITION`, 429 `RATE_LIMITED`, 502 `UPSTREAM_ERROR`.
 Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de sesión `vc_admin` del login de admin (§0b); `officer` = cookie `vc_officer` (`OFFICER_PASSCODE` + placa del oficial, la emite P3); `public` = sin auth.
@@ -191,7 +191,7 @@ Response (siempre 200, misma forma aunque no exista):
 
 ## 5. Pagos C2P SIMULADOS (P3)
 ### Contexto: cómo es C2P real
-En Pago Móvil C2P (comercio a persona) el **comercio** debita al pagador. El pagador genera en la app de su banco una **clave C2P** (token de un solo uso) y entrega: **banco** (código de 4 dígitos), **teléfono** afiliado, **cédula** y **clave**. El comercio envía eso + monto + concepto a la API C2P de **su** banco (o de un agregador de pagos) autenticado con credenciales del comercio; el banco responde aprobado/rechazado con número de referencia. Integración real requeriría: convenio con banco/agregador, credenciales y certificados, ambiente de certificación, conciliación diaria y manejo de reversos. **En VíaClara NO hay integración real.**
+En Pago Móvil C2P (comercio a persona) el **comercio** debita al pagador. El pagador genera en la app de su banco una **clave C2P** (token de un solo uso) y entrega: **banco** (código de 4 dígitos), **teléfono** afiliado, **cédula** y **clave**. El comercio envía eso + monto + concepto a la API C2P de **su** banco (o de un agregador de pagos) autenticado con credenciales del comercio; el banco responde aprobado/rechazado con número de referencia. Integración real requeriría: convenio con banco/agregador, credenciales y certificados, ambiente de certificación, conciliación diaria y manejo de reversos. **En SmartTraffic NO hay integración real.**
 
 ### `POST /api/payments/c2p` (public; identificado por token)
 Request:
@@ -247,7 +247,7 @@ Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}
 Content-Type: application/json
 
 { "messaging_product": "whatsapp", "recipient_type": "individual", "to": "584120000001",
-  "type": "text", "text": { "body": "VíaClara · Aviso de infracción…\nVer y pagar: https://…/multa/x7Gq…", "preview_url": true },
+  "type": "text", "text": { "body": "SmartTraffic · Aviso de infracción…\nVer y pagar: https://…/multa/x7Gq…", "preview_url": true },
   "biz_opaque_callback_data": "fine:fine_cuid" }
 ```
 Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
@@ -255,9 +255,9 @@ Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: h
 **Ventana de 24 h de WhatsApp**: solo se envía texto libre a números que escribieron al número de prueba en las últimas 24 h; fuera de ella Meta exige plantillas, que no usamos. Los teléfonos de demo escriben "hola" al número antes de cada prueba, ensayo y del pitch. Si la ventana está cerrada, el envío falla y queda `Notification.FAILED` con el error. Solo reciben los números verificados en *API Setup* del número de prueba.
 
 Textos (`lib/notify/templates.ts`):
-- `FINE_ISSUED`: "VíaClara (demo). Se registró una posible infracción: {tipo} en {intersección}, {fecha hora} (hora de Caracas), vehículo placa {placaEnmascarada}. Monto de ejemplo: {monto}. Vea la evidencia, pague o apele aquí: {link}"
-- `PAYMENT_CONFIRMED`: "VíaClara (demo). Pago simulado recibido. Ref {ref}. Multa {placaEnmascarada} saldada."
-- `OFFICER_ALERT`: "VíaClara · Alerta: vehículo {placa} ({vehículo}) con {n} multas impagas visto en {intersección} hace {min} min, a {distancia} de su posición. Verifique antes de actuar."
+- `FINE_ISSUED`: "SmartTraffic (demo). Se registró una posible infracción: {tipo} en {intersección}, {fecha hora} (hora de Caracas), vehículo placa {placaEnmascarada}. Monto de ejemplo: {monto}. Vea la evidencia, pague o apele aquí: {link}"
+- `PAYMENT_CONFIRMED`: "SmartTraffic (demo). Pago simulado recibido. Ref {ref}. Multa {placaEnmascarada} saldada."
+- `OFFICER_ALERT`: "SmartTraffic · Alerta: vehículo {placa} ({vehículo}) con {n} multas impagas visto en {intersección} hace {min} min, a {distancia} de su posición. Verifique antes de actuar."
 
 ### Entrante — `GET` y `POST /api/webhooks/whatsapp`
 - `GET` (verificación al registrar la URL en la app de Meta): si `hub.mode=subscribe` y `hub.verify_token` = `WHATSAPP_VERIFY_TOKEN`, responder 200 con `hub.challenge` en texto plano; si no, 403.

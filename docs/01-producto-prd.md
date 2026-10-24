@@ -1,4 +1,4 @@
-# 01 — PRD · VíaClara
+# 01 — PRD · SmartTraffic
 
 ## 1. Problema
 - Las infracciones de semáforo (luz roja, flecha de giro) y de velocidad dependen hoy de que un fiscal esté presente; la fiscalización es esporádica y discrecional.

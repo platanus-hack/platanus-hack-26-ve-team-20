@@ -1,4 +1,4 @@
-# 02 — Arquitectura · VíaClara
+# 02 — Arquitectura · SmartTraffic
 
 ## 1. Componentes
 | Componente | Tecnología | Responsabilidad |

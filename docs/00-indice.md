@@ -1,4 +1,4 @@
-# 00 — Índice de documentación · VíaClara
+# 00 — Índice de documentación · SmartTraffic
 
 | # | Archivo | Contenido | Para quién |
 |---|---|---|---|

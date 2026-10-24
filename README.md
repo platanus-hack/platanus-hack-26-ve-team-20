@@ -1,8 +1,8 @@
-# VíaClara
+# SmartTraffic
 
 Multas de tránsito automáticas, con evidencia y pagables desde el teléfono. Proyecto de **team-20** en Platanus Hack 26: Caracas. Track: Trust.
 
-<img src="./project-logo.png" alt="VíaClara logo" width="200" />
+<img src="./project-logo.png" alt="SmartTraffic logo" width="200" />
 
 ## Qué hace
 - Detecta cruces en luz roja desde fotogramas de cámaras de semáforo (detector preentrenado con ajuste fino en datasets de Kaggle + tracking + homografía por cámara; un teléfono con app Expo graba el clip).

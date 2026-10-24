@@ -1,9 +1,9 @@
-# AGENTS.md — VíaClara
+# AGENTS.md — SmartTraffic
 
 > Guía para agentes (Claude Code, Cursor, etc.) y humanos. Léela completa antes de tocar código. `CLAUDE.md` es una copia idéntica.
 
 ## 1. Qué es
-**VíaClara**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
+**SmartTraffic**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
 Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (WhatsApp Cloud API de Meta) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
 
 Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único requisito técnico: **hosting en Vercel**.

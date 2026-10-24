@@ -1,4 +1,4 @@
-# 09 — Reparto del equipo (4 personas) · VíaClara
+# 09 — Reparto del equipo (4 personas) · SmartTraffic
 
 Objetivo: 4 verticales con **mínimo solapamiento de archivos** para no pisarse en git. Plan por horas: `07-plan-36h.md`.
 
@@ -59,7 +59,7 @@ P4 páginas ──> GET/POST APIs de P1 y P3 (DTOs de lib/contracts)
 **Depende de**: nada para empezar. Consume `notify*` y `dispatchAlert` de P3 (mock hasta h8–10).
 **Prompt de arranque (Claude Code)**:
 ```
-Eres el agente de Persona 1 (backend core) del proyecto VíaClara. Lee AGENTS.md, docs/01-producto-prd.md, docs/03-modelo-de-datos.md, docs/04-api.md (§0, §2, §3, §4, §9) y docs/09-reparto-equipo.md §1-§4.
+Eres el agente de Persona 1 (backend core) del proyecto SmartTraffic. Lee AGENTS.md, docs/01-producto-prd.md, docs/03-modelo-de-datos.md, docs/04-api.md (§0, §2, §3, §4, §9) y docs/09-reparto-equipo.md §1-§4.
 Solo puedes modificar los archivos que posee P1 según docs/09 §1.
 Objetivo inmediato (en este orden, un PR pequeño por paso, usando las skills incremental-implementation y api-and-interface-design):
 1) Esqueleto Vite + React + TS estricto + Tailwind + Vercel Functions (`api/`) + Prisma; crea lib/contracts/index.ts exactamente con los tipos y firmas de docs/04-api.md §0 y Zod schemas de requests.
@@ -86,7 +86,7 @@ Usa los mocks de lib/notify/mock.ts y lib/alerts/mock.ts si los reales no existe
 **Depende de**: `registerDetection`/`registerSighting` (P1; mock), seed de cámaras con calibración que calce con los clips (coordinar con P1 en h1–4).
 **Prompt de arranque**:
 ```
-Eres el agente de Persona 2 (modelo de visión y app de cámara) de VíaClara. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2, docs/10-ml-y-app-movil.md, docs/velocidad-y-contravia-en-fotomultas.md y docs/09 §1, §2, §5.
+Eres el agente de Persona 2 (modelo de visión y app de cámara) de SmartTraffic. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2, docs/10-ml-y-app-movil.md, docs/velocidad-y-contravia-en-fotomultas.md y docs/09 §1, §2, §5.
 Solo modifica archivos de P2 (docs/09 §1). Usa lib/contracts sin cambiarlo; si necesitas un cambio, propónlo aparte.
 Todo es TypeScript estricto excepto ml/ (Python). No uses Claude ni otro LLM en el pipeline de visión. Detector PREENTRENADO con ajuste fino; no entrenes desde cero.
 Pasos (PRs pequeños, skill incremental-implementation):
@@ -114,7 +114,7 @@ Tests Vitest de rules y analyze con respuestas ML simuladas, y pytest en ml/. Ve
 **Depende de**: `markFinePaid` (P1; mock), componentes `src/components/vc` (P4; usar HTML simple hasta h8), datos de oficiales en seed (P1).
 **Prompt de arranque**:
 ```
-Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee AGENTS.md, docs/p3-plan-de-trabajo.md, docs/04-api.md §0, §5, §6, §7, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
+Eres el agente de Persona 3 (notificaciones, pagos y alertas) de SmartTraffic. Lee AGENTS.md, docs/p3-plan-de-trabajo.md, docs/04-api.md §0, §5, §6, §7, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
 Solo modifica archivos de P3 (docs/09 §1).
 Pasos (PRs pequeños):
 1) lib/notify/whatsapp.ts: POST https://graph.facebook.com/{WHATSAPP_GRAPH_VERSION}/{WHATSAPP_PHONE_NUMBER_ID}/messages con Authorization: Bearer WHATSAPP_ACCESS_TOKEN, solo mensajes type text (número de prueba, ventana de 24 h); lib/notify/templates.ts con los textos de docs/04 §7; respeta NOTIFY_DRY_RUN; registra Notification. Implementa notifyFineIssued, notifyPaymentConfirmed, notifyOfficerAlert con firma de lib/contracts.
@@ -140,7 +140,7 @@ Tests Vitest para c2p, haversine, dispatch y webhook. Verifica HU-03, HU-04 y HU
 **Depende de**: DTOs en `lib/contracts` (h1), APIs de P1/P3 (usar fixtures hasta h12).
 **Prompt de arranque**:
 ```
-Eres el agente de Persona 4 (UI y diseño) de VíaClara. Lee AGENTS.md, docs/01-producto-prd.md, docs/05-ui.md completo, docs/04-api.md (DTOs de respuesta) y docs/09 §1, §2, §7.
+Eres el agente de Persona 4 (UI y diseño) de SmartTraffic. Lee AGENTS.md, docs/01-producto-prd.md, docs/05-ui.md completo, docs/04-api.md (DTOs de respuesta) y docs/09 §1, §2, §7.
 Solo modifica archivos de P4 (docs/09 §1). Usa las skills design-md, frontend-ui-engineering, minimalist-ui, web-design-guidelines y vercel-react-best-practices.
 Pasos (PRs pequeños):
 1) DESIGN.md con la dirección de docs/05 §1 (sobrio, cívico; sin degradados morados, sin Inter por defecto, sin emojis como íconos; lucide-react).
