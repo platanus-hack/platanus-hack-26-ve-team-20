@@ -86,7 +86,7 @@ Usa los mocks de lib/notify/mock.ts y lib/alerts/mock.ts si los reales no existe
 **Depende de**: `registerDetection`/`registerSighting` (P1; mock), seed de cámaras con calibración que calce con los clips (coordinar con P1 en h1–4).
 **Prompt de arranque**:
 ```
-Eres el agente de Persona 2 (modelo de visión y app de cámara) de VíaClara. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2, docs/10-ml-y-app-movil.md, docs/Velocidad y contravía en fotomultas.md y docs/09 §1, §2, §5.
+Eres el agente de Persona 2 (modelo de visión y app de cámara) de VíaClara. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2, docs/10-ml-y-app-movil.md, docs/velocidad-y-contravia-en-fotomultas.md y docs/09 §1, §2, §5.
 Solo modifica archivos de P2 (docs/09 §1). Usa lib/contracts sin cambiarlo; si necesitas un cambio, propónlo aparte.
 Todo es TypeScript estricto excepto ml/ (Python). No uses Claude ni otro LLM en el pipeline de visión. Detector PREENTRENADO con ajuste fino; no entrenes desde cero.
 Pasos (PRs pequeños, skill incremental-implementation):
