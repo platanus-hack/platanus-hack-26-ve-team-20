@@ -163,7 +163,7 @@ export function buildSeed({ now, driverPhone, officerPhone }: SeedOptions) {
       occurredAt,
       idempotencyKey: `seed-vio-${nn}`,
       voidReason: status === "VOID" ? "Vehículo de emergencia (ejemplo)" : null,
-      evidence: { id: `seed_ev_${nn}`, url: `https://example.com/seed/evidencia-${nn}.jpg`, capturedAt: occurredAt },
+      evidence: { id: `seed_ev_${nn}`, url: `/demo/evidencia-${(n % 6) + 1}.svg`, capturedAt: occurredAt },
       fine: fineState && dueIn !== null
         ? {
             id: `seed_fine_${nn}`,
