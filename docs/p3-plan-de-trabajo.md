@@ -144,8 +144,8 @@ Referencia de horas de `07`: pasos 1–2 en h0–1, 3 antes de h2, 4–5 en h1�
 6. **Sesión del oficial.** `api/_lib/auth.ts` es de P1 y `/api/officers/session` es tuyo. Pedir a P1 un helper `requireOfficer(req)` y otro que firme la cookie con `officerId`.
 7. **Pagos simultáneos.** Dos pagos con distinta `idempotencyKey` pueden aprobarse a la vez. `markFinePaid` debe hacer el update condicionado a `status = PENDING` dentro de una transacción y fallar si ya está pagada; tu API responde 409.
 8. **Sin email de respaldo.** HU-03 pedía intentar email si WhatsApp falla; queda fuera. El fallo se ve en `Notification` (`FAILED`). `Channel.EMAIL` y `Person.email` pueden quedarse en el schema sin uso.
-10. **Dos cambios aditivos a `lib/contracts` (requieren OK de P1):** `EXAMPLE_BANKS` e `isExampleBank` pasan a `lib/contracts/banks.ts` porque los usan el formulario y el servidor (`src/` no puede importar `lib/payments`), y se agregan `C2PRejectedDTO` y `C2PPaymentDTO`: un pago rechazado responde 200 con `{ ok: true, data: { status: "REJECTED", failureCode, simulated: true } }`, porque `docs/04` §5 no definía la respuesta del rechazo.
 9. **Formato de teléfonos.** `Person.phone` y `DEMO_PHONE_*` van en formato internacional sin `+` (`58412…`), que es lo que va en `to`; `payerPhone` del formulario va en formato local (`0412…`). No mezclarlos.
+10. **Dos cambios aditivos a `lib/contracts` (requieren OK de P1):** `EXAMPLE_BANKS` e `isExampleBank` pasan a `lib/contracts/banks.ts` porque los usan el formulario y el servidor (`src/` no puede importar `lib/payments`), y se agregan `C2PRejectedDTO` y `C2PPaymentDTO`: un pago rechazado responde 200 con `{ ok: true, data: { status: "REJECTED", failureCode, simulated: true } }`, porque `docs/04` §5 no definía la respuesta del rechazo.
 
 ## 8. Riesgos de P3
 | Riesgo | Mitigación |
