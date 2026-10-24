@@ -26,6 +26,10 @@ import citizenRegister from "./_p1/citizen-register.ts";
 import citizenResend from "./_p1/citizen-resend.ts";
 import citizenVehicles from "./_p1/citizen-vehicles.ts";
 import citizenVerify from "./_p1/citizen-verify.ts";
+import officerFines from "./_p1/officer-fines.ts";
+import officerFine from "./_p1/officer-fine.ts";
+import officerFineStatus from "./_p1/officer-fine-status.ts";
+import officerFineResend from "./_p1/officer-fine-resend.ts";
 import violationDetail from "./_p1/violation-detail.ts";
 import violationReview from "./_p1/violation-review.ts";
 import violationsList from "./_p1/violations-list.ts";
@@ -51,6 +55,10 @@ export const P1_ROUTES: Record<string, Handler> = {
   "citizen-fine": citizenFine, // GET  /api/citizen/fines/:id
   "citizen-appeal": citizenAppeal, // POST /api/citizen/fines/:id/appeal
   "citizen-vehicles": citizenVehicles, // GET  /api/citizen/vehicles
+  "officer-fines": officerFines, // GET  /api/officer/fines
+  "officer-fine": officerFine, // GET  /api/officer/fines/:id
+  "officer-fine-status": officerFineStatus, // POST /api/officer/fines/:id/status
+  "officer-fine-resend": officerFineResend, // POST /api/officer/fines/:id/resend
   "admin-invitations": adminInvitations, // GET/POST /api/admin/officer-invitations
   "admin-invitation-revoke": adminInvitationRevoke, // POST /api/admin/officer-invitations/:id/revoke
   "admin-officers": adminOfficers, // GET  /api/admin/officers
