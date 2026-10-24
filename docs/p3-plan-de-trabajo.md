@@ -1,4 +1,4 @@
-# Plan de trabajo P3 · VíaClara
+# Plan de trabajo P3 · SmartTraffic
 
 Persona 3: **notificaciones, pagos C2P simulados, oficiales y alertas**. Sale de leer todo `docs/` y `AGENTS.md`. Horas relativas a h0 como en `07-plan-36h.md`.
 
@@ -54,7 +54,7 @@ El usuario del sistema es uno que ya existía en el portafolio: no cambiarle rol
 - Antes de cada sesión de pruebas, de cada ensayo y del pitch, **los teléfonos de demo (conductor y oficial) escriben "hola" al número de prueba**. Eso reabre la ventana por 24 h.
 - Si la ventana está cerrada, Meta rechaza el envío con un error (según la doc, el código `131047`; confirmarlo en el primer fallo real). `lib/notify/whatsapp.ts` lo guarda en `Notification` como `FAILED` con el código y el mensaje, y la consola lo muestra. No hay reintento por otro canal.
 - Solo pueden recibir los números verificados en *API Setup*. Un juez no puede recibir el WhatsApp en su teléfono salvo que se verifique antes, y queda 1 cupo.
-- Los mensajes llegan desde un chat llamado "Test Number", sin nombre ni logo de VíaClara. El texto lleva "VíaClara (demo)" al inicio.
+- Los mensajes llegan desde un chat llamado "Test Number", sin nombre ni logo de SmartTraffic. El texto lleva "SmartTraffic (demo)" al inicio.
 
 ### 3.3 Variables de entorno
 | Variable | Uso |
@@ -76,7 +76,7 @@ Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}
 Content-Type: application/json
 
 { "messaging_product": "whatsapp", "recipient_type": "individual", "to": "584120000001",
-  "type": "text", "text": { "body": "VíaClara (demo). Se registró una posible infracción…", "preview_url": true },
+  "type": "text", "text": { "body": "SmartTraffic (demo). Se registró una posible infracción…", "preview_url": true },
   "biz_opaque_callback_data": "fine:fine_cuid" }
 ```
 La respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Un error de Meta (`error.code`, `error.message`) → `Notification.status = FAILED` y `Notification.error`.
@@ -170,7 +170,7 @@ Referencia de horas de `07`: pasos 1–2 en h0–1, 3 antes de h2, 4–5 en h1�
 
 ## 10. Prompt de arranque para tu agente
 ```
-Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee AGENTS.md, docs/p3-plan-de-trabajo.md, docs/04-api.md §0, §5, §6, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
+Eres el agente de Persona 3 (notificaciones, pagos y alertas) de SmartTraffic. Lee AGENTS.md, docs/p3-plan-de-trabajo.md, docs/04-api.md §0, §5, §6, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
 WhatsApp va directo con la WhatsApp Cloud API de Meta, desde el número de prueba y solo con mensajes de texto (docs/p3-plan-de-trabajo.md §3 y docs/04 §7). Sin plantillas ni email.
 Solo modifica archivos de P3 (docs/09 §1). Trabaja el "Paso actual" de docs/p3-plan-de-trabajo.md §5 en la rama Edwjon y ciérralo con un solo commit, siguiendo §6.
 Respeta las decisiones de §7 tal como quedaron en la reunión. Tests Vitest para lo que escribas. Antes de terminar, aplica superpowers-verification-before-completion contra HU-03, HU-04 o HU-06 de docs/01.

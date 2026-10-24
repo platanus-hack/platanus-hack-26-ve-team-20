@@ -1,12 +1,12 @@
-# VíaClara
+# SmartTraffic
 
 **La multa llega con la prueba, y se paga en un minuto.**
 
 ## El problema
 Comerse la luz roja casi nunca tiene consecuencia si no hay un fiscal presente. Y cuando hay multa, el conductor no se entera a tiempo, no ve la evidencia y pagarla es un trámite.
 
-## Qué hace VíaClara
-1. **Detecta**: un teléfono con la app de VíaClara hace de cámara en el semáforo y graba un clip corto; un detector preentrenado, afinado con datasets abiertos de Kaggle, sigue al vehículo y lee la placa, y una homografía calibrada estima su velocidad y dirección; una regla geométrica confirma que cruzó la línea de pare en rojo.
+## Qué hace SmartTraffic
+1. **Detecta**: un teléfono con la app de SmartTraffic hace de cámara en el semáforo y graba un clip corto; un detector preentrenado, afinado con datasets abiertos de Kaggle, sigue al vehículo y lee la placa, y una homografía calibrada estima su velocidad y dirección; una regla geométrica confirma que cruzó la línea de pare en rojo.
 2. **Notifica**: se crea la multa con evidencia (fotos, hora, intersección) y el propietario recibe un **WhatsApp** con el enlace.
 3. **Paga**: desde el teléfono, con **Pago Móvil C2P** (banco, teléfono, cédula y clave C2P). *En la demo el pago es simulado.*
 4. **Consulta**: portal público por **cédula** con información limitada (placa enmascarada, sin datos personales).

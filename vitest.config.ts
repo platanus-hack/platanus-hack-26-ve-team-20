@@ -10,6 +10,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     passWithNoTests: true,
-    include: ['tests/unit/**/*.test.ts', 'lib/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'lib/**/*.test.ts', 'src/**/*.test.ts'],
   },
 })

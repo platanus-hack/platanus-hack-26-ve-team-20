@@ -1,4 +1,4 @@
-# 11 — P1: features y entregables · VíaClara
+# 11 — P1: features y entregables · SmartTraffic
 
 Cómo se trabaja: **una feature = un entregable = un commit**. Al terminar cada una se corre la verificación, se hace el commit y se **para** hasta el visto bueno. Rama `daniel-morillo`; no se mezcla trabajo de dos features en un commit. Fuente: `docs/09` §4, `docs/07`, `docs/03`, `docs/04` y los criterios HU-02/05/07 de `docs/01`.
 

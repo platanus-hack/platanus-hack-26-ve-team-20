@@ -1,4 +1,4 @@
-# 03 — Modelo de datos · VíaClara
+# 03 — Modelo de datos · SmartTraffic
 
 Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 

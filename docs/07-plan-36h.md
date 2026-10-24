@@ -1,4 +1,4 @@
-# 07 — Plan 36 h · VíaClara
+# 07 — Plan 36 h · SmartTraffic
 
 Equipo de 4 en paralelo. Detalle completo de cada persona (archivos, contratos, prompts de arranque): **`09-reparto-equipo.md`**.
 Horas relativas al inicio del hack (h0). Ajustar a la hora real de inicio.

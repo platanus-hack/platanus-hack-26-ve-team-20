@@ -1,9 +1,9 @@
-# AGENTS.md — VíaClara
+# AGENTS.md — SmartTraffic
 
 > Guía para agentes (Claude Code, Cursor, etc.) y humanos. Léela completa antes de tocar código. `CLAUDE.md` es una copia idéntica.
 
 ## 1. Qué es
-**VíaClara**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
+**SmartTraffic**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
 Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (WhatsApp Cloud API de Meta) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
 
 Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único requisito técnico: **hosting en Vercel**.
@@ -43,7 +43,7 @@ pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts); idempot
 pnpm demo:reset              # borra lo generado por la demo HOY (no sembrado) y re-siembra; --dry-run, --all
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
-cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
+cd mobile && npm install && npx expo start   # app (ciudadano, policía y cámara); npm propio, fuera del workspace pnpm
 cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
 pnpm test                    # vitest (unit, sin red)
 pnpm test:db                 # vitest contra la base real (requiere seed; limpia sus filas test_*)
