@@ -8,7 +8,7 @@ Horas relativas al inicio del hack (h0). Ajustar a la hora real de inicio.
 |---|---|---|
 | **P1** | Backend core: Prisma, seed, dominio y máquina de estados, APIs de violaciones/multas/portal, auth simple, integración | Código (lead integrador) + QA (lead desde h12) |
 | **P2** | Visión: detector preentrenado con ajuste fino (Kaggle, Python), servicio de inferencia, app móvil Expo (cámara), homografía y reglas, evidencia, avistamientos | Código + ML (alcance ampliado, ver doc 09 §5) |
-| **P3** | Notificaciones y pagos: Kapso, Resend, C2P simulado, oficiales, alertas por proximidad | Código |
+| **P3** | Notificaciones y pagos: WhatsApp Cloud API de Meta (línea propia), Resend, C2P simulado, oficiales, alertas por proximidad | Código |
 | **P4** | Frontend/UI: sistema de diseño, landing, portal cédula, vista oficial, cola de revisión, pitch y demo | UI + Producto (dueño del pitch) |
 
 ## 2. Checkpoints de integración (todo el equipo)
@@ -30,10 +30,10 @@ Horas relativas al inicio del hack (h0). Ajustar a la hora real de inicio.
 ## 3. Plan por persona y bloque
 | Bloque | P1 Backend core | P2 Visión | P3 Notif. y pagos | P4 UI + pitch |
 |---|---|---|---|---|
-| h0–1 | Repo, base Vite/React/TS, contratos (con todos), `.env.example` | Revisar contratos `VisionResult` y `/predict`; elegir datasets de Kaggle; grabar clips demo con el teléfono | Cuenta Kapso, número, API key; revisar contratos notify/pay | Dirección de diseño, tokens, revisar contratos de pantallas |
-| h1–4 | Prisma schema, Neon, migración, seed v1, deploy Vercel + espejo | Ajuste fino v0 del detector (notebook de Kaggle); app Expo v0 (grabar clip y subirlo); `/api/blob/upload`; `/camaras` básico (ver feed) | `lib/notify/kapso.ts` enviando texto real; `templates.ts` | shadcn tematizado, `components/vc/*`, layout, landing |
+| h0–1 | Repo, base Vite/React/TS, contratos (con todos), `.env.example` | Revisar contratos `VisionResult` y `/predict`; elegir datasets de Kaggle; grabar clips demo con el teléfono | App de Meta con WhatsApp, número de prueba, token permanente, plantillas a revisión, arrancar línea propia; revisar contratos notify/pay | Dirección de diseño, tokens, revisar contratos de pantallas |
+| h1–4 | Prisma schema, Neon, migración, seed v1, deploy Vercel + espejo | Ajuste fino v0 del detector (notebook de Kaggle); app Expo v0 (grabar clip y subirlo); `/api/blob/upload`; `/camaras` básico (ver feed) | `lib/notify/whatsapp.ts` enviando mensaje real; `templates.ts` | shadcn tematizado, `components/vc/*`, layout, landing |
 | h4–8 | `lib/domain` (state machine, registerDetection, dedup, fines, audit); `/api/violations`, `/api/fines/[token]` | Servicio `ml/` `/predict` v0; `lib/vision/ml-client.ts` + Zod; `rules.ts`; `/api/detections` contra mock de dominio | `lib/payments/c2p.ts` + `/api/payments/c2p`; páginas `/multa/[token]` y `/pagar` | `/consulta` y `/admin/revision` con mocks; `<Evidencia>`, `<Placa>` |
-| h8–12 | Integrar P2→dominio→P3; auth passcode; `markFinePaid` | Modelo v1 (placa, tracking, homografía y velocidad); semáforo simulado; sets demo A/B/C/D calibrados; feed en vivo en consola | Webhook Kapso (estados); email Resend; integrar pago con dominio | Pulir pantallas de multa/pago (con P3); estado de pasos en consola (con P2) |
+| h8–12 | Integrar P2→dominio→P3; auth passcode; `markFinePaid` | Modelo v1 (placa, tracking, homografía y velocidad); semáforo simulado; sets demo A/B/C/D calibrados; feed en vivo en consola | Webhook de WhatsApp (verificación y estados); email Resend; integrar pago con dominio | Pulir pantallas de multa/pago (con P3); estado de pasos en consola (con P2) |
 | **h12** | **E2E happy path (todos)** | | | |
 | h12–16 | `/api/portal/lookup` + rate limit; `/api/violations/[id]/review`; tests E2E happy path | `/api/sightings`; recorte de placa; caché de visión (plan B); túnel estable del servicio ML | Oficiales: sesión, ubicación, `lib/geo`, `lib/alerts/dispatch`, `/api/officers/*` | `/oficial` (mapa Leaflet, alertas, toggle servicio); conectar portal y revisión a APIs reales |
 | h14–18 | trabaja | **duerme** | trabaja | **duerme** |
@@ -59,6 +59,6 @@ Recortes permitidos: email (dejar solo WhatsApp), edición de calibración en UI
 |---|---|---|
 | P1 | ~26 h | Más carga temprana (infra) y QA tardío |
 | P2 | ~26 h | Riesgo técnico más alto (ajuste fino + homografía + app móvil); tiene caché como red |
-| P3 | ~26 h | Más integraciones externas (Kapso, Resend) |
+| P3 | ~26 h | Más integraciones externas (WhatsApp con Meta directo, Resend) |
 | P4 | ~26 h | UI de 4 pantallas + pitch + video |
 Cada persona: ~4 h sueño + ~6 h comidas/pausas/ensayos.

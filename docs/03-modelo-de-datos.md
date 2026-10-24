@@ -182,7 +182,7 @@ model Notification {
   to          String
   template    String                    // "FINE_ISSUED" | "PAYMENT_CONFIRMED" | "OFFICER_ALERT"
   status      NotificationStatus @default(QUEUED)
-  providerId  String?                   // wamid de Kapso / id Resend
+  providerId  String?                   // wamid de WhatsApp (Meta) / id Resend
   error       String?
   createdAt   DateTime           @default(now())
   @@index([providerId])

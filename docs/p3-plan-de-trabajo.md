@@ -2,7 +2,7 @@
 
 Persona 3: **notificaciones, pagos C2P simulados, oficiales y alertas**. Sale de leer todo `docs/` y `AGENTS.md`. Horas relativas a h0 como en `07-plan-36h.md`.
 
-> **Cambio respecto a los demás docs:** no usamos Kapso. WhatsApp va **directo con Meta (WhatsApp Cloud API)** y una línea propia. Donde `01`–`09` y `AGENTS.md` dicen Kapso, manda este plan (§3). Esos docs hay que actualizarlos aparte.
+> **Decisión:** no usamos Kapso. WhatsApp va **directo con Meta (WhatsApp Cloud API)** y una línea propia. El resto de los docs, `AGENTS.md` y `.env.example` ya están alineados (paso 1); el detalle de Meta vive en §3.
 
 ## 1. Qué es tuyo
 
@@ -55,7 +55,7 @@ Fuera de la ventana de 24 h solo se pueden enviar **plantillas aprobadas**. El p
 | `vc_pago_confirmado` | Utilidad | `es` | 1 referencia, 2 placa enmascarada |
 | `vc_alerta_oficial` | Utilidad | `es` | 1 placa, 2 vehículo, 3 n.º de multas, 4 intersección, 5 minutos, 6 distancia |
 
-- Créalas en WhatsApp Manager en h0–1: la aprobación suele ser rápida pero puede tardar o rechazarse. Textos: los de `04` §7, sin decir "Kapso" y con "(demo)".
+- Créalas en WhatsApp Manager en h0–1: la aprobación suele ser rápida pero puede tardar o rechazarse. Textos: los de `04` §7, con "(demo)".
 - Mientras no estén aprobadas: los teléfonos de demo escriben "hola" al número (abre la ventana de 24 h) y se envía `type: "text"`.
 - `lib/notify/whatsapp.ts` decide: si hay plantilla configurada, usa `type: "template"`; si no, `type: "text"`. Si Meta responde que la ventana está cerrada, guarda `FAILED` con el código de error y pasa al email.
 
@@ -103,13 +103,13 @@ El cuerpo lleva un parámetro por variable, en orden (aquí se muestra solo el p
 
 ## 5. Pasos
 
-**Paso actual: 1.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
+**Paso actual: 2.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
 
 Cada paso es **un commit** en la rama `Edwjon` (§6). Columna "Necesita": `—` = se puede hacer ya; **E** = el esqueleto de P1 ya está en `main` y traído a esta rama (Vite, `package.json`, Vitest, Prisma, `lib/db.ts`, `lib/contracts`, `lib/domain`); **S** = además el seed con oficiales y teléfonos demo; **Prod** = hay deploy en Vercel.
 
 | # | Paso | Archivos | Necesita | Hecho cuando | Commit |
 |---|---|---|---|---|---|
-| [ ] 1 | Documentar el cambio de Kapso a Meta en el resto del repo | `AGENTS.md`, `CLAUDE.md`, `docs/00`–`09`, `README.md`, `project-description.md`, `platanus-hack-project.jsonc`, `.env.example` | — | `grep -ri kapso` solo encuentra la nota histórica de este plan; `.env.example` trae las `WHATSAPP_*` de §3.3 | `docs: switch WhatsApp from Kapso to Meta Cloud API` |
+| [x] 1 | Documentar el cambio de Kapso a Meta en el resto del repo | `AGENTS.md`, `CLAUDE.md`, `docs/00`–`09`, `README.md`, `project-description.md`, `platanus-hack-project.jsonc`, `.env.example` | — | `grep -ri kapso` solo encuentra la nota histórica de este plan; `.env.example` trae las `WHATSAPP_*` de §3.3 | `docs: switch WhatsApp from Kapso to Meta Cloud API` |
 | [ ] 2 | Montar WhatsApp en Meta (manual): app, número de prueba, destinatarios verificados, token permanente, 3 plantillas enviadas a revisión, arrancar la línea propia; cuenta Resend | sin código; solo la casilla de este plan | — | `hello_world` llega a los 2 teléfonos de demo; las variables están en Vercel y en `.env.local` | `docs(p3): mark Meta setup done` |
 | [ ] 3 | Mocks de P3 con las firmas de `lib/contracts` | `lib/notify/mock.ts`, `lib/alerts/mock.ts`, `lib/payments/mock.ts` | E | `pnpm typecheck` verde; P1 los importa con `USE_MOCKS=true` | `feat(notify): add P3 mocks` |
 | [ ] 4 | Textos y parámetros de plantilla, fechas en Caracas, placa y montos formateados | `lib/notify/templates.ts` + test | E | test de los 3 mensajes (texto y parámetros) en verde | `feat(notify): add message templates` |
@@ -178,7 +178,7 @@ Referencia de horas de `07`: pasos 1–2 en h0–1, 3 antes de h2, 4–5 en h1�
 ## 10. Prompt de arranque para tu agente
 ```
 Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee AGENTS.md, docs/p3-plan-de-trabajo.md, docs/04-api.md §0, §5, §6, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
-WhatsApp va directo con la WhatsApp Cloud API de Meta, no con Kapso: sigue docs/p3-plan-de-trabajo.md §3 en lugar de docs/04 §7.
+WhatsApp va directo con la WhatsApp Cloud API de Meta (docs/p3-plan-de-trabajo.md §3 y docs/04 §7).
 Solo modifica archivos de P3 (docs/09 §1). Trabaja el "Paso actual" de docs/p3-plan-de-trabajo.md §5 en la rama Edwjon y ciérralo con un solo commit, siguiendo §6.
 Respeta las decisiones de §7 tal como quedaron en la reunión. Tests Vitest para lo que escribas. Antes de terminar, aplica superpowers-verification-before-completion contra HU-03, HU-04 o HU-06 de docs/01.
 ```

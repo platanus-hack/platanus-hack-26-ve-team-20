@@ -102,10 +102,10 @@ Tests Vitest de rules y analyze con respuestas ML simuladas, y pytest en ml/. Ve
 **Tareas en orden**
 | Bloque | Tarea | Entregable |
 |---|---|---|
-| h0–1 | Cuenta Kapso + número + API key; pedir plantilla `KAPSO_TEMPLATE_FINE` (por si acaso); cuenta Resend; revisar contratos | h1: credenciales en Vercel env |
-| h1–4 | `lib/notify/kapso.ts` (doc 04 §7), `templates.ts`, `NOTIFY_DRY_RUN`, registro en `Notification` | h4: WhatsApp real desde prod a teléfono de demo |
+| h0–1 | App de Meta con WhatsApp: número de prueba, destinatarios verificados, token permanente, plantillas `WHATSAPP_TEMPLATE_*` a revisión, arrancar la línea propia (`p3-plan-de-trabajo.md` §3); cuenta Resend; revisar contratos | h1: credenciales en Vercel env |
+| h1–4 | `lib/notify/whatsapp.ts` (doc 04 §7), `templates.ts`, `NOTIFY_DRY_RUN`, registro en `Notification` | h4: WhatsApp real desde prod a teléfono de demo |
 | h4–8 | `lib/payments/{banks.ts,c2p.ts}` simulado; `POST /api/payments/c2p` (idempotencia, nunca guardar clave); `src/pages/Multa.tsx` y `/pagar` con componentes de P4 | h8: pagar multa seed |
-| h8–12 | `notifyFineIssued/PaymentConfirmed` reales; `POST /api/webhooks/kapso` (HMAC, lote, estados); `lib/notify/email.ts` (Resend) como fallback | h12: E2E |
+| h8–12 | `notifyFineIssued/PaymentConfirmed` reales; `GET`/`POST /api/webhooks/whatsapp` (verificación, firma `X-Hub-Signature-256`, estados); `lib/notify/email.ts` (Resend) como fallback | h12: E2E |
 | h12–14 | `lib/geo/haversine.ts`; `/api/officers/session`, `/location`, `/[id]/alerts`; `/api/alerts/[id]/ack`; `lib/alerts/dispatch.ts`; `notifyOfficerAlert` | h16: alerta llega al teléfono 2 |
 | h14–18 | Tests pagos/alerts/webhook | — |
 | h18–22 | Duerme | — |
@@ -114,13 +114,13 @@ Tests Vitest de rules y analyze con respuestas ML simuladas, y pytest en ml/. Ve
 **Depende de**: `markFinePaid` (P1; mock), componentes `components/vc` (P4; usar HTML simple hasta h8), datos de oficiales en seed (P1).
 **Prompt de arranque**:
 ```
-Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee AGENTS.md, docs/04-api.md §0, §5, §6, §7, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
+Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee AGENTS.md, docs/p3-plan-de-trabajo.md, docs/04-api.md §0, §5, §6, §7, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
 Solo modifica archivos de P3 (docs/09 §1).
 Pasos (PRs pequeños):
-1) lib/notify/kapso.ts: POST https://api.kapso.ai/meta/whatsapp/v24.0/{KAPSO_PHONE_NUMBER_ID}/messages con header X-API-Key, mensajes text (y template si KAPSO_TEMPLATE_FINE existe); lib/notify/templates.ts con los textos de docs/04 §7; respeta NOTIFY_DRY_RUN; registra Notification. Implementa notifyFineIssued, notifyPaymentConfirmed, notifyOfficerAlert con firma de lib/contracts.
+1) lib/notify/whatsapp.ts: POST https://graph.facebook.com/{WHATSAPP_GRAPH_VERSION}/{WHATSAPP_PHONE_NUMBER_ID}/messages con Authorization: Bearer WHATSAPP_ACCESS_TOKEN, mensajes template si WHATSAPP_TEMPLATE_* existe y text si no; lib/notify/templates.ts con los textos de docs/04 §7; respeta NOTIFY_DRY_RUN; registra Notification. Implementa notifyFineIssued, notifyPaymentConfirmed, notifyOfficerAlert con firma de lib/contracts.
 2) lib/payments/c2p.ts SIMULADO (reglas de docs/04 §5; jamás persistir ni loguear c2pKey) y api/payments/c2p.ts con idempotencia y 409 ALREADY_PAID; llama markFinePaid.
 3) src/pages/Multa.tsx y src/pages/Pagar.tsx mobile-first con banner "Demo — pago simulado".
-4) api/webhooks/kapso.ts con verificación HMAC-SHA256 de X-Webhook-Signature sobre el body crudo, soporte de lotes, actualización de Notification por providerId.
+4) api/webhooks/whatsapp.ts: GET de verificación con WHATSAPP_VERIFY_TOKEN; POST con verificación HMAC-SHA256 de X-Hub-Signature-256 (WHATSAPP_APP_SECRET) sobre el body crudo, actualización de Notification por providerId.
 5) lib/geo/haversine.ts, lib/alerts/dispatch.ts (algoritmo docs/04 §6) y APIs de oficiales/alertas.
 Tests Vitest para c2p, haversine, dispatch y webhook. Verifica HU-03, HU-04 y HU-06 de docs/01 antes de terminar.
 ```

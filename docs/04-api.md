@@ -202,31 +202,34 @@ Algoritmo `dispatchAlert` (`lib/alerts/dispatch.ts`):
 3. `haversine(camera, officer)`; filtrar `≤ ALERT_RADIUS_METERS`; tomar el menor.
 4. Crear `Alert` + `notifyOfficerAlert`. Ninguno → `NO_OFFICER_NEARBY`.
 
-## 7. Webhooks Kapso (P3)
-### Saliente (envío) — `lib/notify/kapso.ts`
+## 7. WhatsApp Cloud API de Meta (P3)
+Directo con Meta, sin intermediarios, con línea propia (o el número de prueba de Meta como plan B). Montaje de la cuenta, plantillas y variables: `p3-plan-de-trabajo.md` §3.
+
+### Saliente (envío) — `lib/notify/whatsapp.ts`
 ```http
-POST https://api.kapso.ai/meta/whatsapp/v24.0/{KAPSO_PHONE_NUMBER_ID}/messages
-X-API-Key: {KAPSO_API_KEY}
+POST https://graph.facebook.com/{WHATSAPP_GRAPH_VERSION}/{WHATSAPP_PHONE_NUMBER_ID}/messages
+Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}
 Content-Type: application/json
 
 { "messaging_product": "whatsapp", "recipient_type": "individual", "to": "584120000001",
   "type": "text", "text": { "body": "VíaClara · Aviso de infracción…\nVer y pagar: https://…/multa/x7Gq…", "preview_url": true },
   "biz_opaque_callback_data": "fine:fine_cuid" }
 ```
-Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: https://docs.kapso.ai/api/meta/whatsapp/messages/send-a-message
+Con plantilla: `"type": "template", "template": { "name": "{WHATSAPP_TEMPLATE_FINE}", "language": { "code": "es" }, "components": [...] }`. Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
 
-**Ventana de 24 h de WhatsApp**: mensajes iniciados por la empresa fuera de la ventana requieren **plantilla aprobada** (`type: "template"`, nombre en `KAPSO_TEMPLATE_FINE`). Para la demo: (a) aprobar plantilla temprano, o (b) los teléfonos de demo escriben primero "hola" al número para abrir la ventana. Hacer (b) siempre antes del pitch.
+**Ventana de 24 h de WhatsApp**: mensajes iniciados por la empresa fuera de la ventana requieren **plantilla aprobada** (`type: "template"`; nombres en `WHATSAPP_TEMPLATE_FINE`, `WHATSAPP_TEMPLATE_PAYMENT`, `WHATSAPP_TEMPLATE_ALERT`). Para la demo: (a) aprobar plantillas temprano, o (b) los teléfonos de demo escriben primero "hola" al número para abrir la ventana. Hacer (b) siempre antes del pitch.
 
 Textos (`lib/notify/templates.ts`):
 - `FINE_ISSUED`: "VíaClara (demo). Se registró una posible infracción: {tipo} en {intersección}, {fecha hora} (hora de Caracas), vehículo placa {placaEnmascarada}. Monto de ejemplo: {monto}. Vea la evidencia, pague o apele aquí: {link}"
 - `PAYMENT_CONFIRMED`: "VíaClara (demo). Pago simulado recibido. Ref {ref}. Multa {placaEnmascarada} saldada."
 - `OFFICER_ALERT`: "VíaClara · Alerta: vehículo {placa} ({vehículo}) con {n} multas impagas visto en {intersección} hace {min} min, a {distancia} de su posición. Verifique antes de actuar."
 
-### Entrante — `POST /api/webhooks/kapso`
-- Verificar `X-Webhook-Signature` = HMAC-SHA256(body crudo, `KAPSO_WEBHOOK_SECRET`) con comparación de tiempo constante. Leer evento de `X-Webhook-Event`. Soportar lote (`X-Webhook-Batch: true` → `body.data[]`). Responder 200 en < 10 s. Fuente: https://docs.kapso.ai/docs/platform/webhooks/overview
-- `whatsapp.message.delivered|read|failed` → actualizar `Notification` por `providerId`.
-- `whatsapp.message.received` (stretch): texto "PAGAR" → responder link; "APELAR" → link de apelación; otro → ayuda. No asumir que existe `phone_number` (puede venir BSUID).
-- Idempotencia: guardar `X-Idempotency-Key`/id de mensaje procesado; ignorar repetidos.
+### Entrante — `GET` y `POST /api/webhooks/whatsapp`
+- `GET` (verificación al registrar la URL en la app de Meta): si `hub.mode=subscribe` y `hub.verify_token` = `WHATSAPP_VERIFY_TOKEN`, responder 200 con `hub.challenge` en texto plano; si no, 403.
+- `POST`: verificar `X-Hub-Signature-256` = `sha256=` + HMAC-SHA256(body crudo, `WHATSAPP_APP_SECRET`) con comparación de tiempo constante, antes de parsear. Firma inválida → 401. Responder 200 rápido. Suscribir el campo `messages` de la cuenta.
+- `entry[].changes[].value.statuses[]` (`sent|delivered|read|failed`, con `errors[]`) → actualizar `Notification` por `providerId` (= wamid); no bajar de estado (un `delivered` atrasado no pisa un `read`).
+- `entry[].changes[].value.messages[]` (stretch): texto "PAGAR" → responder link; "APELAR" → link de apelación; otro → ayuda.
+- Idempotencia: Meta reintenta si no recibe 200; ignorar repetidos por (wamid, estado) o id de mensaje entrante.
 
 ## 8. Servicio de inferencia ML (P2) — `ml/` ↔ `lib/vision/ml-client.ts`
 Detector preentrenado con ajuste fino (datasets de Kaggle) + ByteTrack + EasyOCR, servido por FastAPI fuera de Vercel (`docs/10-ml-y-app-movil.md`). Sin LLM en este pipeline.
@@ -279,5 +282,5 @@ Caché de demo: si `DEMO_VISION_CACHE=true` y el hash de la URL del clip coincid
 | dedup de dominio | placa+cámara+tipo ±60 s | `duplicate: true` |
 | `/api/payments/c2p` | `idempotencyKey` (unique en `Payment`) | mismo resultado |
 | Multa pagada | `Fine.status=PAID` | 409 `ALREADY_PAID` |
-| Webhook Kapso | id de evento / `X-Idempotency-Key` | ignorar repetidos |
+| Webhook de WhatsApp | (wamid, estado) / id de mensaje entrante | ignorar repetidos |
 | Alertas | vehicleId en 10 min | `SUPPRESSED` |
