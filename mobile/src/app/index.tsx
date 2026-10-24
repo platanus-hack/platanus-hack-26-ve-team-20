@@ -1,90 +1,66 @@
 import { router } from 'expo-router';
-import { Bell, Camera, Car, ChevronRight, type LucideIcon } from 'lucide-react-native';
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { View } from 'react-native';
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming, type SharedValue } from 'react-native-reanimated';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { Hoja } from '@/components/extra';
-import { Isotipo } from '@/components/Isotipo';
-import { Boton, Campo, DemoBanner, Pressy, SW, T } from '@/components/ui';
-import { CLAVE_CAMARA, guardar, leerSesion, type Modo } from '@/lib/dispositivo';
-import { useEstilos, useTema, type Tema } from '@/lib/tema';
-import { radio, tipo } from '@/theme';
+import { ISOTIPO_PATH, LUCES } from '@/components/Isotipo';
+import { T } from '@/components/ui';
+import { sesionEnMemoria } from '@/lib/dispositivo';
+import { temaClaro, tipo } from '@/theme';
 
+const CircleAnimado = Animated.createAnimatedComponent(Circle);
+const ANCHO = 168;
+// El splash nativo pinta el carro a 76 px en el centro; aquí arranca igual y crece, para que el paso no se note.
+const ESCALA_INICIAL = 76 / ANCHO;
+// Mitad del alto del nombre + el espacio: así el carro empieza centrado como en el splash nativo.
+const SUBIDA = 36;
+const salida = Easing.bezier(0.16, 1, 0.3, 1);
 
-export default function Selector() {
-  const { c } = useTema();
-  const s = useEstilos(estilos);
-  const [hoja, setHoja] = useState(false);
-  const [clave, setClave] = useState('');
-  const valida = clave.length >= 6;
+/** Primera vista: el carro, sus luces de rojo a verde y el nombre. Luego entra el ciudadano. */
+export default function Inicio() {
+  const rm = useReducedMotion();
+  const carro = useSharedValue(rm ? 1 : 0);
+  const nombre = useSharedValue(rm ? 1 : 0);
+  const luces = [useSharedValue(rm ? 1 : 0.2), useSharedValue(rm ? 1 : 0.2), useSharedValue(rm ? 1 : 0.2)];
 
-  async function entrar(modo: Modo) {
-    const sesion = await leerSesion();
-    if (modo === 'ciudadano') router.push(sesion === 'ciudadano' ? '/ciudadano' : '/ciudadano/login');
-    else router.push(sesion === 'policia' ? '/policia' : '/policia/login');
-  }
+  // Solo al montar: la animación corre una vez.
+  useEffect(() => {
+    if (!rm) {
+      carro.set(withTiming(1, { duration: 520, easing: salida }));
+      luces.forEach((l, i) => l.set(withDelay(460 + i * 170, withTiming(1, { duration: 140 }))));
+      nombre.set(withDelay(620, withTiming(1, { duration: 420, easing: salida })));
+    }
+    const t = setTimeout(() => router.replace(sesionEnMemoria() === 'ciudadano' ? '/ciudadano' : '/ciudadano/login'), rm ? 700 : 1700);
+    return () => clearTimeout(t);
+  }, []);
 
-  async function abrirCamara() {
-    await guardar(CLAVE_CAMARA, clave);
-    setHoja(false);
-    setClave('');
-    router.push('/camara');
-  }
+  const estiloCarro = useAnimatedStyle(() => ({
+    transform: [{ translateY: (1 - nombre.get()) * SUBIDA }, { scale: ESCALA_INICIAL + (1 - ESCALA_INICIAL) * carro.get() }],
+  }));
+  const estiloNombre = useAnimatedStyle(() => ({
+    opacity: nombre.get(),
+    transform: [{ translateY: (1 - nombre.get()) * 12 }],
+  }));
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: c.fondo }}>
-      <DemoBanner />
-      <View style={s.hero}>
-        <Isotipo size={72} color={c.tintaTexto} />
-        <T accessibilityRole="header" style={[tipo.display, { color: c.tintaTexto }]}>
-          ¿Cómo va a usar SmartTraffic?
-        </T>
-        <T style={{ color: c.sobreTinta }}>Elija una opción. Puede cambiarla luego desde su perfil.</T>
-      </View>
-      <View style={s.opciones}>
-        <Opcion icono={Car} titulo="Soy ciudadano" sub="Vea y pague sus multas con su cédula" destacada onPress={() => entrar('ciudadano')} />
-        <Opcion icono={Bell} titulo="Soy policía" sub="Reciba alertas de vehículos con deuda" tinta onPress={() => entrar('policia')} />
-        <Pressable accessibilityRole="button" onPress={() => setHoja(true)} style={s.camara}>
-          <Camera size={16} color={c.texto2} strokeWidth={SW} />
-          <T style={[tipo.pequeno, { fontFamily: 'Geist_500Medium', color: c.texto2 }]}>Modo cámara (operador)</T>
-        </Pressable>
-      </View>
-
-      <Hoja abierta={hoja} onCerrar={() => setHoja(false)} etiqueta="Modo cámara">
-        <T accessibilityRole="header" style={{ fontFamily: 'Geist_600SemiBold', fontSize: 24, lineHeight: 30 }}>
-          Modo cámara
-        </T>
-        <T style={{ color: c.texto2 }}>Solo para el operador del equipo. Escriba la clave de cámara.</T>
-        <Campo etiqueta="Clave de cámara" clave mono value={clave} onChangeText={setClave} placeholder="Al menos 6 caracteres" autoCapitalize="none" />
-        <Boton titulo="Abrir cámara" disabled={!valida} onPress={abrirCamara} />
-      </Hoja>
-    </SafeAreaView>
+    <View accessible accessibilityLabel="SmartTraffic" style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20, backgroundColor: temaClaro.tinta }}>
+      <StatusBar style="light" />
+      <Animated.View style={estiloCarro}>
+        <Svg viewBox="0 0 356 206" width={ANCHO} height={(ANCHO * 206) / 356}>
+          <Path fillRule="evenodd" fill={temaClaro.tintaTexto} d={ISOTIPO_PATH} />
+          {LUCES.map(([cx, fill], i) => <Luz key={cx} cx={cx} fill={fill} brillo={luces[i]} />)}
+        </Svg>
+      </Animated.View>
+      <Animated.View style={estiloNombre}>
+        <T style={[tipo.display, { color: temaClaro.tintaTexto }]}>SmartTraffic</T>
+      </Animated.View>
+    </View>
   );
 }
 
-function Opcion({ icono: I, titulo, sub, onPress, destacada, tinta }: { icono: LucideIcon; titulo: string; sub: string; onPress: () => void; destacada?: boolean; tinta?: boolean }) {
-  const { c, sombra } = useTema();
-  const s = useEstilos(estilos);
-  return (
-    <Pressy accessibilityRole="button" accessibilityLabel={`${titulo}. ${sub}`} onPress={onPress} style={[s.opcion, { boxShadow: destacada ? sombra.flotante : sombra.tarjeta }]}>
-      <View style={[s.opcionIcono, { backgroundColor: tinta ? c.tinta : c.suave }]}>
-        <I size={26} color={tinta ? c.lima : c.texto} strokeWidth={SW} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <T style={[tipo.h3]}>{titulo}</T>
-        <T style={[tipo.pequeno, { color: c.texto2 }]}>{sub}</T>
-      </View>
-      <ChevronRight size={20} color={c.texto} strokeWidth={2} />
-    </Pressy>
-  );
+function Luz({ cx, fill, brillo }: { cx: number; fill: string; brillo: SharedValue<number> }) {
+  const props = useAnimatedProps(() => ({ opacity: brillo.get() }));
+  return <CircleAnimado cx={cx} cy={150} r={11} fill={fill} animatedProps={props} />;
 }
-
-const estilos = ({ c }: Tema) =>
-  StyleSheet.create({
-  hero: { gap: 20, paddingTop: 40, paddingHorizontal: 24, paddingBottom: 64, backgroundColor: c.tinta },
-  opciones: { flex: 1, gap: 12, paddingHorizontal: 16, marginTop: -36 },
-  opcion: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 96, paddingVertical: 16, paddingHorizontal: 20, backgroundColor: c.tarjeta, borderRadius: radio.tarjeta },
-  opcionIcono: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  camara: { marginTop: 'auto', marginBottom: 24, alignSelf: 'center', minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
-});
