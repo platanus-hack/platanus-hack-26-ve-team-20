@@ -95,6 +95,7 @@ El ciudadano crea su propia contraseña al registrarse y entra con su cédula. S
 | `GET /api/citizen/fines` | citizen | `{ items: CitizenFineDTO[] }`: sus multas, la infracción más reciente primero, con `token` para pagar en `POST /api/payments/c2p`. |
 | `GET /api/citizen/fines/:id` | citizen | Una multa propia; una ajena responde 404 igual que una inexistente. |
 | `POST /api/citizen/fines/:id/appeal` | citizen | Apela una multa pendiente o vencida (→ `APPEALED`). |
+| `POST /api/citizen/fines/:id/resend` | citizen | Se reenvía por WhatsApp la notificación de una multa propia por pagar. 200 `{ status: "SENT" \| "DRY_RUN" \| "FAILED", telefono }` (enmascarado). 409 `NO_REENVIABLE` / `SIN_TELEFONO`; 429 al 4.º reenvío en una hora. |
 | `GET /api/citizen/vehicles` | citizen | `{ items: CitizenVehicleDTO[] }`. |
 
 **Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula y no se dio teléfono), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
