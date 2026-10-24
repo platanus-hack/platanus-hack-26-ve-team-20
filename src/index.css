@@ -12,7 +12,7 @@
   --color-card: light-dark(#fcfdfe, #151c28);
   --color-suave: light-dark(#eef1f5, #1c2433);
   --color-texto-2: light-dark(#4b5565, #a9b4c4);
-  --color-texto-3: light-dark(#667085, #8b96a8);
+  --color-texto-3: light-dark(#636d82, #8b96a8);
   --color-borde: light-dark(#dde2e9, #2a3446);
   --color-input: light-dark(#7d8797, #5e6a7e);
   /* Texto sobre rellenos rojo/verde/ámbar: claro en modo claro, tinta en oscuro (AA sobre #FF6B5E). */
