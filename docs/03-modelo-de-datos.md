@@ -8,6 +8,7 @@ Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 | `Intersection` | Cruce físico (nombre, lat/lng) |
 | `Camera` | Cámara (teléfono con app Expo) en una intersección, con calibración (homografía, línea de pare, carriles, zona de velocidad) |
 | `LightChange` | Cambio de estado del semáforo simulado de una cámara (con hora del servidor) |
+| `AdminUser` | Cuenta de admin/operador (login de `/admin` y `/camaras`); contraseña con hash scrypt |
 | `Person` | Propietario (cédula, nombre, teléfono, email) — **datos falsos** |
 | `Vehicle` | Placa, marca, modelo, color, dueño |
 | `Violation` | Evento de infracción detectado (con estado y salida de IA) |
@@ -250,6 +251,19 @@ model AuditLog {
   ip         String?
   createdAt  DateTime  @default(now())
   @@index([entity, entityId])
+  @@index([action, createdAt])           // límites de intentos (login, portal)
+}
+
+// Cuentas de admin/operador. La contraseña se guarda con hash scrypt `scrypt$N$r$p$salt$hash`
+// (lib/auth/password.ts), nunca en claro. La cuenta inicial se siembra con ADMIN_EMAIL / ADMIN_PASSWORD.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique               // normalizado en minúsculas
+  name         String
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
 }
 ```
 

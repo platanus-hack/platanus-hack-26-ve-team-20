@@ -6,7 +6,7 @@ Objetivo: 4 verticales con **mínimo solapamiento de archivos** para no pisarse 
 | Ruta | Dueño | Otros pueden… |
 |---|---|---|
 | `lib/contracts/**` | P1 | proponer cambios por PR; requiere OK de los afectados |
-| `prisma/**`, `lib/db.ts`, `lib/domain/**`, `lib/auth/**`, `api/_lib/auth.ts` (guardas por passcode) | P1 | solo leer |
+| `prisma/**`, `lib/db.ts`, `lib/domain/**`, `lib/auth/**`, `api/_lib/auth.ts` (guardas de sesión), `api/auth/**` | P1 | solo leer |
 | `api/violations/**`, `api/fines/**`, `api/portal/**` | P1 | — |
 | `tests/e2e/**`, `vitest.config.ts`, `playwright.config.ts` | P1 | agregar specs de su vertical |
 | `lib/vision/**`, `lib/storage/**`, `public/demo/**`, `mobile/**`, `ml/**` | P2 | — |
@@ -50,7 +50,7 @@ P4 páginas ──> GET/POST APIs de P1 y P3 (DTOs de lib/contracts)
 | h0–1 | Crear app Vite + React (TS estricto, Tailwind, oxlint; shadcn lo inicializa P4) y carpeta `api/` para Vercel Functions, pnpm, estructura de carpetas, `lib/contracts` con equipo, `.env.example` | h1: contratos en `main` |
 | h1–4 | Prisma schema (doc 03), Supabase (proyecto Postgres), migración, `seed.ts` v1, repo espejo + Vercel prod | h4: app desplegada con seed |
 | h4–8 | `lib/domain`: `state-machine.ts`, `violations.ts` (`registerDetection` con dedup e idempotencia), `fines.ts` (montos de ejemplo, token), `audit.ts`; APIs `GET /api/violations`, `GET /api/fines/[token]` | h8: crear multa vía script/API |
-| h8–12 | Integrar: reemplazar mocks por reales; `markFinePaid`; auth passcode (`api/_lib/auth.ts` (guardas por passcode), cookie firmada) | h12: E2E happy path |
+| h8–12 | Integrar: reemplazar mocks por reales; `markFinePaid`; login de admin (`api/auth/*`, `api/_lib/auth.ts`, cookie firmada) | h12: E2E happy path |
 | h12–14 | `POST /api/portal/lookup` (+ rate limit, enmascarado, AuditLog), `POST /api/violations/[id]/review` | h16: portal y revisión en prod |
 | h14–18 | Tests unit dominio; `registerSighting`; `pnpm demo:reset`; Playwright happy path | — |
 | h18–22 | Duerme | — |

@@ -2,17 +2,19 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import fineHandler from '../../api/fines/[token].ts'
 import violationsHandler from '../../api/violations/index.ts'
+import { hashPassword } from '../../lib/auth/password.ts'
+import { COOKIE_NAMES, passwordFingerprint, signSession } from '../../lib/auth/session.ts'
 import type { ViolationListDTO, FinePublicDTO } from '../../lib/contracts/index.ts'
 import { db } from '../../lib/db.ts'
 import { transition } from '../../lib/domain/state-machine.ts'
 
 const RUN = Date.now().toString(36)
-const PASSCODE = `test-passcode-${RUN}`
+const SESSION_SECRET = `test-secret-${RUN}-`.padEnd(48, 'x')
 const PLATE = `TW${String(Date.now() % 100_000).padStart(5, '0')}`
 const PERSON = { cedula: `V9${String(Date.now()).slice(-7)}`, fullName: `Persona Test ${RUN}`, phone: '584129999999', email: `t${RUN}@example.com` }
 
 const ids = {
-  person: `test_${RUN}_per`, vehicle: `test_${RUN}_veh`,
+  person: `test_${RUN}_per`, admin: `test_${RUN}_adm`, vehicle: `test_${RUN}_veh`,
   vioFined: `test_${RUN}_vio_a`, vioReview: `test_${RUN}_vio_b`, vioNoViolation: `test_${RUN}_vio_c`, vioPaid: `test_${RUN}_vio_e`,
 }
 const tokens = { fined: `test-token-${RUN}-aaaaaaaa`, paid: `test-token-${RUN}-eeeeeeee` }
@@ -28,7 +30,7 @@ async function call(h: (req: VercelRequest, res: VercelResponse) => unknown, req
   await h({ method: 'GET', headers: {}, query: {}, ...req } as unknown as VercelRequest, res as unknown as VercelResponse)
   return out
 }
-const admin = { authorization: `Bearer ${PASSCODE}` }
+let admin: Record<string, string> = {}
 const list = (query: Record<string, string> = {}) => call(violationsHandler, { headers: admin, query })
 const idsOf = (r: Res) => (r.body.data as ViolationListDTO).items.map((i) => i.id)
 
@@ -47,7 +49,11 @@ beforeAll(async () => {
   if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) {
     throw new Error('Falta el seed: corre `pnpm db:seed` antes de `pnpm test:db`')
   }
-  vi.stubEnv('ADMIN_PASSCODE', PASSCODE)
+  vi.stubEnv('SESSION_SECRET', SESSION_SECRET)
+  const passwordHash = await hashPassword('contraseña-de-prueba')
+  await db.adminUser.create({ data: { id: ids.admin, email: `admin-${RUN}@example.com`, name: 'Admin Test', passwordHash } })
+  const token = signSession({ role: 'admin', sub: ids.admin, ph: passwordFingerprint(passwordHash) })
+  admin = { cookie: `${COOKIE_NAMES.admin}=${token}` }
   await db.person.create({ data: { id: ids.person, ...PERSON } })
   await db.vehicle.create({ data: { id: ids.vehicle, plate: PLATE, make: 'Toyota', model: 'Corolla', color: 'gris', ownerId: ids.person } })
 
@@ -79,12 +85,14 @@ afterAll(async () => {
   await db.violation.deleteMany({ where: { id: { in: vio } } })
   await db.vehicle.deleteMany({ where: { id: ids.vehicle } })
   await db.person.deleteMany({ where: { id: ids.person } })
+  await db.adminUser.deleteMany({ where: { id: ids.admin } })
   await db.$disconnect()
 })
 
 describe('GET /api/violations', () => {
-  it('exige el passcode de admin (401) y responde 200 con él', async () => {
-    for (const headers of [{}, { authorization: 'Bearer incorrecto' }, { authorization: PASSCODE }]) {
+  it('exige una sesión de admin (401) y responde 200 con ella', async () => {
+    const forged = `${COOKIE_NAMES.admin}=${signSession({ role: 'officer', sub: ids.admin })}` // sesión de otro rol
+    for (const headers of [{}, { cookie: `${COOKIE_NAMES.admin}=basura` }, { cookie: forged }, { authorization: 'Bearer cualquiera' }]) {
       const r = await call(violationsHandler, { headers })
       expect(r.code).toBe(401)
       expect(r.body).toEqual({ ok: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } })

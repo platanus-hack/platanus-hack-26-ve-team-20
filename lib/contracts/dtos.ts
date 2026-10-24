@@ -25,6 +25,9 @@ export interface SightingResultDTO {
   alert: { alertId: string; status: AlertStatus; officerId?: string; distanceM?: number } | null;
 }
 
+// ---- Autenticación (P1)
+export interface AdminSessionDTO { id: string; email: string; name: string }
+
 // ---- §2 violaciones y revisión (P1)
 export interface ViolationListItemDTO {
   id: string;

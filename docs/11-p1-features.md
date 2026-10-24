@@ -15,7 +15,7 @@ Verificación común a todas (`docs/AGENTS.md` §10): `pnpm lint && pnpm typeche
 | F6 | Máquina de estados + auditoría | `transition()` con `AuditLog` transaccional | h4–8 |
 | F7 | Multas y `registerDetection` | Detección → `Violation` + `Fine` o `NEEDS_REVIEW`, con dedup | h4–8 |
 | F8 | Avistamientos y pago | `registerSighting` y `markFinePaid` | h4–8 |
-| F9 | Autenticación por passcode | Guardas `admin` / `camera` / `officer` | h8–12 |
+| F9 | Login de admin y guardas de sesión | Login con `AdminUser`, cookie firmada y guardas `admin` / `camera` / `officer` | h8–12 |
 | F10 | API de lectura | `GET /api/violations` y `GET /api/fines/[token]` | h4–8 |
 | F11 | Portal por cédula | `POST /api/portal/lookup` con rate limit | h12–14 |
 | F12 | Revisión humana | `POST /api/violations/[id]/review` | h12–14 |
@@ -111,13 +111,18 @@ Orden de ejecución: F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F10
 - [ ] Ningún campo personal en la multa pública (test que lo comprueba).
 **Commit**: `feat(api): violations list and public fine`
 
-## F9 — Autenticación por passcode
-**Alcance**: `api/_lib/auth.ts` con cookie httpOnly firmada para `admin` (`ADMIN_PASSCODE`), guarda `camera` (`X-Camera-Key`) y verificación de la cookie `officer` (la emite P3); `POST /api/auth/admin` y `DELETE`; se aplica a `GET /api/violations`.
+## F9 — Login de admin y guardas de sesión
+**Decisión (del equipo)**: el acceso de admin/operador es un **login** con cuentas en la base (`AdminUser`, hash scrypt), no un passcode compartido. El oficial sigue con `OFFICER_PASSCODE` + placa (P3) y la app móvil con `X-Camera-Key`.
+**Alcance**: modelo `AdminUser` + migración con RLS; `lib/auth/{password,session}.ts` (scrypt y cookie HMAC); `api/auth/{login,logout,me}.ts`; guardas `requireAdmin`, `requireCamera`, `requireCameraOrAdmin`, `requireOfficer` y `issueOfficerSession` en `api/_lib/auth.ts`; límite de intentos con `AuditLog`; `ensureAdmin` en el seed (`ADMIN_EMAIL` / `ADMIN_PASSWORD`).
 **Criterios de aceptación**
-- [ ] Sin cookie válida → 401 `UNAUTHORIZED`; con passcode correcto se emite cookie `HttpOnly; Secure; SameSite=Lax`.
-- [ ] Comparación del passcode y de la firma en tiempo constante; sin secretos en el repo.
-- [ ] Tests de los tres guardas.
-**Commit**: `feat(auth): passcode guards for admin, camera and officer`
+- [x] Sin sesión válida → 401 `UNAUTHORIZED`; con credenciales correctas se emite la cookie `HttpOnly; SameSite=Lax` (+ `Secure` en Vercel), firmada con `SESSION_SECRET`.
+- [x] Correo inexistente, contraseña errónea y cuenta desactivada dan exactamente el mismo 401, sin diferencia observable de tiempo (hash falso).
+- [x] 5 fallos por correo o 10 por IP en 10 min → 429, aun con la contraseña correcta; los fallos se auditan sin guardar correo ni contraseña.
+- [x] Desactivar la cuenta o cambiar la contraseña cierra las sesiones abiertas; las sesiones caducan a las 8 h.
+- [x] Falla cerrada: sin `SESSION_SECRET` (o < 32 caracteres) o sin `CAMERA_API_KEY` nadie entra.
+- [x] La contraseña nunca se guarda ni se loguea en claro; solo el hash.
+- [x] Probado empaquetado como función de Vercel (`vercel build`) contra la base real.
+**Commit**: `feat(auth): admin login with signed sessions and guards`
 
 ## F11 — Portal por cédula
 **Alcance**: `POST /api/portal/lookup` con normalización, respuesta de forma idéntica exista o no la cédula, rate limit 10/10 min/IP y `AuditLog(PORTAL_LOOKUP, ip)`.

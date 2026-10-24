@@ -8,7 +8,7 @@ import { requireAdmin } from "../_lib/auth.ts";
 import { handler, sendOk } from "../_lib/respond.ts";
 
 export default handler(["GET"], async (req, res) => {
-  requireAdmin(req);
+  await requireAdmin(db, req);
   const query = ViolationsQuerySchema.parse(req.query);
   sendOk(res, await listViolations(db, query));
 });

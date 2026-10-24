@@ -288,4 +288,17 @@ model AuditLog {
   ip         String?
   createdAt  DateTime  @default(now())
   @@index([entity, entityId])
+  @@index([action, createdAt])           // límites de intentos (login, portal)
+}
+
+// Cuentas de admin/operador (login de /admin y /camaras). La contraseña se guarda con hash scrypt:
+// `scrypt$N$r$p$salt$hash` (lib/auth/password.ts). Nunca en claro.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique               // normalizado en minúsculas
+  name         String
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
 }

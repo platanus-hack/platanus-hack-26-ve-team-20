@@ -1,7 +1,7 @@
 # 04 — API · VíaClara
 
 Convenciones: JSON, Zod en `lib/contracts/`, respuesta `{ ok: true, data }` | `{ ok: false, error: { code, message } }`. Códigos HTTP: 200/201, 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 404 `NOT_FOUND`, 409 `CONFLICT`/`INVALID_TRANSITION`, 429 `RATE_LIMITED`, 502 `UPSTREAM_ERROR`.
-Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de `ADMIN_PASSCODE`; `officer` = cookie de `OFFICER_PASSCODE` + `officerId`; `public` = sin auth.
+Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de sesión `vc_admin` del login de admin (§0b); `officer` = cookie `vc_officer` (`OFFICER_PASSCODE` + placa del oficial, la emite P3); `public` = sin auth.
 
 ## 0. Contratos compartidos (`lib/contracts/index.ts`) — se acuerdan en la hora 1
 ```ts
@@ -61,6 +61,20 @@ export function chargeC2P(req: C2PRequest): Promise<{ status: "APPROVED" | "REJE
 Mientras un módulo no existe, su dueño publica un **mock** con la misma firma en `lib/<modulo>/mock.ts` (activado con `USE_MOCKS=true`).
 
 ---
+
+## 0b. Autenticación de admin/operador (P1)
+Cuenta en la tabla `AdminUser` (correo + contraseña con hash scrypt). La sesión es una cookie `vc_admin` firmada (HttpOnly, SameSite=Lax, Secure en Vercel, 8 h). Para métodos que modifican, si el navegador envía `Origin` debe coincidir con el host.
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/auth/login` `{ "email", "password" }` | public | 200 `{ user: { id, email, name } }` + `Set-Cookie`. Credenciales erróneas, correo inexistente o cuenta desactivada → el mismo 401 `Credenciales inválidas`. |
+| `GET /api/auth/me` | admin | 200 `{ user }`, o 401 si no hay sesión (la SPA lo usa para decidir si redirige a `/login`). |
+| `POST /api/auth/logout` | public | Borra la cookie. Idempotente. |
+
+- **Límites**: 5 fallos por correo y 10 por IP en 10 min → 429 `RATE_LIMITED` (aun con la contraseña correcta mientras dure el bloqueo). Los fallos se auditan (`ADMIN_LOGIN_FAILED`) sin guardar el correo ni la contraseña.
+- **Revocación**: desactivar la cuenta (`active = false`) o cambiar su contraseña invalida las sesiones abiertas.
+- **Cuenta inicial**: `pnpm db:seed` la crea con `ADMIN_EMAIL` / `ADMIN_PASSWORD` (solo se guarda el hash). Cambiar `ADMIN_PASSWORD` y volver a sembrar actualiza el hash.
+- Guardas disponibles en `api/_lib/auth.ts`: `requireAdmin(db, req)`, `requireCamera(req)`, `requireCameraOrAdmin(db, req)`, `requireOfficer(req)` y, para P3, `issueOfficerSession(res, officerId)`.
 
 ## 1. Detecciones y cámaras (P2)
 
@@ -128,7 +142,7 @@ Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, offic
 ```
 - `verdict` lo deduce el servidor: `NEEDS_REVIEW`, `NO_VIOLATION` (un `VOID` con `voidReason = "NO_VIOLATION"`, ver `03` §4) o `VIOLATION`.
 - `fine` es `null` si no hay multa; su `status` incluye `OVERDUE` (calculado). `lightState` es la luz en el cruce (`null` en datos del seed).
-- **Auth provisional**: `Authorization: Bearer <ADMIN_PASSCODE>`. Sin `ADMIN_PASSCODE` configurada nadie entra (falla cerrada). F9 lo cambia por la cookie firmada de `02` §7.
+- Auth `admin`: cookie de sesión (§0b); sin sesión válida → 401.
 - Devuelve los tokens de multa (llave de acceso): jamás debe quedar público.
 
 ### `POST /api/violations/[id]/review` (admin)

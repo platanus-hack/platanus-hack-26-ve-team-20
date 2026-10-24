@@ -1,7 +1,4 @@
-import type { VercelRequest } from '@vercel/node'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { requireAdmin } from '../../api/_lib/auth.ts'
-import { ApiError } from '../../api/_lib/respond.ts'
+import { describe, expect, it } from 'vitest'
 import { toFinePublic, toViolationListItem, verdictOf, type PublicFineRow, type ViolationListRow } from '../../lib/domain/dto.ts'
 import { DomainError } from '../../lib/domain/errors.ts'
 import { parseStatuses } from '../../lib/domain/queries.ts'
@@ -136,29 +133,5 @@ describe('parseStatuses', () => {
     })()
     expect(err).toBeInstanceOf(DomainError)
     expect((err as DomainError).code).toBe('VALIDATION_ERROR')
-  })
-})
-
-describe('requireAdmin', () => {
-  afterEach(() => vi.unstubAllEnvs())
-  const req = (authorization?: string) => ({ headers: authorization ? { authorization } : {} }) as unknown as VercelRequest
-  const code = (r: VercelRequest) => {
-    try { requireAdmin(r) } catch (e) { return (e as ApiError).code }
-    return 'OK'
-  }
-
-  it('acepta solo el passcode correcto como Bearer', () => {
-    vi.stubEnv('ADMIN_PASSCODE', 'secreto-demo')
-    expect(code(req('Bearer secreto-demo'))).toBe('OK')
-    expect(code(req('Bearer otro'))).toBe('UNAUTHORIZED')
-    expect(code(req('secreto-demo'))).toBe('UNAUTHORIZED')
-    expect(code(req())).toBe('UNAUTHORIZED')
-    expect(code(req('Bearer '))).toBe('UNAUTHORIZED')
-  })
-
-  it('falla cerrada: sin ADMIN_PASSCODE configurada nadie entra, ni con token vacío', () => {
-    vi.stubEnv('ADMIN_PASSCODE', '')
-    expect(code(req('Bearer '))).toBe('UNAUTHORIZED')
-    expect(code(req('Bearer x'))).toBe('UNAUTHORIZED')
   })
 })
