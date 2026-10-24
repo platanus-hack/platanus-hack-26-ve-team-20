@@ -140,12 +140,12 @@ export function nextNotificationStatus(
   return RANK[incoming] > RANK[current] ? incoming : null;
 }
 
-/** Dónde se guardan los estados. Hoy no hay DB (falta Prisma de P1); el real usa nextNotificationStatus. */
+/** Dónde se guardan los estados. En producción: webhook-store.ts (Prisma), que usa nextNotificationStatus. */
 export interface NotificationStatusStore {
   apply(event: WebhookStatusEvent): Promise<"UPDATED" | "UNCHANGED" | "NOT_FOUND">;
 }
 
-/** Store provisional: no guarda nada (todo queda como NOT_FOUND). Se reemplaza al cerrar el paso 12. */
+/** Store que no guarda nada (todo queda como NOT_FOUND); valor por defecto de webhookConfigFromEnv. */
 export const logOnlyStatusStore: NotificationStatusStore = {
   async apply() {
     return "NOT_FOUND";
