@@ -23,6 +23,14 @@ export function newPublicToken(): string {
   return nanoid(24);
 }
 
+/** Multas impagas de un vehículo: status PENDING (incluye las vencidas; OVERDUE no se guarda). */
+export function countUnpaidFines(
+  tx: Pick<Prisma.TransactionClient, "fine">,
+  vehicleId: string,
+): Promise<number> {
+  return tx.fine.count({ where: { status: "PENDING", violation: { vehicleId } } });
+}
+
 /** Crea la multa de una violación con monto de ejemplo, vencimiento a 30 días y token único. */
 export function createFine(
   tx: Pick<Prisma.TransactionClient, "fine">,

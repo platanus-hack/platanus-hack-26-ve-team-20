@@ -12,8 +12,10 @@ import {
   isPlausiblePlate,
   normalizePlate,
   type NotificationResult,
+  type DispatchAlert,
   type NotifyFineIssued,
   type RegisterDetection,
+  type RegisterSighting,
   type ReviewReason,
   type ViolationStatus,
   type VisionResult,
@@ -21,7 +23,7 @@ import {
 import type { Prisma, PrismaClient, Violation } from "../generated/prisma/client.ts";
 import { audit, type Actor } from "./audit.ts";
 import { InvalidTransitionError, NotFoundError } from "./errors.ts";
-import { createFine } from "./fines.ts";
+import { countUnpaidFines, createFine } from "./fines.ts";
 import { transition } from "./state-machine.ts";
 
 export const DEDUP_WINDOW_MS = 60_000;
@@ -40,11 +42,18 @@ export interface DetectionDeps {
   db: PrismaClient;
   /** lib/notify (P3): solo envía y registra `Notification`; el cambio a NOTIFIED lo hace este módulo. */
   notifyFineIssued: NotifyFineIssued;
+  /** Avistamiento de la placa (se crea solo si el vehículo ya tenía multas impagas). */
+  registerSighting: RegisterSighting;
+  /** lib/alerts (P3): busca al oficial más cercano y le avisa. */
+  dispatchAlert: DispatchAlert;
   /** Por defecto, `VISION_CONFIDENCE_THRESHOLD` o 0.8. */
   confidenceThreshold?: number;
 }
 
 type Outcome = Awaited<ReturnType<RegisterDetection>>;
+/** Placa confiable de un vehículo que ya debía multas: la cámara "lo vio" y hay que alertar. */
+interface SightingTrigger { plate: string; occurredAt: Date }
+interface Persisted { outcome: Outcome; fineId?: string; sighting?: SightingTrigger }
 type Decision =
   | { to: "FINED" }
   | { to: "NEEDS_REVIEW"; reason: ReviewReason }
@@ -88,7 +97,7 @@ async function persist(
   tx: Prisma.TransactionClient,
   r: VisionResult,
   threshold: number,
-): Promise<{ outcome: Outcome; fineId?: string }> {
+): Promise<Persisted> {
   // 1) Idempotencia.
   await lock(tx, `idem:${r.idempotencyKey}`);
   const same = await tx.violation.findUnique({ where: { idempotencyKey: r.idempotencyKey }, include: { fine: true } });
@@ -118,6 +127,11 @@ async function persist(
   // 3) Decisión.
   const vehicle = plate && isPlausiblePlate(plate) ? await tx.vehicle.findUnique({ where: { plate } }) : null;
   const decision = decide(r, plate, vehicle !== null, threshold);
+
+  // Multas impagas ANTES de esta detección: si había y la placa es confiable, habrá alerta.
+  const priorUnpaid = vehicle ? await countUnpaidFines(tx, vehicle.id) : 0;
+  const sighting: SightingTrigger | undefined =
+    plate && vehicle && priorUnpaid > 0 && r.plateConfidence >= threshold ? { plate, occurredAt } : undefined;
 
   // 4) Violación + evidencia (estado inicial DETECTED).
   const violation = await tx.violation.create({
@@ -164,15 +178,19 @@ async function persist(
     case "FINED": {
       const fine = await createFine(tx, { id: violation.id, type: r.type }, new Date());
       const fined = await transition(tx, violation.id, "FINED", ACTOR);
-      return { outcome: { violationId: fined.id, status: fined.status, fineId: fine.id, duplicate: false }, fineId: fine.id };
+      return {
+        outcome: { violationId: fined.id, status: fined.status, fineId: fine.id, duplicate: false },
+        fineId: fine.id,
+        ...(sighting && { sighting }),
+      };
     }
     case "NEEDS_REVIEW": {
       const v = await transition(tx, violation.id, "NEEDS_REVIEW", ACTOR, { reviewReason: decision.reason });
-      return { outcome: { violationId: v.id, status: v.status, duplicate: false } };
+      return { outcome: { violationId: v.id, status: v.status, duplicate: false }, ...(sighting && { sighting }) };
     }
     case "VOID": {
       const v = await transition(tx, violation.id, "VOID", ACTOR, { voidReason: decision.voidReason });
-      return { outcome: { violationId: v.id, status: v.status, duplicate: false } };
+      return { outcome: { violationId: v.id, status: v.status, duplicate: false }, ...(sighting && { sighting }) };
     }
   }
 }
@@ -206,11 +224,31 @@ async function notifyAndAdvance(deps: DetectionDeps, outcome: Outcome, fineId: s
   }
 }
 
+/** Registra el avistamiento y despacha la alerta al oficial más cercano. Nunca lanza. */
+async function raiseAlert(deps: DetectionDeps, r: VisionResult, violationId: string, s: SightingTrigger): Promise<void> {
+  try {
+    const sighting = await deps.registerSighting({
+      cameraId: r.cameraId,
+      plate: s.plate,
+      seenAt: s.occurredAt.toISOString(),
+      evidenceUrl: r.clipUrl,
+    });
+    await deps.dispatchAlert(sighting.sightingId);
+  } catch (err) {
+    await audit(deps.db, {
+      actor: ACTOR, action: "ALERT_FAILED", entity: "Violation", entityId: violationId,
+      after: { error: err instanceof Error ? err.message : String(err) },
+    });
+  }
+}
+
 export function createRegisterDetection(deps: DetectionDeps): RegisterDetection {
   return async (r) => {
     const threshold = deps.confidenceThreshold ?? readConfidenceThreshold();
-    const { outcome, fineId } = await deps.db.$transaction((tx) => persist(tx, r, threshold), TX_OPTIONS);
-    if (!fineId) return outcome;
-    return { ...outcome, status: await notifyAndAdvance(deps, outcome, fineId) };
+    const { outcome, fineId, sighting } = await deps.db.$transaction((tx) => persist(tx, r, threshold), TX_OPTIONS);
+
+    const result = fineId ? { ...outcome, status: await notifyAndAdvance(deps, outcome, fineId) } : outcome;
+    if (sighting) await raiseAlert(deps, r, outcome.violationId, sighting);
+    return result;
   };
 }

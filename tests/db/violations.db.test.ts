@@ -1,14 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import type { NotificationResult, NotifyFineIssued, VisionResult } from '../../lib/contracts/index.ts'
+import type { DispatchAlert, NotificationResult, NotifyFineIssued, VisionResult } from '../../lib/contracts/index.ts'
 import { db } from '../../lib/db.ts'
 import { NotFoundError } from '../../lib/domain/errors.ts'
 import { FINE_AMOUNTS_EXAMPLE } from '../../lib/domain/fines.ts'
+import { createRegisterSighting } from '../../lib/domain/sightings.ts'
 import { NO_VIOLATION_VOID_REASON, createRegisterDetection } from '../../lib/domain/violations.ts'
 
 const RUN = Date.now().toString(36)
 const SUFFIX = String(Date.now() % 10_000).padStart(4, '0')
 const KEY_PREFIX = `test-det-${RUN}`
 let counter = 0
+const plates: string[] = []
 
 const dryRun: NotificationResult = { channel: 'WHATSAPP', status: 'DRY_RUN', providerId: 'test' }
 function notifier(result: NotificationResult | Error = dryRun) {
@@ -18,13 +20,21 @@ function notifier(result: NotificationResult | Error = dryRun) {
   })
 }
 const make = (notify: NotifyFineIssued = notifier(), confidenceThreshold = 0.8) =>
-  createRegisterDetection({ db, notifyFineIssued: notify, confidenceThreshold })
+  createRegisterDetection({
+    db,
+    notifyFineIssued: notify,
+    registerSighting: createRegisterSighting(db),
+    // Los vehículos de estas pruebas no tienen multas previas, así que no debería llamarse.
+    dispatchAlert: vi.fn<DispatchAlert>(async () => ({ alertId: 'test', status: 'SENT' })),
+    confidenceThreshold,
+  })
 
 const personId = `test_${RUN}_per`
 /** Placa única por prueba, registrada a nombre de la persona de prueba. */
 async function vehicle(): Promise<string> {
   const plate = `TX${String(++counter).padStart(2, '0')}${SUFFIX}`
   await db.vehicle.create({ data: { id: `test_${RUN}_veh_${counter}`, plate, make: 'Test', model: 'Auto', color: 'gris', ownerId: personId } })
+  plates.push(plate)
   return plate
 }
 
@@ -65,6 +75,8 @@ afterAll(async () => {
   await db.evidence.deleteMany({ where: { violationId: { in: violations.map((v) => v.id) } } })
   await db.fine.deleteMany({ where: { violationId: { in: violations.map((v) => v.id) } } })
   await db.violation.deleteMany({ where: { id: { in: violations.map((v) => v.id) } } })
+  // Una 2ª detección de un vehículo que ya tiene multa crea un avistamiento (alerta): se limpia aquí.
+  await db.sighting.deleteMany({ where: { plateRead: { in: plates } } })
   await db.vehicle.deleteMany({ where: { id: { startsWith: `test_${RUN}` } } })
   await db.person.deleteMany({ where: { id: personId } })
   await db.$disconnect()
