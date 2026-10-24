@@ -4,6 +4,23 @@ import { Logo } from '@/components/vc/index.tsx'
 
 const LEMA = 'La multa llega con la prueba, y se paga en un minuto.'
 
+// Edificios del dibujo como [x desde, x hasta, techo]; el suelo de todos es y = 360.
+const EDIFICIOS: Array<[number, number, number]> = [
+  [0, 40, 250], [40, 90, 210], [90, 130, 280], [130, 175, 190], [175, 220, 300], [220, 260, 240], [260, 300, 320],
+  [380, 410, 330], [410, 450, 250], [450, 480, 300], [480, 520, 200], [520, 560, 260], [560, 600, 170], [600, 640, 220],
+]
+
+// Ventanas de 4×6 en rejilla de 10×14; unas dos de cada tres encendidas, con un patrón fijo para que no cambie en cada render.
+const VENTANAS = EDIFICIOS.flatMap(([x0, x1, techo], e) => {
+  const v: Array<{ x: number; y: number }> = []
+  for (let y = techo + 12; y <= 344; y += 14) {
+    for (let x = x0 + 7; x + 4 <= x1 - 5; x += 10) {
+      if ((x * 7 + y * 13 + e * 31) % 3 !== 0) v.push({ x, y })
+    }
+  }
+  return v
+})
+
 /** Acceso: formulario de 400 px máx. En desktop, panel tinta con la calle al atardecer. */
 export default function AuthLayout() {
   const { pathname } = useLocation()
@@ -35,6 +52,9 @@ export default function AuthLayout() {
               <circle cx="420" cy="330" r="46" fill="#F5A524" opacity=".7" />
               <path d="M0 360 V250 H40 V210 H90 V280 H130 V190 H175 V300 H220 V240 H260 V320 H300 V360 Z" fill="#151C28" />
               <path d="M640 360 V220 H600 V170 H560 V260 H520 V200 H480 V300 H450 V250 H410 V330 H380 V360 Z" fill="#151C28" />
+              <g fill="#F4F1E6" opacity=".8">
+                {VENTANAS.map((w) => <rect key={`${w.x}-${w.y}`} x={w.x} y={w.y} width="4" height="6" rx=".6" />)}
+              </g>
               <rect x="0" y="360" width="640" height="160" fill="#0E1726" />
               <polygon points="290,360 350,360 640,520 0,520" fill="#151C28" />
               <path d="M320 380 L320 520" stroke="#2A3446" strokeWidth="4" strokeDasharray="18 14" />
@@ -64,9 +84,13 @@ export default function AuthLayout() {
               </g>
               <rect x="470" y="230" width="6" height="140" fill="#151C28" />
               <rect x="458" y="196" width="30" height="66" rx="8" fill="#0E1726" />
-              <circle cx="473" cy="212" r="8" fill="#C8281C" />
+              {/* Semáforo: focos apagados y encima cada luz encendida, que se turna verde → amarillo → rojo (9,2 s). */}
+              <circle cx="473" cy="212" r="8" fill="#2A3446" />
               <circle cx="473" cy="232" r="8" fill="#2A3446" />
               <circle cx="473" cy="252" r="8" fill="#2A3446" />
+              <circle className="luz-roja" cx="473" cy="212" r="8" fill="#E5483B" />
+              <circle className="luz-ambar" cx="473" cy="232" r="8" fill="#F5A524" />
+              <circle className="luz-verde" cx="473" cy="252" r="8" fill="#3DD68C" />
             </svg>
           </div>
           <div className="px-10 pt-8 pb-10">

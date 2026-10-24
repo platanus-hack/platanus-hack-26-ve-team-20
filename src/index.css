@@ -230,6 +230,14 @@
 .carro-se-aleja { animation: se-aleja 9s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; opacity: 0; }
 .carro-se-acerca { animation: se-acerca 7s cubic-bezier(0.6, 0, 0.8, 0.4) 3.5s infinite; opacity: 0; }
 
+/* Semáforo de la ilustración: verde 43 %, amarillo 14 %, rojo 43 % de un ciclo de 9,2 s, con cambios secos. */
+@keyframes luz-verde { 0%, 42.9% { opacity: 1; } 43%, 100% { opacity: 0; } }
+@keyframes luz-ambar { 0%, 42.9% { opacity: 0; } 43%, 56.9% { opacity: 1; } 57%, 100% { opacity: 0; } }
+@keyframes luz-roja { 0%, 56.9% { opacity: 0; } 57%, 100% { opacity: 1; } }
+.luz-verde { animation: luz-verde 9.2s infinite; }
+.luz-ambar { animation: luz-ambar 9.2s infinite; opacity: 0; }
+.luz-roja { animation: luz-roja 9.2s infinite; }
+
 /* Barra lima de la sección activa: crece desde el centro (220 ms). */
 @keyframes barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .barra-activa { animation: barra 220ms var(--ease-entrada) both; }
@@ -250,6 +258,8 @@
   .vista { animation: solo-fundido 120ms linear both; }
   .barra-activa, .latido { animation: none; }
   .carro-se-aleja, .carro-se-acerca { animation: none; display: none; }
+  .luz-verde, .luz-ambar, .luz-roja { animation: none; }
+  .luz-verde, .luz-ambar { opacity: 0; }
   dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
   dialog.sheet[open] { opacity: 1; }
   @starting-style { dialog.sheet[open] { opacity: 0; } }
