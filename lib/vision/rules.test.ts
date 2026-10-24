@@ -77,7 +77,7 @@ describe('evaluate (doble llave)', () => {
   it.each([
     ['sin placa', { plate: null }, 'NO_PLATE'],
     ['placa con ?', { plate: 'AB12?CD' }, 'NO_PLATE'],
-    ['placa fuera de formato venezolano', { plate: 'ABC1234' }, 'NO_PLATE'],
+    ['lectura demasiado corta', { plate: 'AB12' }, 'NO_PLATE'],
     ['confianza bajo el umbral', { conf: 0.6 }, 'LOW_CONFIDENCE'],
     ['una sola lectura de OCR (confianza 1.0 engañosa)', { conf: 1, votes: 1 }, 'LOW_CONFIDENCE'],
     ['cambio de ID sospechado', { idSwitch: true }, 'MODEL_RULE_DISAGREE'],
@@ -93,9 +93,10 @@ describe('evaluate (doble llave)', () => {
     expect(evaluate(response(), ctx([])).reviewReason).toBe('MODEL_RULE_DISAGREE')
   })
 
-  it('acepta placas de moto, de carga y del formato antiguo', () => {
+  it('no exige formato venezolano: una lectura confiable pasa y el dominio verifica si la placa existe', () => {
     expect(evaluate(response({ plate: 'AB1C23D' }), ctx(red)).verdict).toBe('VIOLATION')
-    expect(evaluate(response({ plate: 'AHA79M' }), ctx(red)).verdict).toBe('VIOLATION')
+    expect(evaluate(response({ plate: 'XYZ12K' }), ctx(red)).verdict).toBe('VIOLATION')
+    expect(evaluate(response({ plate: 'QZ9876' }), ctx(red))).toMatchObject({ verdict: 'VIOLATION', plate: 'QZ9876' })
     expect(evaluate(response({ plate: 'a12-bc3d' }), ctx(red)).plate).toBe('A12BC3D')
   })
 })

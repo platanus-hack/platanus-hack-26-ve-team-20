@@ -59,7 +59,7 @@ def crear_motor(**kwargs: Any) -> Any:
     # con mps las placas van en CPU (los vehículos siguen en GPU).
     # shortcut: con mps se omite senales.pt (solo agrega evidencia); habilitarlo cuando corra en NVIDIA o CPU.
     en_mps = device == "mps"
-    # Además de los formatos de 7 del motor, el antiguo de 6 (AHA79M) que todavía circula.
+    # Además de los formatos de 7 del motor, el antiguo de 6 (p. ej. XYZ12K) que todavía circula.
     plantillas = {**PLANTILLAS_VE, "antigua": "LLLDDL"}
     lector = (LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device, plantillas=plantillas)
               if placas.exists() else None)
