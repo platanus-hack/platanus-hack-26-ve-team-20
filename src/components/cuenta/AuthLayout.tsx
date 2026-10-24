@@ -85,12 +85,12 @@ export default function AuthLayout() {
               <rect x="470" y="230" width="6" height="140" fill="#151C28" />
               <rect x="458" y="196" width="30" height="66" rx="8" fill="#0E1726" />
               {/* Semáforo: focos apagados y encima cada luz encendida, que se turna verde → amarillo → rojo (9,2 s). */}
-              <circle cx="473" cy="212" r="8" fill="#2A3446" />
-              <circle cx="473" cy="232" r="8" fill="#2A3446" />
-              <circle cx="473" cy="252" r="8" fill="#2A3446" />
-              <circle className="luz-roja" cx="473" cy="212" r="8" fill="#E5483B" />
-              <circle className="luz-ambar" cx="473" cy="232" r="8" fill="#F5A524" />
-              <circle className="luz-verde" cx="473" cy="252" r="8" fill="#3DD68C" />
+              <circle cx="473" cy="209" r="8" fill="#2A3446" />
+              <circle cx="473" cy="229" r="8" fill="#2A3446" />
+              <circle cx="473" cy="249" r="8" fill="#2A3446" />
+              <circle className="luz-roja" cx="473" cy="209" r="8" fill="#E5483B" />
+              <circle className="luz-ambar" cx="473" cy="229" r="8" fill="#F5A524" />
+              <circle className="luz-verde" cx="473" cy="249" r="8" fill="#3DD68C" />
             </svg>
           </div>
           <div className="px-10 pt-8 pb-10">
