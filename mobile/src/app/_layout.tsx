@@ -55,7 +55,7 @@ function Raiz() {
     <>
       <StatusBar style={esquema === 'oscuro' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.fondo } }}>
-        <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: color.tinta } }} />
+        <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: esquema === 'oscuro' ? c.fondo : color.tinta } }} />
         <Stack.Screen name="(ciudadano)" options={{ animation: 'fade' }} />
         <Stack.Screen name="camara" options={{ contentStyle: { backgroundColor: '#0A0F18' }, animation: 'fade' }} />
       </Stack>

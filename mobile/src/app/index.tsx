@@ -24,7 +24,9 @@ const T_SALIDA = 2900;
 /** Primera vista: el carro, sus luces de rojo a verde y el nombre. Luego entra el ciudadano. */
 export default function Inicio() {
   const rm = useReducedMotion();
-  const { c } = useTema();
+  const { c, esquema } = useTema();
+  // Claro: fondo tinta de marca. Oscuro: negro, el mismo fondo de la app.
+  const fondo = esquema === 'oscuro' ? c.fondo : temaClaro.tinta;
   const carro = useSharedValue(rm ? 1 : 0);
   const nombre = useSharedValue(rm ? 1 : 0);
   const visible = useSharedValue(1);
@@ -43,7 +45,7 @@ export default function Inicio() {
   }, []);
 
   // Al salir, el fondo tinta se funde con el fondo de la app: el login o el inicio aparecen sin salto.
-  const estiloFondo = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(visible.get(), [0, 1], [c.fondo, temaClaro.tinta]) }));
+  const estiloFondo = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(visible.get(), [0, 1], [c.fondo, fondo]) }));
   const estiloCarro = useAnimatedStyle(() => ({
     opacity: visible.get(),
     transform: [{ translateY: (1 - nombre.get()) * SUBIDA }, { scale: ESCALA_INICIAL + (1 - ESCALA_INICIAL) * carro.get() }],
