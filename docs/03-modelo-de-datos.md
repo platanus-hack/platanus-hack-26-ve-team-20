@@ -182,7 +182,7 @@ model Notification {
   to          String
   template    String                    // "FINE_ISSUED" | "PAYMENT_CONFIRMED" | "OFFICER_ALERT"
   status      NotificationStatus @default(QUEUED)
-  providerId  String?                   // wamid de WhatsApp (Meta) / id Resend
+  providerId  String?                   // wamid de WhatsApp (Meta)
   error       String?
   createdAt   DateTime           @default(now())
   @@index([providerId])
@@ -276,7 +276,7 @@ stateDiagram-v2
   NEEDS_REVIEW --> REVIEWED: operador aprueba (corrige placa)
   NEEDS_REVIEW --> VOID: operador anula
   REVIEWED --> FINED
-  FINED --> NOTIFIED: WhatsApp/email enviado
+  FINED --> NOTIFIED: WhatsApp enviado
   FINED --> PAID
   NOTIFIED --> PAID: pago C2P aprobado
   NOTIFIED --> APPEALED: conductor apela (stretch)

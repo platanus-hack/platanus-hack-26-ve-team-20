@@ -39,7 +39,7 @@ Correr con `NOTIFY_DRY_RUN=true` y `DEMO_VISION_CACHE=true` en CI/local para no 
 | Multa ya pagada | 409 `ALREADY_PAID`, UI muestra comprobante |
 | Doble submit de pago | mismo `idempotencyKey` → un solo `Payment` |
 | Clave C2P inválida | `REJECTED` con mensaje, se puede reintentar |
-| WhatsApp falla (fuera de ventana 24 h / número inválido) | intento email; `Notification.FAILED` visible en consola |
+| WhatsApp falla (fuera de ventana 24 h / número no verificado) | `Notification.FAILED` con el error, visible en consola; la multa se crea igual |
 | Ningún oficial cerca | `Alert.NO_OFFICER_NEARBY` visible en consola |
 | Ubicación de oficial vieja (> 10 min) | ignorada |
 | Misma placa vista 3 veces en 5 min | 1 alerta, resto `SUPPRESSED` |
@@ -50,7 +50,7 @@ Correr con `NOTIFY_DRY_RUN=true` y `DEMO_VISION_CACHE=true` en CI/local para no 
 ## 3. Checklist de demo (h30 y antes del pitch)
 - [ ] Deploy de producción en Vercel accesible desde 4G (no solo wifi del evento).
 - [ ] `pnpm demo:reset` corrido; seed con `DEMO_PHONE_DRIVER` y `DEMO_PHONE_OFFICER` correctos.
-- [ ] Ambos teléfonos de demo enviaron "hola" al número de WhatsApp de VíaClara (ventana 24 h abierta) o plantillas aprobadas; token permanente de Meta cargado.
+- [ ] Ambos teléfonos de demo enviaron "hola" al número de prueba de WhatsApp poco antes del pitch (ventana 24 h abierta); token permanente de Meta cargado.
 - [ ] `NOTIFY_DRY_RUN=false` en prod. `DEMO_VISION_CACHE` listo como plan B (toggle).
 - [ ] Oficial OF-0001 logueado en el teléfono 2, "En servicio", posición demo cerca de CAM-001.
 - [ ] Servicio ML (`ml/`) y su túnel arriba; `GET /health` responde. Teléfono-cámara (app Expo) en trípode fijo, con `CAM-001` configurada y la `CAMERA_API_KEY`; cámara calibrada (error de reproyección ≤ 0,15 m) y semáforo simulado en ROJO.

@@ -203,7 +203,7 @@ Algoritmo `dispatchAlert` (`lib/alerts/dispatch.ts`):
 4. Crear `Alert` + `notifyOfficerAlert`. Ninguno → `NO_OFFICER_NEARBY`.
 
 ## 7. WhatsApp Cloud API de Meta (P3)
-Directo con Meta, sin intermediarios, con línea propia (o el número de prueba de Meta como plan B). Montaje de la cuenta, plantillas y variables: `p3-plan-de-trabajo.md` §3.
+Directo con Meta, sin intermediarios, desde el **número de prueba de Meta** y solo con **mensajes de texto** (sin plantillas ni email). Montaje y variables: `p3-plan-de-trabajo.md` §3.
 
 ### Saliente (envío) — `lib/notify/whatsapp.ts`
 ```http
@@ -215,9 +215,9 @@ Content-Type: application/json
   "type": "text", "text": { "body": "VíaClara · Aviso de infracción…\nVer y pagar: https://…/multa/x7Gq…", "preview_url": true },
   "biz_opaque_callback_data": "fine:fine_cuid" }
 ```
-Con plantilla: `"type": "template", "template": { "name": "{WHATSAPP_TEMPLATE_FINE}", "language": { "code": "es" }, "components": [...] }`. Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
+Respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Fuente: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
 
-**Ventana de 24 h de WhatsApp**: mensajes iniciados por la empresa fuera de la ventana requieren **plantilla aprobada** (`type: "template"`; nombres en `WHATSAPP_TEMPLATE_FINE`, `WHATSAPP_TEMPLATE_PAYMENT`, `WHATSAPP_TEMPLATE_ALERT`). Para la demo: (a) aprobar plantillas temprano, o (b) los teléfonos de demo escriben primero "hola" al número para abrir la ventana. Hacer (b) siempre antes del pitch.
+**Ventana de 24 h de WhatsApp**: solo se envía texto libre a números que escribieron al número de prueba en las últimas 24 h; fuera de ella Meta exige plantillas, que no usamos. Los teléfonos de demo escriben "hola" al número antes de cada prueba, ensayo y del pitch. Si la ventana está cerrada, el envío falla y queda `Notification.FAILED` con el error. Solo reciben los números verificados en *API Setup* del número de prueba.
 
 Textos (`lib/notify/templates.ts`):
 - `FINE_ISSUED`: "VíaClara (demo). Se registró una posible infracción: {tipo} en {intersección}, {fecha hora} (hora de Caracas), vehículo placa {placaEnmascarada}. Monto de ejemplo: {monto}. Vea la evidencia, pague o apele aquí: {link}"

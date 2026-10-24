@@ -12,7 +12,7 @@
 | Dominio | `lib/domain/*` | Máquina de estados, creación de multas, deduplicación, auditoría |
 | Base de datos | Neon Postgres + Prisma | Persistencia |
 | Evidencia | Vercel Blob | Clip, fotogramas clave y recorte de placa (URLs con sufijo aleatorio) |
-| Notificaciones | `lib/notify/*` → WhatsApp Cloud API de Meta (línea propia), Resend (email) | Multas, confirmaciones, alertas a oficiales |
+| Notificaciones | `lib/notify/*` → WhatsApp Cloud API de Meta (número de prueba, texto) | Multas, confirmaciones, alertas a oficiales |
 | Pagos | `lib/payments/c2p.ts` | **Simulador** de C2P con la misma interfaz que tendría un adaptador bancario real |
 | Geo/alertas | `lib/geo`, `lib/alerts` | Oficial más cercano (haversine), anti-spam |
 
@@ -39,7 +39,6 @@ flowchart LR
   DB[(Neon Postgres)]
   ML[Servicio ML Python<br/>modelo propio, fuera de Vercel]
   KP[WhatsApp Cloud API<br/>Meta]
-  RS[Resend email]
 
   PH -- clip (client upload) --> BLOB
   PH -- POST /api/detections --> API
@@ -47,7 +46,6 @@ flowchart LR
   API --> VIS -- POST /predict --> ML
   VIS --> DOM --> DB
   DOM --> NOT --> KP
-  NOT --> RS
   DOM --> ALR --> NOT
   DRV --> API --> PAY --> DOM
   POR --> API

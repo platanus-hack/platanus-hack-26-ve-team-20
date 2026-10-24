@@ -4,7 +4,7 @@
 
 ## 1. Qué es
 **VíaClara**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
-Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (WhatsApp Cloud API de Meta, línea propia) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
+Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (WhatsApp Cloud API de Meta) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
 
 Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único requisito técnico: **hosting en Vercel**.
 
@@ -27,7 +27,7 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 - **Vercel Blob** para evidencia (clips, fotogramas clave y recortes de placa); el teléfono sube el clip por client upload con token de `api/blob/upload.ts`.
 - App de cámara: **Expo (React Native, TypeScript)** en `mobile/`. El teléfono hace de cámara de tráfico: graba clips cortos de video.
 - Visión: **detector preentrenado con ajuste fino** (YOLO con pesos COCO, datasets de Kaggle) + ByteTrack + EasyOCR; velocidad y contravía por **homografía y reglas geométricas** sobre las trayectorias. Servido por un **servicio Python (FastAPI) fuera de Vercel** en `ml/`; el ajuste fino se entrena en notebooks de Kaggle. Sin Claude/LLM en el pipeline de visión.
-- **WhatsApp Cloud API de Meta**, directo y sin intermediarios, con línea propia (detalle en `docs/p3-plan-de-trabajo.md` §3); **Resend** para email (respaldo).
+- **WhatsApp Cloud API de Meta**, directo y sin intermediarios, desde el número de prueba de Meta y con mensajes de texto dentro de la ventana de 24 h (detalle en `docs/p3-plan-de-trabajo.md` §3). Sin plantillas ni email de respaldo.
 - Mapas: Leaflet + OpenStreetMap (sin API key).
 - Tests: Vitest (unit) + Playwright (E2E).
 
@@ -88,7 +88,7 @@ lib/
   domain/           # máquina de estados, multas, auditoría (P1)
   vision/           # cliente del servicio ML, reglas (luz en el cruce, placa), doble llave (P2)
   storage/          # Vercel Blob (P2)
-  notify/           # whatsapp.ts, email.ts, templates.ts (P3)
+  notify/           # whatsapp.ts, templates.ts (P3)
   payments/         # c2p.ts simulado (P3)
   geo/              # haversine, oficial más cercano (P3)
   alerts/           # creación/despacho de alertas (P3)
@@ -124,14 +124,11 @@ docs/               # esta documentación
 | `VISION_CONFIDENCE_THRESHOLD` | p.ej. `0.8` | P2 |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob (evidencia) | P2 |
 | `WHATSAPP_ACCESS_TOKEN` | token permanente del usuario del sistema de Meta | P3 |
-| `WHATSAPP_PHONE_NUMBER_ID` | id del número WhatsApp emisor (de prueba o propio) | P3 |
-| `WHATSAPP_WABA_ID` | id de la cuenta de WhatsApp Business | P3 |
+| `WHATSAPP_PHONE_NUMBER_ID` | id del número WhatsApp emisor (el número de prueba de Meta) | P3 |
+| `WHATSAPP_WABA_ID` | id de la cuenta de WhatsApp Business (diagnóstico) | P3 |
 | `WHATSAPP_APP_SECRET` | clave secreta de la app; verifica `X-Hub-Signature-256` del webhook | P3 |
 | `WHATSAPP_VERIFY_TOKEN` | texto para el GET de verificación del webhook | P3 |
 | `WHATSAPP_GRAPH_VERSION` | versión de la Graph API, p.ej. `v23.0` | P3 |
-| `WHATSAPP_TEMPLATE_FINE`, `WHATSAPP_TEMPLATE_PAYMENT`, `WHATSAPP_TEMPLATE_ALERT` | nombres de plantillas aprobadas (vacío = enviar texto) | P3 |
-| `WHATSAPP_TEMPLATE_LANG` | idioma de las plantillas, `es` | P3 |
-| `RESEND_API_KEY`, `EMAIL_FROM` | email respaldo | P3 |
 | `APP_BASE_URL` | p.ej. `https://<pendiente>.vercel.app` | P1 |
 | `ADMIN_PASSCODE` | acceso simple a `/admin` y `/camaras` | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |

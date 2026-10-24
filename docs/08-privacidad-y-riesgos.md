@@ -43,7 +43,7 @@ Mitigaciones (MVP marcado ✔, stretch ◻):
 | Riesgo | Prob. | Impacto | Mitigación |
 |---|---|---|---|
 | El modelo lee mal la placa, o el tracker cambia de ID, o la velocidad sale imprecisa | Alta | Alto | Ajuste fino en datasets de Kaggle con split train/val/test, clips demo controlados, doble llave, revisión humana, velocidad solo como estimación, `DEMO_VISION_CACHE` como plan B |
-| WhatsApp no llega (ventana 24 h / plantilla) | Media | Alto | Teléfonos de demo escriben primero; plantilla pedida en h0; email fallback; mostrar estado en consola |
+| WhatsApp no llega (ventana 24 h cerrada / número no verificado) | Media | Alto | Teléfonos de demo escriben "hola" antes de cada prueba y del pitch; solo números verificados en el número de prueba; mostrar estado en consola |
 | Wifi del evento caído | Media | Alto | Hotspot 4G; video plan B |
 | Límite 4.5 MB / timeout en Vercel | Baja | Medio | Clip por client upload a Blob; `maxDuration=60`; clip corto (3–5 s) |
 | Conflictos de git entre 4 personas | Media | Medio | Propiedad de carpetas (doc 09), PRs pequeños, merge captain |

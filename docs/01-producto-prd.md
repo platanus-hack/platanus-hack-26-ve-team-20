@@ -27,7 +27,7 @@ Cámara en semáforo → IA detecta la infracción y lee la placa → multa con 
 2. Detección de **luz roja**: detector preentrenado con ajuste fino (datasets de Kaggle) + tracking + regla de cruce de línea de pare; la placa se lee con OCR; velocidad y dirección se estiman con homografía (no sancionatorias).
 3. Lectura de placa y match contra registro vehicular **falso** (seed).
 4. Creación de `Violation` + `Evidence` + `Fine` (si confianza ≥ umbral) o envío a revisión.
-5. Notificación WhatsApp (WhatsApp Cloud API de Meta, línea propia) con link a la multa; email (Resend) como respaldo.
+5. Notificación WhatsApp (WhatsApp Cloud API de Meta, número de prueba, texto dentro de la ventana de 24 h) con link a la multa.
 6. Página de multa con evidencia + pago **C2P simulado** → `PAID`.
 7. Portal por cédula con datos limitados.
 8. Alerta a oficial cercano cuando una placa con multa impaga es vista (avistamiento).
@@ -65,7 +65,7 @@ Como operador, el teléfono-cámara graba un evento y veo si hubo infracción.
 
 **HU-03 Notificación (Conductor)**
 - [ ] Al crear la multa, el dueño recibe WhatsApp con: tipo de infracción, lugar, fecha/hora (Caracas), monto, link `APP_BASE_URL/multa/<token>`.
-- [ ] Si WhatsApp falla, se intenta email; el resultado queda en `Notification` y `AuditLog`.
+- [ ] Si WhatsApp falla (p. ej. ventana de 24 h cerrada), queda `Notification.FAILED` con el error, visible en consola, y en `AuditLog`. Sin email de respaldo.
 - [ ] `NOTIFY_DRY_RUN=true` no envía pero registra.
 
 **HU-04 Pago C2P simulado (Conductor)**
