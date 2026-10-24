@@ -29,8 +29,8 @@ def _jpg() -> bytes:
 class MotorVivo:
     """Multa en el 3er cuadro solo si el semáforo está en rojo (como la regla real del motor)."""
 
-    def __init__(self, config: dict[str, Any], carpeta_evidencias: str, en_multa: Any) -> None:
-        self.config, self.carpeta, self.en_multa = config, Path(carpeta_evidencias), en_multa
+    def __init__(self, config: dict[str, Any], carpeta_evidencias: str, en_multa: Any, **ajustes: Any) -> None:
+        self.config, self.carpeta, self.en_multa, self.ajustes = config, Path(carpeta_evidencias), en_multa, ajustes
         self.n, self.estados = 0, []
 
     def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
@@ -169,3 +169,17 @@ def test_cajas_salen_del_tracker_normalizadas(sesion: tuple[Sesion, list[dict[st
     s.fabrica = ConTracker
     r = s.procesar(_jpg())  # cuadro de 160x90
     assert r["cajas"] == [{"id": 5, "clase": "car", "x": 0.1, "y": 0.1, "w": 0.4, "h": 0.4, "multa": True}]
+
+
+def test_motor_en_vivo_usa_ajustes_para_pocos_cuadros(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, motores = sesion
+    s.procesar(_jpg())
+    a = motores[0].ajustes
+    assert a["leer_cada"] == 1 and a["imgsz_vehiculos"] == 960
+    assert Path(a["tracker"]).name == "bytetrack_vivo.yaml" and Path(a["tracker"]).exists()
+
+
+def test_cuadro_ilegible_responde_igual_para_no_desordenar(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, _ = sesion
+    r = s.procesar(b"no es un jpg")
+    assert r["tipo"] == "cuadro" and r["cajas"] == [] and r["aviso"] == "Cuadro ilegible"

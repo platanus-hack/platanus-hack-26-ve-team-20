@@ -27,6 +27,17 @@ from .schemas import Calibracion
 router = APIRouter()
 PAGINA = Path(__file__).parent / "static" / "en_vivo.html"
 ESTADOS = {"rojo", "amarillo", "verde"}
+# Ajustes del motor para el modo en vivo, solo con parámetros del constructor (guía de integración §4):
+# pocos cuadros por segundo por la red y carros chicos o lejanos (p. ej. desde un puente).
+AJUSTES_VIVO: dict[str, Any] = {
+    "tracker": str(Path(__file__).parent / "bytetrack_vivo.yaml"),
+    "imgsz_vehiculos": 960,  # defecto 640: carros pequeños en cuadros de 960–1280 px
+    "conf_vehiculos": 0.25,  # defecto 0.35
+    "conf_placas": 0.25,  # defecto 0.30
+    "leer_cada": 1,  # defecto 3: con pocos cuadros por segundo cada cuadro cuenta para leer la placa
+    "max_lecturas": 15,  # defecto 10
+    "frames_despues": 20,  # defecto 30 (pensado para 30 fps): a ~6 fps la multa cerraría muy tarde
+}
 
 
 class Sesion:
@@ -58,7 +69,7 @@ class Sesion:
                               parameters={"stopLineAfterBelow": 1.0} if self.hacia_camara else {})
             carpeta = pipeline.EVIDENCE_DIR / f"en-vivo-{uuid.uuid4().hex[:8]}"
             self.motor = self.fabrica(config=pipeline.camara_json(cal, ancho, alto),
-                                      carpeta_evidencias=str(carpeta), en_multa=self.multas.put)
+                                      carpeta_evidencias=str(carpeta), en_multa=self.multas.put, **AJUSTES_VIVO)
             self.tam = (ancho, alto)
             self._capturar_cajas(self.motor)
         return self.motor
@@ -96,8 +107,9 @@ class Sesion:
 
     def procesar(self, jpg: bytes) -> dict[str, Any]:
         frame = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
-        if frame is None:
-            return {"tipo": "error", "mensaje": "Cuadro ilegible"}
+        if frame is None:  # responde igual: la página empareja respuestas y cuadros por orden de llegada
+            return {"tipo": "cuadro", "cajas": [], "estado": self.estado, "cruces": [], "multas": [],
+                    "registros": [], "aviso": "Cuadro ilegible"}
         motor = self._motor(frame.shape[1], frame.shape[0])
         with pipeline.GPU_LOCK:
             salida = motor.procesar_frame(frame, self.estado)
