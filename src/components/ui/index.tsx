@@ -1,4 +1,4 @@
-import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
+import { ChevronDown, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { useTema, type Tema } from '@/hooks/useTema.ts'
@@ -24,17 +24,22 @@ export function Campo({ id, label, error, ayuda, children }: { id: string; label
   )
 }
 
+/** V/E: la letra y la flecha van centradas juntas; el select nativo, invisible encima, conserva teclado y lector de pantalla. */
 export function SelectCedula({ value, onChange }: { value: string; onChange: (v: 'V' | 'E') => void }) {
   return (
-    <select
-      aria-label="Tipo de cédula"
-      value={value}
-      onChange={(e) => onChange(e.target.value === 'E' ? 'E' : 'V')}
-      className="h-12 w-[76px] flex-none rounded-control border border-input bg-card px-2.5 font-mono text-base font-bold"
-    >
-      <option value="V">V</option>
-      <option value="E">E</option>
-    </select>
+    <span className="relative flex h-12 w-[76px] flex-none items-center justify-center gap-1.5 rounded-control border border-input bg-card font-mono text-base font-bold has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-azul">
+      <span aria-hidden="true">{value}</span>
+      <ChevronDown size={16} strokeWidth={2} aria-hidden="true" className="text-texto-2" />
+      <select
+        aria-label="Tipo de cédula"
+        value={value}
+        onChange={(e) => onChange(e.target.value === 'E' ? 'E' : 'V')}
+        className="absolute inset-0 cursor-pointer appearance-none opacity-0 outline-none"
+      >
+        <option value="V">V</option>
+        <option value="E">E</option>
+      </select>
+    </span>
   )
 }
 
