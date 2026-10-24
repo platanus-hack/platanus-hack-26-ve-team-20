@@ -39,3 +39,6 @@ __pycache__/
 # Prisma (el cliente se genera en postinstall)
 lib/generated/
 prisma/*.db
+
+# Brief para la demo de presentación (no se versiona)
+docs/13-brief-demo-presentacion.md
