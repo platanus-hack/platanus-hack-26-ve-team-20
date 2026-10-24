@@ -61,6 +61,19 @@ describe('esquemas de entrada', () => {
     ]) expect(() => CitizenRegisterSchema.parse(bad), JSON.stringify(bad)).toThrow()
   })
 
+  it('teléfono opcional: se normaliza a formato internacional y se rechaza lo que no es venezolano', () => {
+    const phone = (v: unknown) => CitizenRegisterSchema.parse({ cedula: 'V99123456', password: '12345678', phone: v }).phone
+    expect(phone('0412-123 4567')).toBe('584121234567')
+    expect(phone('+58 (426) 123-4567')).toBe('584261234567')
+    expect(phone('584141234567')).toBe('584141234567')
+    expect(phone('')).toBeNull()
+    expect(phone(null)).toBeNull()
+    expect(CitizenRegisterSchema.parse({ cedula: 'V99123456', password: '12345678' }).phone).toBeUndefined()
+    for (const bad of ['04991234567', '0412123456', '12345', 'abc', '+1 555 123 4567']) {
+      expect(() => phone(bad), bad).toThrow()
+    }
+  })
+
   it('código: exactamente 6 dígitos', () => {
     expect(CitizenVerifySchema.parse({ cedula: 'V99123456', code: '012345' }).code).toBe('012345')
     for (const code of ['12345', '1234567', 'abcdef', '12 345', '']) {
@@ -91,6 +104,22 @@ describe('createCodeSender (WhatsApp)', () => {
     expect(sent.to).toBe('584120000777')
     expect(sent.text.body).toContain('482913')
     expect(sent.text.body).toMatch(/usted/i) // trato formal
+  })
+
+  it('con WHATSAPP_TEMPLATE_CODE usa la plantilla de autenticación (cuerpo y botón con el código)', async () => {
+    vi.stubEnv('WHATSAPP_TEMPLATE_CODE', 'smarttraffic_codigo')
+    const f = fakeFetch(200, { messages: [{ id: 'wamid.2' }] })
+    expect(await createCodeSender({ config, fetchImpl: f })('584120000777', '482913')).toEqual({ delivered: true })
+    const [, init] = (f as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]!
+    const sent = JSON.parse(init.body as string)
+    expect(sent.type).toBe('template')
+    expect(sent.template.name).toBe('smarttraffic_codigo')
+    expect(sent.template.language.code).toBe('es')
+    expect(sent.template.components).toEqual([
+      { type: 'body', parameters: [{ type: 'text', text: '482913' }] },
+      { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: '482913' }] },
+    ])
+    expect(sent.text).toBeUndefined()
   })
 
   it('con NOTIFY_DRY_RUN no envía y lo informa como no entregado', async () => {

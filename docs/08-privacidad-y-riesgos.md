@@ -18,6 +18,9 @@ Mitigaciones (MVP marcado ✔, stretch ◻):
 - ◻ OTP al teléfono del titular (WhatsApp) para ver evidencia y pagar desde el portal.
 - La evidencia completa solo se ve con el `publicToken` enviado al dueño.
 
+### Registro de ciudadanos abierto
+Cualquiera abre cuenta con cédula + teléfono propio + código de WhatsApp. El código prueba la posesión del teléfono, no la titularidad de la cédula: quien conozca una cédula ajena puede crear su cuenta y ver sus multas (las multas ya son visibles en parte por el portal, con datos enmascarados). Aceptado para la demo; endurecer verificando contra el teléfono conocido del titular o con un segundo dato (placa). Un titular nuevo se crea sin vehículos, y no se le cambia el teléfono a uno que ya los tiene.
+
 ## 3. Alertas a oficiales
 - La alerta indica **dónde fue visto el vehículo (cámara)** y la distancia del oficial a esa cámara; no rastrea al ciudadano ni muestra su domicilio, nombre o cédula.
 - Solo oficiales "en servicio" con passcode; su ubicación se usa solo para calcular cercanía y se descarta después de un tiempo (propuesta: 24 h).

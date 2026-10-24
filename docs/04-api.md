@@ -79,11 +79,13 @@ Cuenta en la tabla `AdminUser` (correo + contraseña con hash scrypt). La sesió
 ## 0c. Cuenta del ciudadano: cédula + contraseña (P1)
 El ciudadano crea su propia contraseña al registrarse y entra con su cédula. Sesión: cookie `vc_citizen` firmada (HttpOnly, SameSite=Lax, Secure en Vercel) de **30 min que se renueva con cada llamada autenticada** (`GET /api/citizen/me?renew=0` comprueba sin renovar, para sondeos). Como en el admin, los `POST` rechazan un `Origin` ajeno.
 
-**Verificación de propiedad.** El registro exige un código de 6 dígitos que se envía por WhatsApp **al teléfono que el sistema ya tiene para esa cédula**, nunca a uno que teclee quien se registra, así nadie puede apropiarse de la cuenta de otra persona. El servidor solo devuelve ese teléfono enmascarado (`0426-***0319`). El código se guarda como HMAC (con `SESSION_SECRET`), vence a los 10 min y admite 5 intentos.
+**Registro abierto.** Cualquier persona puede abrir cuenta: escribe cédula, **teléfono** y contraseña y recibe un código de 6 dígitos por WhatsApp en ese teléfono. Si la cédula no existe se crea el titular (sin vehículos ni multas) al pedir el código. Si el titular ya existe, el código también va al teléfono escrito, pero su teléfono no cambia si tiene vehículos. Sin `phone` solo sirve para titulares conocidos: el código va al teléfono que el sistema tiene. El servidor solo devuelve el teléfono enmascarado (`0426-***0319`). El código se guarda como HMAC (con `SESSION_SECRET`), vence a los 10 min y admite 5 intentos. Con `WHATSAPP_TEMPLATE_CODE` se envía con una plantilla de autenticación aprobada (llega a cualquiera); sin ella, texto libre (solo dentro de la ventana de 24 h).
+
+> **Límite conocido (decisión de producto para la demo).** El código prueba que la persona controla *un* teléfono, no que sea el titular de la cédula: quien conozca la cédula de otro puede abrir esa cuenta con su propio teléfono y ver sus multas. Mitigaciones previstas fuera del MVP: verificar contra el teléfono del titular cuando se conoce, o un dato adicional (p. ej. una placa).
 
 | Endpoint | Auth | Descripción |
 |---|---|---|
-| `POST /api/citizen/register` `{ cedula, password, email? }` | public | Paso 1: guarda la contraseña elegida (mín. 8) y envía el código. 200 `{ telefono }`. |
+| `POST /api/citizen/register` `{ cedula, password, phone?, email? }` | public | Paso 1: guarda la contraseña elegida (mín. 8) y envía el código al `phone` (venezolano, cualquier formato; se normaliza a `58412…`). 200 `{ telefono }`. |
 | `POST /api/citizen/register/resend` `{ cedula }` | public | Código nuevo (30 s entre envíos). 200 `{ telefono }`. |
 | `POST /api/citizen/register/verify` `{ cedula, code }` | public | Paso 2: crea la cuenta y abre la sesión. 200 `{ user, vehicles }` + `Set-Cookie`. |
 | `POST /api/citizen/login` `{ cedula, password }` | public | 200 `{ user }` + `Set-Cookie`. |
@@ -95,11 +97,27 @@ El ciudadano crea su propia contraseña al registrarse y entra con su cédula. S
 | `POST /api/citizen/fines/:id/appeal` | citizen | Apela una multa pendiente o vencida (→ `APPEALED`). |
 | `GET /api/citizen/vehicles` | citizen | `{ items: CitizenVehicleDTO[] }`. |
 
-**Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
+**Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula y no se dio teléfono), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
 
 **Límites.** Registro/reenvío: 10 por IP cada 10 min y 5 por cédula por hora. Verificación: 20 por IP cada 10 min. Login: 5 fallos por cédula y 10 por IP cada 10 min (bloquea aun con la contraseña correcta). Cambio de contraseña: 5 intentos por cuenta cada 10 min. Los fallos se auditan con una huella de la cédula, nunca con la cédula ni la contraseña.
 
 **Solo para demos.** `CITIZEN_DEMO_CODE` (6 dígitos) junto con `DEMO_CEDULA` hacen que ese código valga para esa cédula **sin enviar nada** (la presentación no depende de la ventana de 24 h). Sin esas dos variables no existe. No debe configurarse en un entorno con datos reales.
+
+## 0d. Invitaciones de oficiales (P1; las pantallas son de P4)
+El admin invita por correo a un oficial; el oficial abre el enlace, elige teléfono y contraseña y nace su cuenta con una placa `OF-NNNN`. Token de 256 bits (43 caracteres base64url), solo se guarda su SHA-256; vence a las 72 h, un solo uso, revocable. Invitar de nuevo al mismo correo anula la pendiente. El correo sale por Resend (`RESEND_API_KEY`, `EMAIL_FROM`; en seco con `NOTIFY_DRY_RUN` ≠ `false`). Enlace del correo: `${APP_BASE_URL}/oficial/invitacion?token=…` (**ruta del SPA que debe crear P4**). La sesión del oficial es la misma cookie `vc_officer` que usa P3 (`/api/officers/*`).
+
+| Endpoint | Auth | Descripción |
+|---|---|---|
+| `POST /api/admin/officer-invitations` `{ email, name }` | admin | Crea la invitación y envía el correo. 201 `{ invitation, emailSent, inviteUrl? }`; `inviteUrl` solo si el correo no salió (el admin copia el enlace). 409 `CORREO_EN_USO` si ya es oficial. |
+| `GET /api/admin/officer-invitations` | admin | `{ items: OfficerInvitationDTO[] }` (estado `PENDING`/`USED`/`EXPIRED`/`REVOKED`, placa si se usó). Nunca devuelve tokens. |
+| `POST /api/admin/officer-invitations/:id/revoke` | admin | Anula una pendiente (idempotente). 409 `YA_USADA` si ya se usó. |
+| `GET /api/admin/officers` | admin | `{ items: AdminOfficerDTO[] }` con teléfono enmascarado. |
+| `POST /api/admin/officers/:id/active` `{ active }` | admin | Desactiva/reactiva (desactivar lo saca de servicio y le impide el login con correo). |
+| `POST /api/officer/invitation/check` `{ token }` | public | `{ email, name, expiresAt }`. 404 `INVITACION_INVALIDA` igual para inexistente, vencida, usada o revocada. |
+| `POST /api/officer/invitation/accept` `{ token, name?, phone, password }` | public | Contraseña ≥ 10, teléfono venezolano. 201 `{ officer }` + `Set-Cookie vc_officer`. |
+| `POST /api/officer/login` `{ email, password }` | public | 200 `{ officer }` + cookie. Un solo error `CREDENCIALES` (401); 5 fallos por correo y 10 por IP cada 10 min. |
+
+Los oficiales del seed siguen entrando con `OFFICER_PASSCODE` + placa (`POST /api/officers/session`, P3). **Pendiente para P3:** esas rutas deberían comprobar `Officer.active` (hoy una sesión ya emitida a un oficial desactivado sigue valiendo hasta que vence, 12 h).
 
 ## 1. Detecciones y cámaras (P2)
 

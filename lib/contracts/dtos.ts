@@ -28,6 +28,33 @@ export interface SightingResultDTO {
 // ---- Autenticación (P1)
 export interface AdminSessionDTO { id: string; email: string; name: string }
 
+// ---- invitaciones y cuentas de oficiales (docs/04 §0d)
+export type OfficerInvitationStatus = "PENDING" | "USED" | "EXPIRED" | "REVOKED";
+export interface OfficerInvitationDTO {
+  id: string;
+  email: string;
+  name: string;
+  status: OfficerInvitationStatus;
+  expiresAt: string;
+  createdAt: string;
+  createdByName: string;
+  /** Placa del oficial creado, cuando la invitación ya se usó. */
+  officerBadge: string | null;
+}
+/** Oficial con cuenta propia, como lo ve el admin (teléfono enmascarado). */
+export interface AdminOfficerDTO {
+  id: string;
+  badge: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  active: boolean;
+  onDuty: boolean;
+  hasAccount: boolean;
+  createdAt: string;
+}
+export interface OfficerSessionDTO { id: string; badge: string; name: string; email: string | null }
+
 // ---- Cuenta del ciudadano (P1, docs/04 §0c)
 export interface CitizenProfileDTO {
   cedula: string;
