@@ -27,6 +27,16 @@ Probar un video local sin servidor (imprime la respuesta del contrato y la carpe
 ML_USAR_COCO=true ML_DEVICE=mps python probar_clip.py clip.mp4 --linea 0,0.6,1,0.6
 ```
 
+## Publicarlo para Vercel (ngrok)
+
+```bash
+./servir.sh brittle-kilowatt-entertain.ngrok-free.dev   # deja la terminal abierta
+```
+
+Levanta uvicorn con el `ML_SERVICE_TOKEN` de `.env.local` (`mps`, y COCO si no hay `weights/vehiculos.pt`) y abre el túnel
+con el dominio fijo de ngrok (requiere ngrok ≥ 3.20 y `ngrok config add-authtoken`). En Vercel:
+`ML_SERVICE_URL=https://brittle-kilowatt-entertain.ngrok-free.dev` y el mismo `ML_SERVICE_TOKEN`.
+
 ## Cuando termine el entrenamiento en Kaggle
 
 El código del motor (`ml/motor/`) ya está en el repo, extraído de `deteccion_semaforo_placas.ipynb`. Solo faltan los pesos:

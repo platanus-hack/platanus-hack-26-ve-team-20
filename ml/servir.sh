@@ -15,4 +15,4 @@ UVICORN=$!
 trap 'kill $UVICORN 2>/dev/null' EXIT
 sleep 3
 curl -fsS localhost:8000/health && echo
-ngrok http --url="$DOMINIO" 8000
+ngrok http --url="$DOMINIO" 8000 "${@:2}"   # p. ej. --log stdout si no hay terminal
