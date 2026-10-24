@@ -184,6 +184,7 @@ function conectar(clave, camara) {
       }
       for (const [id, l] of lupas) if (nRespuesta - l.visto > 30) lupas.delete(id);
       dibujar();
+      (m.cruces || []).forEach(alCruzar);   // aparece en la lista al instante; la placa llega después
       m.multas.forEach(agregarMulta);
       m.registros.forEach(actualizarRegistro);
       respuestas++; const ahora = performance.now();
@@ -270,12 +271,14 @@ window.addEventListener('resize', dibujar);
 // Lupa de placa: recuadro ampliado al costado del vehículo, esquinas verdes y líneas amarillas hasta la placa.
 function dibujarLupas(g, r) {
   const ocupados = [];
-  const grandes = cajas.filter((k) => lupas.get(k.id)?.img.complete).sort((a, b) => b.w * b.h - a.w * a.h).slice(0, 3);
+  // Máximo 2 para no tapar la escena: primero los vehículos multados, después los más grandes.
+  const grandes = cajas.filter((k) => lupas.get(k.id)?.img.complete)
+    .sort((a, b) => (b.multa - a.multa) || (b.w * b.h - a.w * a.h)).slice(0, 2);
   for (const k of grandes) {
     const { rel, img } = lupas.get(k.id);
     const vx = r.x + k.x * r.w, vy = r.y + k.y * r.h, vw = k.w * r.w, vh = k.h * r.h;
     const px = vx + rel.x * vw, py = vy + rel.y * vh, pw = rel.w * vw, ph = rel.h * vh;
-    const iw = Math.min(170, r.w * 0.34), ih = Math.min(76, iw * img.height / Math.max(1, img.width));
+    const iw = Math.min(140, r.w * 0.26), ih = Math.min(76, iw * img.height / Math.max(1, img.width));
     // Sin texto: la placa ampliada se lee sola; la lectura del OCR va en la lista (puede venir de otro recorte).
     const alto = ih;
     let ix = vx - iw - 16 >= r.x ? vx - iw - 16 : Math.min(vx + vw + 16, r.x + r.w - iw);
@@ -330,17 +333,46 @@ document.querySelectorAll('.semaforo button').forEach((b) => b.onclick = () => {
 const enviarLinea = () => { dibujar(); if (ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'linea', y: Number($('linea').value), haciaCamara: $('haciaCamara').checked })); };
 $('linea').oninput = dibujar; $('linea').onchange = enviarLinea; $('haciaCamara').onchange = enviarLinea;
 
-function agregarMulta(m) {
+const provisionales = new Map(); // id de tracking → tarjeta creada al cruzar, antes de que el OCR cierre la multa
+
+function tarjetaNueva() {
   total++;
   $('resumen').textContent = total + (total === 1 ? ' multa' : ' multas') + ' en esta sesión';
   const el = document.createElement('div'); el.className = 'multa';
-  const foto = m.fotoPlaca || m.fotoVehiculo;
   el.innerHTML = `<img alt="Vehículo multado"><div><div class="placa"></div><div class="meta"></div><span class="chip">Detectada</span></div>`;
+  $('lista').prepend(el);
+  return el;
+}
+
+// Recorte del vehículo en el cuadro analizado, para que la tarjeta tenga foto desde el primer instante.
+function fotoDelCuadro(id) {
+  const k = cajas.find((c) => c.id === id); if (!k || !cuadroMostrado) return null;
+  const W = cuadroMostrado.width, H = cuadroMostrado.height, c = document.createElement('canvas');
+  c.width = 144; c.height = 144;
+  c.getContext('2d').drawImage(cuadroMostrado, k.x * W, k.y * H, Math.max(1, k.w * W), Math.max(1, k.h * H), 0, 0, 144, 144);
+  return c.toDataURL('image/jpeg', 0.8);
+}
+
+function alCruzar(c) {
+  if (provisionales.has(c.id)) return;
+  const el = tarjetaNueva(), foto = fotoDelCuadro(c.id);
+  if (foto) el.querySelector('img').src = foto;
+  const p = el.querySelector('.placa'); p.textContent = 'Leyendo placa…'; p.classList.add('nula');
+  el.querySelector('.meta').textContent = `${new Date().toLocaleTimeString('es-VE', { timeZone: 'America/Caracas' })} · ${c.clase} · cruzó en rojo`;
+  el.querySelector('.chip').textContent = 'Cruzó en rojo';
+  provisionales.set(c.id, el);
+}
+
+function agregarMulta(m) {
+  const el = provisionales.get(m.trackId) || tarjetaNueva();
+  provisionales.delete(m.trackId);
+  el.querySelector('.chip').textContent = 'Detectada';
+  const foto = m.fotoPlaca || m.fotoVehiculo;
   if (foto) el.querySelector('img').src = 'data:image/jpeg;base64,' + foto;
   const p = el.querySelector('.placa');
   p.textContent = m.placa || 'Placa no leída'; p.classList.toggle('nula', !m.placa);
   el.querySelector('.meta').textContent = `${new Date(m.hora).toLocaleTimeString('es-VE', { timeZone: 'America/Caracas' })} · ${m.clase} · confianza ${(m.confianza * 100).toFixed(0)}% · ${m.votos} lecturas`;
-  $('lista').prepend(el); tarjetas.set(m.ref, el);
+  tarjetas.set(m.ref, el);
 }
 
 // Si el registro en el sistema no está configurado, la multa queda como "Detectada" (sin error en pantalla).
