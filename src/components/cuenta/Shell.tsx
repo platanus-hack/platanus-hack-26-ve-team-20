@@ -1,5 +1,5 @@
-import { Bell, Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, Search, User, Video, type LucideIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Bell, Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, User, Video, type LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
 import { formatCedula } from '@/lib/format.ts'
@@ -25,7 +25,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: riel de íconos + barra superior (buscador, tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos (con el logo) + barra superior (tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
@@ -45,12 +45,6 @@ function Shell() {
   useEffect(() => { main.current?.scrollTo(0, 0) }, [pathname])
 
   const salir = () => { cerrarSesion(); navigate('/ingresar') }
-  // El buscador lleva a Multas filtrado por la placa escrita.
-  const buscar = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const q = String(new FormData(e.currentTarget).get('q') ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase()
-    navigate(q ? `/multas?placa=${q}` : '/multas')
-  }
   const idx = ABAJO.indexOf(seccion as Seccion)
   const iAbajo = idx < 0 ? 4 : idx
 
@@ -94,11 +88,6 @@ function Shell() {
           </header>
 
           <header className="hidden flex-none items-center gap-5 pb-2 lg:flex">
-            <form role="search" onSubmit={buscar} className="flex h-[51px] w-[387px] items-center gap-3 rounded-full bg-suave px-5 text-texto-2">
-              <Search size={18} strokeWidth={2.2} aria-hidden="true" />
-              <label htmlFor="buscar" className="sr-only">Buscar por placa</label>
-              <input id="buscar" name="q" type="search" placeholder="Buscar por placa, fecha o cámara..." className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-texto-2" />
-            </form>
             <div className="ml-auto flex items-center gap-5">
               <InterruptorTema />
               <Link to="/multas" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
