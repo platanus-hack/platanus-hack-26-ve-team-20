@@ -3,7 +3,7 @@ import { MessageCircle } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { CabeceraTinta, Pasos, Titulo } from '@/components/auth';
+import { CabeceraMarca, Pasos, Titulo } from '@/components/auth';
 import { Pantalla } from '@/components/extra';
 import { Aviso, Boton, Campo, Enlace, SW, T, TipoCedula } from '@/components/ui';
 import { enviarCodigo, type ErrorRegistro } from '@/demo/ciudadano';
@@ -36,7 +36,7 @@ export default function Registro() {
 
   return (
     <Pantalla>
-      <CabeceraTinta marca="SmartTraffic" titulo="La multa llega con la prueba, y se paga en un minuto." />
+      <CabeceraMarca />
       <View style={{ gap: 20, paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32 }}>
         <Pasos paso={1} />
         <Titulo titulo="Crear cuenta" sub="Vea y pague sus multas con su cédula." />

@@ -7,7 +7,7 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 import { ListaMultas, Pantalla } from '@/components/extra';
 import { Pressy, SW, T, Tarjeta } from '@/components/ui';
 import { VEHICULOS, esPendiente, useCiudadano, type Multa } from '@/demo/ciudadano';
-import { abrirMulta, irAPagar } from '@/lib/nav';
+import { abrirMulta } from '@/lib/nav';
 import { useEstilos, useTema, type Tema } from '@/lib/tema';
 import { fuente, radio, tipo } from '@/theme';
 
@@ -47,8 +47,8 @@ export default function Multas() {
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => router.setParams({ filtro: f })}
-              style={[s.filtro, on ? { backgroundColor: c.tinta, borderColor: c.tintaBorde } : null]}>
-              <T style={[f === 'todos' ? tipo.pequenoFuerte : { fontFamily: fuente.monoFuerte, fontSize: 13 }, { color: on ? c.tintaTexto : c.texto }]}>{f === 'todos' ? 'Todos' : f}</T>
+              style={[s.filtro, on ? { backgroundColor: c.suave, borderColor: c.texto } : null]}>
+              <T style={[f === 'todos' ? tipo.pequenoFuerte : { fontFamily: fuente.monoFuerte, fontSize: 13 }, { color: on ? c.texto : c.texto2 }]}>{f === 'todos' ? 'Todos' : f}</T>
             </Pressy>
           );
         })}
@@ -58,7 +58,7 @@ export default function Multas() {
           <T style={[tipo.captionFuerte, { color: c.texto2 }]}>{mes}</T>
         </View>,
         <View key={`l-${mes}`} style={{ marginTop: -20 }}>
-          <ListaMultas multas={filtradas.filter((m) => m.mes === mes)} onAbrir={abrirMulta} onPagar={tab === 0 ? (m) => irAPagar([m.id]) : undefined} />
+          <ListaMultas multas={filtradas.filter((m) => m.mes === mes)} onAbrir={abrirMulta} />
         </View>,
       ])}
       {meses.length === 0 ? (
@@ -96,8 +96,8 @@ function Segmentado({ tab, onCambio, cuentas }: { tab: number; onCambio: (i: num
       {w ? <Animated.View style={[s.segInd, { width: w }, ind]} /> : null}
       {PESTANAS.map((n, i) => (
         <Pressable key={n} accessibilityRole="tab" accessibilityState={{ selected: tab === i }} onPress={() => onCambio(i)} style={s.segBtn}>
-          <T style={[tipo.pequenoFuerte, { color: tab === i ? c.tintaTexto : c.texto2 }]}>
-            {n} <T style={{ fontFamily: fuente.mono, fontSize: 14, color: tab === i ? c.tintaTexto : c.texto2 }}>{cuentas[i]}</T>
+          <T style={[tipo.pequenoFuerte, { color: tab === i ? c.texto : c.texto2 }]}>
+            {n} <T style={{ fontFamily: fuente.mono, fontSize: 14, color: tab === i ? c.texto : c.texto3 }}>{cuentas[i]}</T>
           </T>
         </Pressable>
       ))}
@@ -105,12 +105,12 @@ function Segmentado({ tab, onCambio, cuentas }: { tab: number; onCambio: (i: num
   );
 }
 
-const estilos = ({ c }: Tema) =>
+const estilos = ({ c, sombra }: Tema) =>
   StyleSheet.create({
   seg: { flexDirection: 'row', padding: 4, backgroundColor: c.suave, borderRadius: radio.control },
-  segInd: { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: c.tinta, borderWidth: 1, borderColor: c.tintaBorde },
+  segInd: { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: c.tarjeta, boxShadow: sombra.tarjeta },
   segBtn: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
-  filtro: { height: 36, minWidth: 44, paddingHorizontal: 14, borderRadius: radio.pastilla, borderWidth: 1, borderColor: c.bordeInput, backgroundColor: c.tarjeta, alignItems: 'center', justifyContent: 'center' },
+  filtro: { height: 36, minWidth: 44, paddingHorizontal: 14, borderRadius: radio.pastilla, borderWidth: 1, borderColor: c.borde, alignItems: 'center', justifyContent: 'center' },
   mes: { paddingVertical: 10, paddingHorizontal: 4, backgroundColor: c.fondo },
   vacioIco: { width: 48, height: 48, borderRadius: 12, backgroundColor: c.tinta, alignItems: 'center', justifyContent: 'center' },
 });

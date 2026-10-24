@@ -1,6 +1,6 @@
 # SmartTraffic · app móvil (Expo)
 
-App Expo (SDK 58, Expo Router, TypeScript estricto) con tres modos: ciudadano, policía y cámara (operador). Diseño: "Dirección C · Cuentas". Todo es demo: datos ficticios y pagos simulados (`src/demo/`).
+App Expo (SDK 58, Expo Router, TypeScript estricto) para el ciudadano, con el modo cámara (operador) para la demo. El modo policía sigue en el código pero no tiene acceso en la app. Diseño: "Dirección C · Cuentas", simplificado (inicio con lo esencial, filas de multa sin acciones sueltas) y con modo oscuro grafito; la acción principal es tinta en claro y lima en oscuro, el rojo queda para estados. Todo es demo: datos ficticios y pagos simulados (`src/demo/`).
 
 ```bash
 npm install
@@ -13,9 +13,9 @@ npm run typecheck
 Proyecto independiente con npm: no forma parte del workspace pnpm de la raíz.
 
 ## Rutas (`src/app`)
-- `/` selector de modo y acceso "Modo cámara (operador)" (clave de 6+ caracteres).
-- `(ciudadano)/ciudadano/…` login, registro, código, cuenta creada, pestañas (inicio, multas, vehículos, perfil), `multa/[id]`, pago, comprobante.
-- `(policia)/policia/…` login (correo o Google simulado), código de institución, registro, pestañas (alertas, consultar, perfil).
+- `/` primera vista: logo y nombre animados (respeta reducir movimiento); pasa al login del ciudadano, o a su inicio si ya hay sesión.
+- `(ciudadano)/ciudadano/…` login (con el acceso "Modo cámara (operador)", clave de 6+ caracteres), registro, código, cuenta creada, pestañas (inicio, multas, vehículos, perfil), `multa/[id]`, pago, comprobante.
+- `(policia)/policia/…` (escondido: sin enlace desde la app) login (correo o Google simulado), código de institución, registro, pestañas (alertas, consultar, perfil).
 - `/camara` modo cámara horizontal.
 
 ## Datos de demo

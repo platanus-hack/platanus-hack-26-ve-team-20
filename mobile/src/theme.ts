@@ -13,7 +13,7 @@ export const temaClaro = {
   tintaTexto: '#FCFDFE',
   texto: '#0E1726',
   texto2: '#4B5565',
-  texto3: '#667085',
+  texto3: '#636D82',
   sobreTinta: '#A9B4C4',
   sobreAcento: '#FCFDFE',
   lima: '#C6F24E',
@@ -34,42 +34,50 @@ export const temaClaro = {
   azulFondo: '#E8F0FD',
   grisFondo: '#ECEFF3',
   velo: 'rgba(14,23,38,.4)',
+  // Acción principal: tinta en claro, lima en oscuro. El rojo queda para estados.
+  primario: '#0E1726',
+  sobrePrimario: '#FCFDFE',
+  boliOn: '#C6F24E',
 };
 
 export type Colores = typeof temaClaro;
 
+// Grafito neutro: grises sin tinte, superficies separadas por tono, lima solo como acento.
 export const temaOscuro: Colores = {
-  fondo: '#0A0F18',
-  tarjeta: '#151C28',
-  suave: '#1C2638',
-  tinta: '#1C2638',
-  tinta2: '#2A3446',
-  tinta3: '#4B5565',
-  tintaBorde: '#4B5565',
-  tintaTexto: '#F2F5F9',
-  texto: '#F2F5F9',
-  texto2: '#A9B4C4',
-  texto3: '#7D8797',
-  sobreTinta: '#A9B4C4',
-  sobreAcento: '#0A0F18',
+  fondo: '#0B0C0E',
+  tarjeta: '#16181C',
+  suave: '#1F2228',
+  tinta: '#16181C',
+  tinta2: '#1F2228',
+  tinta3: '#2A2E35',
+  tintaBorde: '#26292F',
+  tintaTexto: '#F4F5F7',
+  texto: '#F4F5F7',
+  texto2: '#A1A7B3',
+  texto3: '#8B919C',
+  sobreTinta: '#A1A7B3',
+  sobreAcento: '#0B0C0E',
   lima: '#C6F24E',
-  borde: '#2A3446',
-  bordeInput: '#606B7A',
-  rojo: '#FF6B5E',
-  rojoHover: '#FF8A80',
-  rojoTexto: '#FF8A80',
-  rojoFondo: '#2A1618',
-  verde: '#3DD68C',
-  verdeTexto: '#5FE3A3',
-  verdeFondo: '#0F2A1C',
-  ambar: '#FFB224',
-  ambarTexto: '#FFD27A',
-  ambarFondo: '#2A2410',
-  azul: '#7AB0FF',
-  azulTexto: '#9CC3FF',
-  azulFondo: '#14213A',
-  grisFondo: '#1C2638',
+  borde: '#26292F',
+  bordeInput: '#717783',
+  rojo: '#F2706B',
+  rojoHover: '#F58C88',
+  rojoTexto: '#FF9A94',
+  rojoFondo: '#2A1716',
+  verde: '#4CC38A',
+  verdeTexto: '#6FD9A3',
+  verdeFondo: '#10241A',
+  ambar: '#F5B544',
+  ambarTexto: '#F8CB75',
+  ambarFondo: '#2A2212',
+  azul: '#7FAEFF',
+  azulTexto: '#A3C4FF',
+  azulFondo: '#15203A',
+  grisFondo: '#1F2228',
   velo: 'rgba(0,0,0,.6)',
+  primario: '#C6F24E',
+  sobrePrimario: '#0E1726',
+  boliOn: '#0E1726',
 };
 
 // Compatibilidad: los tokens claros. Las pantallas usan `useTema()` para cambiar en caliente.
@@ -110,12 +118,12 @@ export const sombra = {
 
 export type Sombras = Record<keyof typeof sombra, string>;
 
-// En oscuro la sombra no se ve: el borde de 1 px separa la superficie.
+// En oscuro la sombra no se ve: un filo blanco al 5 % separa la superficie.
 export const sombraOscura: Sombras = {
-  tarjeta: '0 0 0 1px #2A3446',
-  sheet: '0 -1px 0 #2A3446, 0 8px 24px -6px rgba(0,0,0,.5)',
-  flotante: '0 0 0 1px #2A3446, 0 8px 24px -6px rgba(0,0,0,.6)',
-  modal: '0 0 0 1px #2A3446, 0 24px 48px -12px rgba(0,0,0,.7)',
+  tarjeta: '0 0 0 1px rgba(255,255,255,.05)',
+  sheet: '0 -1px 0 rgba(255,255,255,.06), 0 8px 24px -6px rgba(0,0,0,.6)',
+  flotante: '0 0 0 1px rgba(255,255,255,.06), 0 12px 28px -8px rgba(0,0,0,.7)',
+  modal: '0 0 0 1px rgba(255,255,255,.06), 0 24px 48px -12px rgba(0,0,0,.75)',
 };
 
 export const estiloInput = (c: Colores): TextStyle => ({

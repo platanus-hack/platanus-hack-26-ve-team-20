@@ -11,7 +11,7 @@ import { Platform } from 'react-native';
 
 import { leerSesion } from '@/lib/dispositivo';
 import { TemaProvider, leerModoTema, useTema } from '@/lib/tema';
-import type { ModoTema } from '@/theme';
+import { color, type ModoTema } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -55,6 +55,8 @@ function Raiz() {
     <>
       <StatusBar style={esquema === 'oscuro' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.fondo } }}>
+        <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: esquema === 'oscuro' ? c.fondo : color.tinta } }} />
+        <Stack.Screen name="(ciudadano)" options={{ animation: 'fade' }} />
         <Stack.Screen name="camara" options={{ contentStyle: { backgroundColor: '#0A0F18' }, animation: 'fade' }} />
       </Stack>
     </>

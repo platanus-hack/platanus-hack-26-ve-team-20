@@ -15,6 +15,17 @@ export function Marca({ texto }: { texto: string }) {
   );
 }
 
+// Barra de marca de las pantallas de acceso del ciudadano: el carro y el nombre, como en el splash.
+export function CabeceraMarca() {
+  const { c } = useTema();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 24, paddingBottom: 8, paddingHorizontal: 16 }}>
+      <Isotipo size={36} color={c.texto} />
+      <T style={[tipo.cuerpoFuerte, { fontFamily: tipo.display.fontFamily }]}>SmartTraffic</T>
+    </View>
+  );
+}
+
 export function CabeceraTinta({ marca, titulo, sub, grande }: { marca: string; titulo: string; sub?: string; grande?: boolean }) {
   const { c } = useTema();
   return (
@@ -45,7 +56,7 @@ export function Titulo({ titulo, sub }: { titulo: string; sub?: string }) {
   const { c } = useTema();
   return (
     <View style={{ gap: 6 }}>
-      <T accessibilityRole="header" style={tipo.display}>
+      <T accessibilityRole="header" style={tipo.h1}>
         {titulo}
       </T>
       {sub ? <T style={{ color: c.texto2 }}>{sub}</T> : null}
