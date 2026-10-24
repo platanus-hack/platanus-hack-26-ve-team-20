@@ -28,6 +28,12 @@ try {
     name: process.env["ADMIN_NAME"],
   });
   console.log(admin === "skipped" ? "admin: sin ADMIN_EMAIL/ADMIN_PASSWORD, no se crea cuenta" : `admin: ${admin}`);
+  const { buildDemoCitizen, applyDemoCitizen, formatDemoCitizen } = await import("./seed-demo-citizen.ts");
+  const citizen = buildDemoCitizen({ cedula: process.env["DEMO_CEDULA"], phone: process.env["DEMO_PHONE_DRIVER"] || undefined, now: new Date() });
+  const lines = citizen
+    ? formatDemoCitizen(await applyDemoCitizen(db, citizen), process.env["APP_BASE_URL"] || "http://localhost:5173")
+    : [process.env["DEMO_CEDULA"] ? "demo: DEMO_CEDULA no tiene forma de cédula; no se siembra" : "demo: sin DEMO_CEDULA, no se crea ciudadano de la demo"];
+  for (const line of lines) console.log(line);
 } finally {
   await db.$disconnect();
 }

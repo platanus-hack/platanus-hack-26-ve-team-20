@@ -11,7 +11,7 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 ## 2. Reglas no negociables
 1. **Un flujo E2E primero.** Nada de features laterales hasta que funcione: frame → detección → placa → multa → WhatsApp → pago simulado → `PAID`. (Ver `docs/01-producto-prd.md` §MVP.)
 2. **Pagos SIMULADOS.** Ningún dinero real, ningún banco real. Toda pantalla de pago muestra el banner "Demo — pago simulado".
-3. **Solo datos FALSOS.** Cédulas, placas, teléfonos y nombres del seed son inventados y marcados como ejemplo. Los únicos teléfonos reales permitidos son los del equipo (vía env `DEMO_PHONE_*`), nunca en el repo.
+3. **Solo datos FALSOS.** Cédulas, placas, teléfonos y nombres del seed son inventados y marcados como ejemplo. Los únicos datos reales permitidos son los del equipo y entran solo por variables de entorno, nunca en el repo: los teléfonos (`DEMO_PHONE_*`) y la cédula de la demo (`DEMO_CEDULA`).
 4. **Cero secretos en código.** Todo por variables de entorno (lista abajo). `.env.local` está en `.gitignore`. Mantén `.env.example` actualizado.
 5. **Revisión humana**: una detección con confianza < umbral o sin placa NO genera multa; va a la cola `/admin/revision`.
 6. **Contratos primero.** Tipos y esquemas Zod viven en `lib/contracts/`. Cambiarlos requiere avisar al equipo (ver `docs/09-reparto-equipo.md`).
@@ -140,6 +140,7 @@ docs/               # esta documentación
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
+| `DEMO_CEDULA` | cédula REAL de quien presenta; `pnpm db:seed` le crea un titular de la demo con multas FALSAS (placas, nombre y montos inventados). Nunca en el repo | P1 |
 | `ALERT_RADIUS_METERS` | p.ej. `1500` | P3 |
 | `NOTIFY_DRY_RUN` | `true` = no envía, solo registra | P3 |
 
