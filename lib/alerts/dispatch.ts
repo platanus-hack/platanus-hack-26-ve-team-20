@@ -8,6 +8,9 @@ import type { PrismaClient } from "../generated/prisma/client.ts";
 import type { DispatchAlert, NotifyOfficerAlert } from "../contracts/index.ts";
 import { DEFAULT_ALERT_RADIUS_M, decideAlert, LOCATION_MAX_AGE_MS, SUPPRESSION_WINDOW_MS } from "./decide.ts";
 
+// Igual que P1 (lib/domain/payments.ts): margen para el pooler de Supabase y funciones en frío.
+const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 } as const;
+
 export interface DispatcherDeps {
   db: PrismaClient;
   notifyOfficerAlert: NotifyOfficerAlert;
@@ -73,7 +76,7 @@ export function createDispatcher({ db, notifyOfficerAlert, radiusM = DEFAULT_ALE
         after: { status: created.status, officerId: created.officerId, distanceM: created.distanceM, unpaidCount, cameraId: sighting.cameraId },
       });
       return { ...created, isNew: true };
-    });
+    }, TX_OPTIONS);
 
     // fuera de la transacción: el WhatsApp no debe retener el candado; nunca lanza
     if (alert.isNew && alert.status === "SENT") await notifyOfficerAlert(alert.id);

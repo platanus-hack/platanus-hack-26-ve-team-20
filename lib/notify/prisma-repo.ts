@@ -4,6 +4,9 @@ import { audit, SYSTEM_ACTOR } from "../domain/audit.ts";
 import type { PrismaClient } from "../generated/prisma/client.ts";
 import type { NotificationRepo } from "./notifier.ts";
 
+// Igual que P1 (lib/domain/payments.ts): margen para el pooler de Supabase y funciones en frío.
+const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 } as const;
+
 export function createPrismaNotificationRepo(db: PrismaClient): NotificationRepo {
   return {
     async fineMessage(fineId) {
@@ -87,7 +90,7 @@ export function createPrismaNotificationRepo(db: PrismaClient): NotificationRepo
           entityId: notificationId,
           after: { template: n.template, fineId: n.fineId, alertId: n.alertId, status: n.status, error: n.error },
         });
-      });
+      }, TX_OPTIONS);
     },
   };
 }

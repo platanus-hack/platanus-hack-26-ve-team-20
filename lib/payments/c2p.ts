@@ -1,7 +1,7 @@
 // Simulador de Pago Móvil C2P (docs/04 §5). SIMULADO: no hay banco, agregador ni dinero.
 // Tiene la misma firma (ChargeC2P) que tendría un adaptador bancario real.
 // La clave C2P nunca se devuelve, se guarda ni se loguea. La idempotencia la resuelve
-// api/payments/c2p.ts con Payment.idempotencyKey, no este módulo.
+// api/_p3/payments-c2p.ts (POST /api/payments/c2p) con Payment.idempotencyKey, no este módulo.
 import { randomInt } from "node:crypto";
 import type { ChargeC2P } from "../contracts/index.ts";
 

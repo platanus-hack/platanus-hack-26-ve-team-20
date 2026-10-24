@@ -6,6 +6,9 @@ import { DomainError, NotFoundError } from "../domain/errors.ts";
 import type { PrismaClient } from "../generated/prisma/client.ts";
 import type { OfficerAlertDTO, OfficerLocationRequest } from "../contracts/index.ts";
 
+// Igual que P1 (lib/domain/payments.ts): margen para el pooler de Supabase y funciones en frío.
+const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 } as const;
+
 /** Ventana por defecto del listado de alertas si el cliente no manda `since`. */
 export const DEFAULT_ALERTS_WINDOW_MS = 12 * 60 * 60_000;
 
@@ -34,7 +37,7 @@ export async function recordLocation(db: PrismaClient, officerId: string, req: O
       });
     }
     return { recordedAt: location.recordedAt.toISOString(), onDuty: req.onDuty };
-  });
+  }, TX_OPTIONS);
 }
 
 export async function listOfficerAlerts(db: PrismaClient, officerId: string, since?: string, now = new Date()): Promise<OfficerAlertDTO[]> {
@@ -83,5 +86,5 @@ export async function acknowledgeAlert(db: PrismaClient, officerId: string, aler
       });
     }
     return { status: "ACKNOWLEDGED" as const, ackAt: ackAt.toISOString() };
-  });
+  }, TX_OPTIONS);
 }

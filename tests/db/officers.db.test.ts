@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import ack from '../../api/alerts/[id]/ack.ts'
-import alerts from '../../api/officers/[id]/alerts.ts'
-import location from '../../api/officers/location.ts'
-import session from '../../api/officers/session.ts'
+import ack from '../../api/_p3/alert-ack.ts'
+import alerts from '../../api/_p3/officer-alerts.ts'
+import location from '../../api/_p3/officer-location.ts'
+import session from '../../api/_p3/officer-session.ts'
 import { db } from '../../lib/db.ts'
 import { call, clearTestAttempts, sessionCookieFrom } from './_http.ts'
 
