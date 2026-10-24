@@ -1,0 +1,228 @@
+{
+  "_ayuda": "Ejemplo para una cámara de 1280x720. Lo normal es generarlo con configurar_camara.py. Borra las secciones que no uses.",
+  "resolucion": [
+    1280,
+    720
+  ],
+  "linea_pare": [
+    [
+      300,
+      520
+    ],
+    [
+      1000,
+      520
+    ]
+  ],
+  "punto_despues": [
+    650,
+    380
+  ],
+  "_ayuda_homografia": "4 o más puntos del piso: 'imagen' en píxeles y 'mundo' en metros medidos con cinta. Sin esto no se mide la velocidad.",
+  "homografia": {
+    "imagen": [
+      [
+        420,
+        700
+      ],
+      [
+        880,
+        700
+      ],
+      [
+        760,
+        430
+      ],
+      [
+        540,
+        430
+      ]
+    ],
+    "mundo": [
+      [
+        0,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        25
+      ],
+      [
+        0,
+        25
+      ]
+    ]
+  },
+  "velocidad": {
+    "zona": [
+      [
+        420,
+        700
+      ],
+      [
+        880,
+        700
+      ],
+      [
+        760,
+        430
+      ],
+      [
+        540,
+        430
+      ]
+    ],
+    "limite_kmh": 40,
+    "tolerancia_kmh": 5
+  },
+  "carriles": [
+    {
+      "nombre": "C1",
+      "poligono": [
+        [
+          420,
+          720
+        ],
+        [
+          650,
+          720
+        ],
+        [
+          650,
+          420
+        ],
+        [
+          560,
+          420
+        ]
+      ],
+      "direccion": [
+        [
+          540,
+          690
+        ],
+        [
+          600,
+          440
+        ]
+      ]
+    }
+  ],
+  "pare": {
+    "zona": [
+      [
+        60,
+        300
+      ],
+      [
+        260,
+        300
+      ],
+      [
+        260,
+        380
+      ],
+      [
+        60,
+        380
+      ]
+    ],
+    "linea": [
+      [
+        60,
+        300
+      ],
+      [
+        260,
+        300
+      ]
+    ],
+    "punto_despues": [
+      160,
+      250
+    ],
+    "segundos_min": 1.0
+  },
+  "zonas": {
+    "Sur": [
+      [
+        300,
+        560
+      ],
+      [
+        1000,
+        560
+      ],
+      [
+        1000,
+        720
+      ],
+      [
+        300,
+        720
+      ]
+    ],
+    "Norte": [
+      [
+        400,
+        200
+      ],
+      [
+        900,
+        200
+      ],
+      [
+        900,
+        300
+      ],
+      [
+        400,
+        300
+      ]
+    ],
+    "Este": [
+      [
+        1050,
+        250
+      ],
+      [
+        1280,
+        250
+      ],
+      [
+        1280,
+        600
+      ],
+      [
+        1050,
+        600
+      ]
+    ]
+  },
+  "movimientos_permitidos": [
+    [
+      "Sur",
+      "Norte"
+    ],
+    [
+      "Sur",
+      "Este"
+    ]
+  ],
+  "lineas_continuas": [
+    [
+      [
+        650,
+        720
+      ],
+      [
+        650,
+        420
+      ]
+    ]
+  ]
+}

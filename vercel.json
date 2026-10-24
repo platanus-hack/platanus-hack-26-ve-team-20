@@ -143,8 +143,33 @@
       "destination": "/api/choques?route=clip-ver&id=:id"
     },
     {
+      "source": "/api/time",
+      "destination": "/api/p2?route=time"
+    },
+    {
+      "source": "/api/blob/upload",
+      "destination": "/api/p2?route=blob-upload"
+    },
+    {
+      "source": "/api/cameras/:id/light",
+      "destination": "/api/p2?route=camera-light&id=:id"
+    },
+    {
+      "source": "/api/cameras",
+      "destination": "/api/p2?route=cameras"
+    },
+    {
+      "source": "/api/detections",
+      "destination": "/api/p2?route=detections"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/p2.ts": {
+      "maxDuration": 60
+    }
+  }
 }

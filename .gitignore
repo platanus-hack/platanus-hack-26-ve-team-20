@@ -31,7 +31,10 @@ test-results
 
 # Modelo ML (pesos pesados, entorno Python)
 ml/weights/
-ml/.venv/
+ml/.venv
+ml/evidencias/
+ml/motor/multas/
+ml/motor/multas.csv
 __pycache__/
 *.pt
 *.onnx
