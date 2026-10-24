@@ -10,8 +10,8 @@ export default function AuthLayout() {
   return (
     <div className="flex min-h-dvh flex-col">
       <div className="flex flex-1 flex-col lg:flex-row">
-        <div className="relative flex flex-1 flex-col items-center px-4 pt-5 pb-8 lg:justify-center lg:p-12">
-          <div className="flex w-full max-w-[400px] items-center justify-between pb-6 lg:hidden">
+        <div className="relative flex flex-1 flex-col items-center px-4 pt-4 pb-6 lg:justify-center lg:p-12">
+          <div className="flex w-full max-w-[400px] items-center justify-between pb-4 lg:hidden">
             <Logo />
             <BotonTema />
           </div>
