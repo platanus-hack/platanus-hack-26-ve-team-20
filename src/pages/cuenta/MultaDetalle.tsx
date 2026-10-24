@@ -1,3 +1,4 @@
+import { EvidenciaInfraccion, tieneFotos } from '@/components/evidencia/EvidenciaInfraccion.tsx'
 import { ChevronDown, ChevronLeft, Play, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
@@ -155,6 +156,7 @@ export default function MultaDetalle() {
 
             <section aria-labelledby="prueba-t" className="flex flex-col gap-3">
               <h2 id="prueba-t" className="text-h3 font-semibold">Prueba</h2>
+              {tieneFotos(m.evidence ?? []) ? <EvidenciaInfraccion items={m.evidence ?? []} camara={m.cameraCode} /> : (<>
               <div className="relative overflow-hidden rounded-card bg-suave">
                 <Fotograma luz={luz} carro={fr.t} placa={m.plate} lineaPare alt={`Fotograma ${frame + 1} de 3, ${fr.momento} de la línea de pare, ${m.cameraCode}`} />
                 <PastillaTinta className="left-2.5 h-7" punto={luz === 'RED' ? 'size-2 bg-[#ff6b5e]' : 'size-2 bg-[#3dd68c]'}>
@@ -180,6 +182,7 @@ export default function MultaDetalle() {
                   <Play size={18} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </div>
+              </>)}
               <div className="flex items-center gap-3">
                 <Placa value={m.plate} size="sm" />
                 <span className="flex flex-col text-sm">
