@@ -14,7 +14,7 @@ const ITEMS: ItemTab[] = [
 export default function TabsCiudadano() {
   const { c } = useTema();
   return (
-    <Tabs screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.fondo } }} tabBar={(p) => <BarraTabs {...p} items={ITEMS} />}>
+    <Tabs screenOptions={{ headerShown: false, animation: 'shift', sceneStyle: { backgroundColor: c.fondo } }} tabBar={(p) => <BarraTabs {...p} items={ITEMS} />}>
       <Tabs.Screen name="index" options={{ title: 'Inicio' }} />
       <Tabs.Screen name="multas" options={{ title: 'Multas' }} />
       <Tabs.Screen name="vehiculos" options={{ title: 'Vehículos' }} />
