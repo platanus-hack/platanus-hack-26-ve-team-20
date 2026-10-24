@@ -45,7 +45,8 @@ pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
 cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
 cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
-pnpm test                    # vitest
+pnpm test                    # vitest (unit, sin red)
+pnpm test:db                 # vitest contra la base real (requiere seed; limpia sus filas test_*)
 pnpm test:e2e                # playwright (requiere dev server)
 vercel --prod                # o deploy automático desde el repo espejo personal
 ```

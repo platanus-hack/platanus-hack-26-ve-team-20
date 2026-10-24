@@ -25,5 +25,5 @@
       "@contracts": ["./lib/contracts/index.ts"]
     }
   },
-  "include": ["api", "lib", "prisma", "scripts", "tests", "prisma.config.ts", "vitest.config.ts"]
+  "include": ["api", "lib", "prisma", "scripts", "tests", "prisma.config.ts", "vitest.config.ts", "vitest.db.config.ts"]
 }

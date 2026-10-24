@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "test:db": "vitest run -c vitest.db.config.ts",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:pooler": "tsx scripts/db-migrate.ts",
     "db:check": "tsx scripts/db-check.ts",
