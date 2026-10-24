@@ -40,6 +40,28 @@ export default function AuthLayout() {
               <path d="M320 380 L320 520" stroke="#2A3446" strokeWidth="4" strokeDasharray="18 14" />
               <path d="M40 470 C200 430 300 400 330 372" stroke="#C6F24E" strokeWidth="3" fill="none" opacity=".75" />
               <path d="M600 500 C450 450 360 410 335 372" stroke="#C8281C" strokeWidth="3" fill="none" opacity=".8" />
+              {/* Dos carros: uno se aleja por el carril derecho (luces traseras) y otro viene por el izquierdo (faros). Origen = centro de las ruedas. */}
+              <g className="carro-se-aleja">
+                <rect x="-46" y="-40" width="92" height="34" rx="9" fill="#0B0F17" />
+                <path d="M-34 -40 L-24 -58 H24 L34 -40 Z" fill="#0B0F17" />
+                <path d="M-27 -42 L-20 -54 H20 L27 -42 Z" fill="#1E2736" />
+                <rect x="-42" y="-30" width="18" height="7" rx="3" fill="#E5483B" />
+                <rect x="24" y="-30" width="18" height="7" rx="3" fill="#E5483B" />
+                <rect x="-14" y="-24" width="28" height="9" rx="1.5" fill="#E8E6E0" opacity=".85" />
+                <rect x="-40" y="-8" width="14" height="8" rx="2" fill="#05070B" />
+                <rect x="26" y="-8" width="14" height="8" rx="2" fill="#05070B" />
+              </g>
+              <g className="carro-se-acerca">
+                <ellipse cx="0" cy="10" rx="78" ry="16" fill="#F5E9B8" opacity=".12" />
+                <rect x="-46" y="-40" width="92" height="34" rx="9" fill="#0B0F17" />
+                <path d="M-34 -40 L-24 -58 H24 L34 -40 Z" fill="#0B0F17" />
+                <path d="M-27 -42 L-20 -54 H20 L27 -42 Z" fill="#2A3446" />
+                <ellipse cx="-31" cy="-24" rx="10" ry="5" fill="#FFF4CC" />
+                <ellipse cx="31" cy="-24" rx="10" ry="5" fill="#FFF4CC" />
+                <rect x="-18" y="-20" width="36" height="6" rx="2" fill="#151C28" />
+                <rect x="-40" y="-8" width="14" height="8" rx="2" fill="#05070B" />
+                <rect x="26" y="-8" width="14" height="8" rx="2" fill="#05070B" />
+              </g>
               <rect x="470" y="230" width="6" height="140" fill="#151C28" />
               <rect x="458" y="196" width="30" height="66" rx="8" fill="#0E1726" />
               <circle cx="473" cy="212" r="8" fill="#C8281C" />

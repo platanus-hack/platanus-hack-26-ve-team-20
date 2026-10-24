@@ -212,6 +212,23 @@
 /* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
 .vista { animation: entra 260ms var(--ease-entrada) both; }
 
+/* Ilustración de acceso: un carro se aleja por el carril derecho y otro se acerca por el izquierdo.
+   Las posiciones siguen la perspectiva de la carretera (punto de fuga en 320,360 del dibujo). */
+@keyframes se-aleja {
+  0% { transform: translate(470px, 548px) scale(1.15); opacity: 0; }
+  6% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(333px, 363px) scale(0.04); opacity: 0; }
+}
+@keyframes se-acerca {
+  0% { transform: translate(308px, 363px) scale(0.04); opacity: 0; }
+  12% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translate(140px, 560px) scale(1.25); opacity: 0; }
+}
+.carro-se-aleja { animation: se-aleja 9s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; opacity: 0; }
+.carro-se-acerca { animation: se-acerca 7s cubic-bezier(0.6, 0, 0.8, 0.4) 3.5s infinite; opacity: 0; }
+
 /* Barra lima de la sección activa: crece desde el centro (220 ms). */
 @keyframes barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .barra-activa { animation: barra 220ms var(--ease-entrada) both; }
@@ -231,6 +248,7 @@
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
   .vista { animation: solo-fundido 120ms linear both; }
   .barra-activa, .latido { animation: none; }
+  .carro-se-aleja, .carro-se-acerca { animation: none; display: none; }
   dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
   dialog.sheet[open] { opacity: 1; }
   @starting-style { dialog.sheet[open] { opacity: 0; } }
