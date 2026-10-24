@@ -91,7 +91,7 @@ function Shell() {
             {/* ≥1024: tema, avisos y cédula arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
             <header className="absolute top-0 right-0 z-20 hidden h-11 items-center gap-4 lg:flex">
               <InterruptorTema />
-              <Link to="/multas" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
+              <Link to="/multas?tab=por-pagar" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
                 <Bell size={20} strokeWidth={2} aria-hidden="true" />
                 {pendientes > 0 && <span aria-hidden="true" className="absolute top-2 right-2.5 size-2 rounded-full bg-rojo" />}
               </Link>

@@ -272,6 +272,13 @@
 .pista { opacity: 0; transform: translate(-50%, 4px); transition: opacity 140ms var(--ease-press), transform 140ms var(--ease-press); }
 .columna:hover .pista { opacity: 1; transform: translate(-50%, 0); }
 
+/* Tabla de multas: cada fila es una tarjeta. Entra escalonada (30 ms) y al pasar o con su menú abierto se eleva:
+   sube 2 px y gana sombra. La entrada no deja estado final ("backwards") para no pisar el realce. */
+.tabla-multas .fila { animation: entra 240ms var(--ease-entrada) backwards; animation-delay: calc(var(--i, 0) * 30ms); transition: transform 160ms var(--ease-press), filter 160ms var(--ease-press); }
+.tabla-multas .fila:hover, .tabla-multas .fila-activa { transform: translateY(-2px); filter: drop-shadow(0 6px 14px rgb(14 23 38 / 0.1)); z-index: 1; }
+@keyframes menu-entra { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+.menu-entra { transform-origin: top right; animation: menu-entra 140ms var(--ease-entrada) both; }
+
 /* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
 @media (prefers-reduced-motion: reduce) {
   .press:active:not(:disabled) { transform: none; }
@@ -283,6 +290,9 @@
   .traza { animation: none; stroke-dasharray: none; }
   .aparece, .crece { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
   .pista { transform: translate(-50%, 0); transition: opacity 120ms linear; }
+  .tabla-multas .fila { animation: solo-fundido 120ms linear backwards; animation-delay: 0ms; transition: filter 120ms linear; }
+  .tabla-multas .fila:hover, .tabla-multas .fila-activa { transform: none; }
+  .menu-entra { animation: solo-fundido 120ms linear both; }
   .carro-se-aleja, .carro-se-acerca { animation: none; display: none; }
   .luz-verde, .luz-ambar, .luz-roja { animation: none; }
   .luz-verde, .luz-ambar { opacity: 0; }
