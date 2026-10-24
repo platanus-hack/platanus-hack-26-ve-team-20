@@ -39,7 +39,8 @@ vercel dev                   # SPA + funciones /api juntas (http://localhost:300
 pnpm db:migrate              # prisma migrate deploy (usa DIRECT_URL, puerto 5432)
 pnpm db:migrate:pooler       # mismo efecto por el pooler 6543, si el 5432 no responde (sin IPv6)
 pnpm db:check                # conexión, tablas y RLS de Supabase
-pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts)
+pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts); idempotente. Alias: pnpm db:seed
+pnpm demo:reset              # borra lo generado por la demo HOY (no sembrado) y re-siembra; --dry-run, --all
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
 cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)

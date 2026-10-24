@@ -13,6 +13,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:pooler": "tsx scripts/db-migrate.ts",
     "db:check": "tsx scripts/db-check.ts",
+    "db:seed": "prisma db seed",
+    "demo:reset": "tsx scripts/demo-reset.ts",
     "preview": "vite preview"
   },
   "dependencies": {
