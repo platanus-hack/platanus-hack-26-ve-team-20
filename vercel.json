@@ -119,6 +119,30 @@
       "destination": "/api/p1?route=officer-login"
     },
     {
+      "source": "/api/choques/latido",
+      "destination": "/api/choques?route=latido"
+    },
+    {
+      "source": "/api/choques/red",
+      "destination": "/api/choques?route=red"
+    },
+    {
+      "source": "/api/choques/incidentes",
+      "destination": "/api/choques?route=incidente"
+    },
+    {
+      "source": "/api/choques/alertas/:id/clip",
+      "destination": "/api/choques?route=clip-subir&id=:id"
+    },
+    {
+      "source": "/api/choques/alertas/:id/perdida",
+      "destination": "/api/choques?route=alerta-perdida&id=:id"
+    },
+    {
+      "source": "/api/choques/clips/:id",
+      "destination": "/api/choques?route=clip-ver&id=:id"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

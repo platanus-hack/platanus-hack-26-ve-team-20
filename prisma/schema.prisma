@@ -358,3 +358,64 @@ model CitizenRegistration {
   lastSentAt   DateTime
   createdAt    DateTime @default(now())
 }
+
+// ---- Red de choques en vivo (/choques/nodo y /choques/vivo). Datos de demo: el teléfono elige su punto en el
+// mapa de la demo (metros, no GPS). Los clips van como bytes mientras no haya Vercel Blob; los incidentes de más
+// de una hora se borran al crear uno nuevo (con sus alertas y clips).
+enum CrashAlertStatus {
+  PENDING
+  CAPTURING
+  UPLOADED
+  MISSED
+}
+
+model CrashNode {
+  id         String       @id @default(cuid())
+  name       String
+  x          Float
+  y          Float
+  heading    Float // grados, 0 = este, 90 = sur
+  recording  Boolean      @default(false)
+  lastSeenAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
+  alerts     CrashAlert[]
+
+  @@index([lastSeenAt])
+}
+
+model CrashIncident {
+  id         String       @id @default(cuid())
+  x          Float
+  y          Float
+  radiusM    Int
+  centerX    Float
+  centerY    Float
+  reporterId String?
+  occurredAt DateTime     @default(now())
+  alerts     CrashAlert[]
+
+  @@index([occurredAt])
+}
+
+model CrashAlert {
+  id            String           @id @default(cuid())
+  incidentId    String
+  incident      CrashIncident    @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  nodeId        String
+  node          CrashNode        @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  nodeX         Float // posición y rumbo del nodo en T0
+  nodeY         Float
+  nodeHeading   Float
+  distanceM     Float
+  status        CrashAlertStatus @default(PENDING)
+  deliveredAt   DateTime?
+  clip          Bytes?
+  clipType      String?
+  clipT0S       Float? // segundo del clip en que ocurrió el choque
+  clipDurationS Float?
+  uploadedAt    DateTime?
+  createdAt     DateTime         @default(now())
+
+  @@unique([incidentId, nodeId])
+  @@index([nodeId, status])
+}
