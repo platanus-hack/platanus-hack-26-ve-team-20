@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
-import { DemoError, getRegistroPendiente, reenviarCodigo, verificarCodigo, type Vehiculo } from '@/lib/demo/api.ts'
+import { DemoError, USA_API_REAL, getRegistroPendiente, reenviarCodigo, verificarCodigo, type Vehiculo } from '@/lib/demo/api.ts'
 import { formatCedula, maskTelefono } from '@/lib/format.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
@@ -109,7 +109,7 @@ export default function RegistroCodigo() {
           {espera > 0 ? `Reenviar en 0:${String(espera).padStart(2, '0')}` : 'Reenviar código'}
         </button>
       </div>
-      <span className="text-center text-caption text-texto-3">Prototipo: 123456 es válido; 000000 simula un código vencido y cualquier otro, uno inválido.</span>
+      {!USA_API_REAL && <span className="text-center text-caption text-texto-3">Prototipo: 123456 es válido; 000000 simula un código vencido y cualquier otro, uno inválido.</span>}
     </form>
   )
 }

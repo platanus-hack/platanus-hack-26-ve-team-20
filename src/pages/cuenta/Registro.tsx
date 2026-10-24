@@ -1,7 +1,7 @@
 import { MessageSquare } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
-import { DemoError, getSesion, solicitarCodigo } from '@/lib/demo/api.ts'
+import { DemoError, USA_API_REAL, getSesion, solicitarCodigo } from '@/lib/demo/api.ts'
 import { TELEFONO_RE } from '@/lib/format.ts'
 import { Boton, Campo, SelectCedula } from '@/components/ui/index.tsx'
 import { enlace, input } from '@/components/ui/estilos.ts'
@@ -84,7 +84,7 @@ export default function Registro() {
       <div className="flex items-center justify-center gap-1.5 text-sm text-texto-2">
         ¿Ya tiene cuenta?<Link to="/ingresar" className={enlace}>Entrar</Link>
       </div>
-      <span className="text-center text-caption text-texto-3">Prototipo: la cédula 12345678 ya tiene cuenta; una cédula distinta de 99000001 crea una cuenta sin vehículos.</span>
+      {!USA_API_REAL && <span className="text-center text-caption text-texto-3">Prototipo: la cédula 12345678 ya tiene cuenta; una cédula distinta de 99000001 crea una cuenta sin vehículos.</span>}
     </form>
   )
 }
