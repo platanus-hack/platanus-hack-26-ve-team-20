@@ -294,6 +294,9 @@ Nota de alcance: "Revisado" en el brief = `REVIEWED`; en el camino automático s
 - **Idempotencia**: `idempotencyKey` = hash(cameraId + URL del clip) si el cliente no envía una.
 - **Monto**: tabla de ejemplo en `lib/domain/fines.ts` (`FINE_AMOUNTS_EXAMPLE = { RED_LIGHT: ..., TURN_ARROW: ..., SPEEDING: ... }`), marcada como `// MONTOS DE EJEMPLO, no legales`. `dueAt = issuedAt + 30 días` (ejemplo).
 - **Unpaid** = Fines con status `PENDING` (incluye vencidas).
+- **`registerDetection`** (`lib/domain/violations.ts`): `VIOLATION` con placa válida, confianza (veredicto y placa) ≥ `VISION_CONFIDENCE_THRESHOLD` y vehículo registrado → `Fine` + `FINED`, se llama `notifyFineIssued` (P3) y, si el resultado es `SENT` o `DRY_RUN`, pasa a `NOTIFIED`. Si el envío falla queda `FINED` y se audita `NOTIFY_FAILED` (la detección nunca se pierde). Orden de los motivos de revisión: `NO_PLATE` → `LOW_CONFIDENCE` → `PLATE_NOT_FOUND`.
+- **Idempotencia y dedup** devuelven la violación existente con `duplicate: true` (tanto la repetición de una `idempotencyKey` como la misma placa + cámara + tipo a menos de 60 s).
+- **`NO_VIOLATION`** no tiene estado propio: se guarda como `VOID` con `voidReason = "NO_VIOLATION"` para que aparezca en el feed de `/camaras`. Quien liste violaciones lo distingue por ese motivo.
 
 ## 5. Seed (datos FALSOS) — `prisma/seed.ts`
 Todo con prefijo/indicador de ejemplo. Cédulas en rango claramente ficticio, teléfonos `58412000000X`.
