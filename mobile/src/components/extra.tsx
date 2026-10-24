@@ -9,16 +9,15 @@ import type { Multa } from '@/demo/ciudadano';
 import { bs } from '@/demo/format';
 import { useEstilos, useTema, type Tema } from '@/lib/tema';
 import { radio, tipo } from '@/theme';
-import { DemoBanner, ETIQUETA, Entrada, Pressy, SW, T, estados } from './ui';
+import { ETIQUETA, Entrada, Pressy, SW, T, estados } from './ui';
 
 const EASE_SHEET = Easing.bezier(0.32, 0.72, 0, 1);
 
-// Contenedor de pantalla vertical (ciudadano y policía): franja de demo arriba.
+// Contenedor de pantalla vertical (ciudadano y policía).
 export function Pantalla({ children, scroll = true, pie, style, fijos }: { children: ReactNode; scroll?: boolean; pie?: ReactNode; style?: StyleProp<ViewStyle>; fijos?: number[] }) {
   const { c } = useTema();
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.fondo }}>
-      <DemoBanner />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scroll ? (
           <ScrollView contentContainerStyle={[{ flexGrow: 1 }, style]} keyboardShouldPersistTaps="handled" stickyHeaderIndices={fijos}>

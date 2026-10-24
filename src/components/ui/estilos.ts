@@ -1,14 +1,16 @@
 export const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(' ')
 
 // Botones: 48 px, radio 12, presionar .98 · 120 ms.
-export type Variante = 'pay' | 'primary' | 'outline'
+// 'pay' y 'primary' son la acción principal (tinta en claro, lima en oscuro); 'lima' va sobre paneles tinta.
+export type Variante = 'pay' | 'primary' | 'lima' | 'outline'
 const VARIANTE: Record<Variante, string> = {
-  pay: 'bg-rojo text-contraste hover:bg-rojo-osc',
-  primary: 'bg-tinta text-card',
-  outline: 'border border-input bg-card text-tinta',
+  pay: 'bg-primario text-sobre-primario hover:opacity-90',
+  primary: 'bg-primario text-sobre-primario hover:opacity-90',
+  lima: 'bg-brand text-[#0e1726] hover:opacity-90',
+  outline: 'border border-borde bg-card text-tinta hover:bg-suave',
 }
 export const boton = (v: Variante = 'primary', extra?: string) =>
-  cx('press inline-flex h-12 items-center justify-center gap-2 rounded-control px-5 text-base font-semibold disabled:opacity-60', VARIANTE[v], extra)
+  cx('press inline-flex h-12 items-center justify-center gap-2 rounded-control px-5 text-base font-semibold transition-[opacity,background-color] duration-150 disabled:opacity-60', VARIANTE[v], extra)
 
 /** Enlace de texto azul con área táctil de 44 px. */
 export const enlace = 'inline-flex min-h-11 items-center px-1 text-sm font-semibold text-azul hover:text-tinta'

@@ -1,5 +1,5 @@
 // Piezas visuales de /multa y /pagar. Provisionales hasta que P4 publique src/components/vc
-// (DemoBanner, EstadoBadge, Evidencia, Placa, Monto) y los tokens en src/index.css: los colores
+// (EstadoBadge, Evidencia, Placa, Monto) y los tokens en src/index.css: los colores
 // son los de docs/05 §2, escritos como valores de Tailwind para no tocar archivos de P4.
 import { useState, type ReactNode } from 'react'
 import type { FinePublicDTO, LightState } from '@contracts'
@@ -11,7 +11,6 @@ export const MONO = 'font-mono tabular-nums whitespace-nowrap'
 export function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-fondo text-[15px] leading-[1.45] text-tinta">
-      <DemoBanner />
       <header className="tinta border-b border-borde bg-tinta text-card">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <span className="text-[18px] font-bold tracking-tight">SmartTraffic</span>
@@ -19,15 +18,6 @@ export function PageShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-xl px-4 pb-16 pt-6">{children}</main>
-    </div>
-  )
-}
-
-/** Visible en toda pantalla de pago (AGENTS.md §2.2). */
-export function DemoBanner() {
-  return (
-    <div role="note" className="border-b border-ambar bg-ambar-bg px-4 py-2 text-center text-[13px] font-semibold text-tinta">
-      Demo — pago simulado · datos ficticios · sin dinero real
     </div>
   )
 }

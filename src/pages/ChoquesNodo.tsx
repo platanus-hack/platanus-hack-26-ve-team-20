@@ -6,7 +6,7 @@ import { Grabadora, type ClipReal } from '@/lib/choques/grabadora.ts'
 import { CALLES_X, CALLES_Y, MUNDO, ajustarACalle, formatM, normalizar, type Punto } from '@/lib/choques/sim.ts'
 import { Boton, Campo } from '@/components/ui/index.tsx'
 import { cx, input, tarjeta } from '@/components/ui/estilos.ts'
-import { DemoBanner, Logo, PastillaTinta } from '@/components/vc/index.tsx'
+import { Logo, PastillaTinta } from '@/components/vc/index.tsx'
 import { Pagina, Titulo } from '@/components/cuenta/piezas.tsx'
 import { Mapa } from '@/components/choques/Mapa.tsx'
 import { estadoEnVivo, incidenteDeRed, nodoDeRed } from '@/components/choques/vivo.ts'
@@ -227,7 +227,6 @@ export default function ChoquesNodo() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <DemoBanner />
       <header className="tinta flex h-14 flex-none items-center gap-3 bg-tinta px-4 text-card">
         <Logo claro />
         <span className="ml-auto inline-flex h-[26px] items-center gap-1.5 rounded-full bg-tinta-3 px-2.5 text-xs font-semibold">

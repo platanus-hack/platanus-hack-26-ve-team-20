@@ -1,13 +1,13 @@
-import { ChevronDown, ChevronLeft, ShieldCheck } from 'lucide-react'
+import { ChevronDown, ChevronLeft, Play, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { apelarMulta, esPagable, getMulta, getVehiculos, type Multa } from '@/lib/demo/api.ts'
 import { LUZ, TIPO } from '@/lib/etiquetas.ts'
-import { diasEntre, enDias, formatBs, formatFecha, formatHora } from '@/lib/format.ts'
+import { formatBs, formatFecha, formatHora } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
 import { Boton, Hoja } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
-import { ErrorCarga, Pagina, Vacio, display } from '@/components/cuenta/piezas.tsx'
+import { ErrorCarga, Pagina, Vacio } from '@/components/cuenta/piezas.tsx'
 import { EST } from '@/components/vc/estados.ts'
 import { EstadoBadge, Fotograma, Monto, PastillaTinta, Placa, PlacaChip } from '@/components/vc/index.tsx'
 
@@ -21,7 +21,7 @@ function Acordeon({ titulo, children, borde }: { titulo: string; children: React
   const [abierto, setAbierto] = useState(false)
   return (
     <>
-      <button type="button" onClick={() => setAbierto(!abierto)} aria-expanded={abierto} className={cx('flex min-h-14 items-center gap-3 px-4 text-left font-semibold', borde && 'border-t border-borde')}>
+      <button type="button" onClick={() => setAbierto(!abierto)} aria-expanded={abierto} className={cx('flex min-h-14 items-center gap-3 px-4 text-left font-semibold transition-colors duration-150 hover:bg-suave', borde && 'border-t border-borde')}>
         <span className="flex-1">{titulo}</span>
         <ChevronDown size={18} strokeWidth={2} aria-hidden="true" className={cx('transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none', abierto && 'rotate-180')} />
       </button>
@@ -30,9 +30,18 @@ function Acordeon({ titulo, children, borde }: { titulo: string; children: React
   )
 }
 
+function Dato({ etiqueta, children, borde }: { etiqueta: string; children: ReactNode; borde?: boolean }) {
+  return (
+    <div className={cx('flex items-start justify-between gap-4 px-4 py-3.5', borde && 'border-t border-borde')}>
+      <dt className="text-texto-2">{etiqueta}</dt>
+      <dd className="text-right">{children}</dd>
+    </div>
+  )
+}
+
 function textoVence(m: Multa) {
   if (m.status === 'OVERDUE') return `Venció el ${formatFecha(m.dueAt)}`
-  if (m.status === 'PENDING') return `Vence el ${formatFecha(m.dueAt)} · ${enDias(diasEntre(new Date(), m.dueAt))}`
+  if (m.status === 'PENDING') return `Vence el ${formatFecha(m.dueAt)}`
   return m.status === 'PAID' ? 'Saldada' : 'Sin cobro'
 }
 
@@ -109,94 +118,112 @@ export default function MultaDetalle() {
   const notaEl = textoNota && (
     <span className={cx('block rounded-control px-3.5 py-3 text-sm font-semibold', EST[m.status === 'PAID' || m.status === 'APPEALED' ? m.status : 'VOID'].cls)}>{textoNota}</span>
   )
+  const apelarEl = pagable && (
+    <button type="button" onClick={() => setApelar(true)} className="inline-flex min-h-11 items-center self-center px-1 text-sm font-semibold text-texto-2 hover:text-tinta">
+      ¿No está de acuerdo? Apelar esta multa
+    </button>
+  )
 
   return (
     <>
       <Pagina className="flex-1">
         {volver}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
             <div className="flex flex-col gap-2">
               <EstadoBadge status={m.status} className="self-start" />
-              <h1 className={display}>{TIPO[m.type]}</h1>
-              <span className="text-texto-2"><span className="font-mono font-bold text-tinta">{formatFecha(m.occurredAt)} · {formatHora(m.occurredAt)}</span> · {m.intersection}</span>
-              <span className="flex items-center gap-2 text-sm text-texto-2">
-                <PlacaChip value={m.plate} grande />
-                {v ? `${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year} (ejemplo)` : ''}
-              </span>
+              <h1 className="font-display text-h1-m font-bold tracking-[-0.02em] lg:text-h1">{TIPO[m.type]}</h1>
+              <span className="text-sm text-texto-2">{formatFecha(m.occurredAt)} · {formatHora(m.occurredAt)}</span>
             </div>
 
-            <div className={cx(tarjeta, 'flex flex-col gap-1.5 p-4 lg:hidden')}>
-              <span className="text-caption text-texto-2">Monto de ejemplo</span>
+            <div className="flex flex-col gap-0.5 lg:hidden">
               <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[40px] leading-[44px]" />
-              <span className="text-sm text-texto-2">{textoVence(m)}</span>
+              <span className={cx('text-sm', m.status === 'OVERDUE' ? 'text-rojo-osc' : 'text-texto-2')}>{textoVence(m)} · monto de ejemplo</span>
             </div>
 
-            <section aria-label="Evidencia" className="flex flex-col gap-2.5">
-              <div className="relative overflow-hidden rounded-card bg-tinta-2">
+            <dl className={cx(tarjeta, 'flex flex-col text-sm')}>
+              <Dato etiqueta="Lugar">{m.intersection}</Dato>
+              <Dato etiqueta="Vehículo" borde>
+                <span className="flex flex-col items-end gap-1">
+                  <PlacaChip value={m.plate} />
+                  {v && <span className="text-caption text-texto-2">{`${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year} (ejemplo)`}</span>}
+                </span>
+              </Dato>
+              <Dato etiqueta="Cámara" borde><span className="font-mono font-semibold">{m.cameraCode}</span></Dato>
+            </dl>
+
+            <section aria-labelledby="prueba-t" className="flex flex-col gap-3">
+              <h2 id="prueba-t" className="text-h3 font-semibold">Prueba</h2>
+              <div className="relative overflow-hidden rounded-card bg-suave">
                 <Fotograma luz={luz} carro={fr.t} placa={m.plate} lineaPare alt={`Fotograma ${frame + 1} de 3, ${fr.momento} de la línea de pare, ${m.cameraCode}`} />
-                <PastillaTinta className="left-2.5 h-7" punto={luz === 'RED' ? 'size-2 bg-rojo' : 'size-2 bg-verde'}>
-                  {LUZ[luz]} · <span className="font-mono">{formatHora(m.occurredAt)}{fr.seg}</span>
+                <PastillaTinta className="left-2.5 h-7" punto={luz === 'RED' ? 'size-2 bg-[#ff6b5e]' : 'size-2 bg-[#3dd68c]'}>
+                  <span className="sr-only">{LUZ[luz]} · </span><span className="font-mono">{formatHora(m.occurredAt)}{fr.seg}</span>
                 </PastillaTinta>
-                <PastillaTinta className="right-2.5 h-7 font-mono font-bold">{m.cameraCode}</PastillaTinta>
               </div>
               <div className="flex gap-2">
-                {FRAMES.map((x, i) => (
-                  <button
-                    key={x.momento}
-                    type="button"
-                    aria-pressed={frame === i}
-                    aria-label={`Fotograma ${i + 1} de 3, ${x.momento} de la línea`}
-                    onClick={() => { clearInterval(reloj.current); setJugando(false); setFrame(i) }}
-                    className={cx('press flex min-h-[52px] flex-1 flex-col items-center justify-center rounded-control transition-colors duration-[220ms]', frame === i ? 'border-2 border-tinta bg-suave' : 'border border-borde bg-card')}
-                  >
-                    <span className="font-mono text-[13px] font-bold">{i + 1}</span>
-                    <span className="text-xs">{x.momento}</span>
-                  </button>
-                ))}
-                <button type="button" onClick={reproducir} className="press tinta flex min-h-[52px] flex-[1.2] items-center justify-center gap-1.5 rounded-control bg-tinta text-sm font-semibold text-card">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#C6F24E" aria-hidden="true"><path d="M6 3l14 9-14 9z" /></svg>
-                  {jugando ? 'Reproduciendo…' : 'Ver clip'}
+                <div role="group" aria-label="Fotogramas" className="flex flex-1 gap-1 rounded-control bg-suave p-1">
+                  {FRAMES.map((x, i) => (
+                    <button
+                      key={x.momento}
+                      type="button"
+                      aria-pressed={frame === i}
+                      aria-label={`Fotograma ${i + 1} de 3, ${x.momento} de la línea`}
+                      onClick={() => { clearInterval(reloj.current); setJugando(false); setFrame(i) }}
+                      className={cx('flex min-h-10 flex-1 items-center justify-center rounded-[10px] text-caption font-semibold transition-[background-color,color,box-shadow] duration-200', frame === i ? 'bg-card text-tinta shadow-card' : 'text-texto-2 hover:text-tinta')}
+                    >
+                      {x.momento[0]!.toUpperCase() + x.momento.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={reproducir} aria-label={jugando ? 'Reproduciendo clip' : 'Ver clip'} className="press flex size-12 flex-none items-center justify-center rounded-control bg-suave text-tinta transition-colors duration-150 hover:bg-borde">
+                  <Play size={18} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </div>
-              <div className={cx(tarjeta, 'flex items-center gap-3 p-3')}>
+              <div className="flex items-center gap-3">
                 <Placa value={m.plate} size="sm" />
-                <span className="flex flex-col text-sm"><span className="font-semibold">Recorte de placa</span><span className="text-texto-2">Ampliado del fotograma 2.</span></span>
+                <span className="flex flex-col text-sm">
+                  <span className="font-semibold">Placa leída</span>
+                  <span className="flex items-center gap-1.5 text-caption text-texto-2">
+                    <ShieldCheck size={14} strokeWidth={2} aria-hidden="true" className="text-verde-osc" />
+                    {m.verification === 'AUTO' ? 'Verificado automáticamente' : 'Verificado por operador'}
+                  </span>
+                </span>
               </div>
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" className="text-verde" />
-                {m.verification === 'AUTO' ? 'Verificado automáticamente' : 'Verificado por operador'}
-              </span>
             </section>
 
             <div className={cx(tarjeta, 'flex flex-col')}>
               <Acordeon titulo="Cómo se detectó">
-                <div className="flex flex-col gap-2">
-                  <span>La cámara {m.cameraCode} grabó el cruce. El modelo leyó la placa y la regla de la línea de pare confirmó la luz en el momento del cruce.</span>
-                  <span className="flex justify-between"><span>Confianza del modelo</span><span className="font-mono font-bold text-tinta">{m.confidence.toFixed(2).replace('.', ',')}</span></span>
+                <div className="flex flex-col gap-4">
+                  <span>
+                    La cámara {m.cameraCode} grabó el cruce. El modelo leyó la placa con una confianza de{' '}
+                    <span className="font-mono font-semibold text-tinta">{m.confidence.toFixed(2).replace('.', ',')}</span> y la regla de la línea de pare confirmó la luz.
+                  </span>
+                  <ol className="flex flex-col gap-3">
+                    {auditoria.map((a) => (
+                      <li key={a.que} className="flex gap-3">
+                        <span aria-hidden="true" className="mt-2 size-1.5 flex-none rounded-full bg-texto-3" />
+                        <span className="flex flex-col"><span className="text-tinta">{a.que}</span><span className="text-caption">{a.cuando}</span></span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               </Acordeon>
-              <Acordeon titulo="Auditoría" borde>
-                <ol className="flex flex-col gap-2">
-                  {auditoria.map((a) => (
-                    <li key={a.que} className="flex gap-2.5"><span className="w-24 flex-none font-mono font-bold text-tinta">{a.cuando}</span><span>{a.que}</span></li>
-                  ))}
-                </ol>
-              </Acordeon>
             </div>
+            <div className="lg:hidden">{apelarEl}</div>
+            {notaEl && <div className="lg:hidden">{notaEl}</div>}
           </div>
 
-          <aside className={cx(tarjeta, 'sticky top-8 hidden flex-col gap-3 self-start p-6 lg:col-span-5 lg:flex')}>
-            <span className="text-caption text-texto-2">Monto de ejemplo</span>
-            <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[40px] leading-[44px]" />
-            <span className="text-sm text-texto-2">{textoVence(m)}</span>
+          <aside className={cx(tarjeta, 'sticky top-8 hidden flex-col gap-4 self-start p-6 lg:col-span-5 lg:flex')}>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-caption text-texto-2">Monto de ejemplo</span>
+              <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[40px] leading-[44px]" />
+              <span className={cx('text-sm', m.status === 'OVERDUE' ? 'text-rojo-osc' : 'text-texto-2')}>{textoVence(m)}</span>
+            </div>
             {pagable && <Boton variante="pay" onClick={pagar}>Pagar {formatBs(m.amountCents)}</Boton>}
-            {pagable && <Boton variante="outline" onClick={() => setApelar(true)}>Apelar</Boton>}
+            {apelarEl}
             {notaEl}
           </aside>
         </div>
-        {pagable && <Boton variante="outline" className="lg:hidden" onClick={() => setApelar(true)}>Apelar esta multa</Boton>}
-        {notaEl && <div className="lg:hidden">{notaEl}</div>}
       </Pagina>
 
       {pagable && (

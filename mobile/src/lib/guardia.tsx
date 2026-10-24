@@ -13,7 +13,7 @@ export function StackDeRol({ modo, protegidas }: { modo: Modo; protegidas: strin
   const { c } = useTema();
   const sesion = useSyncExternalStore(suscribirSesion, sesionEnMemoria);
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.fondo } }}>
+    <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', contentStyle: { backgroundColor: c.fondo } }}>
       <Stack.Protected guard={sesion === modo} redirectTo={modo === 'ciudadano' ? '/ciudadano/login' : '/policia/login'}>
         {protegidas.map((name) => <Stack.Screen key={name} name={name} />)}
       </Stack.Protected>
