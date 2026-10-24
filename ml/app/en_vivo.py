@@ -47,6 +47,8 @@ AJUSTES_VIVO: dict[str, Any] = {
 LUPA_MAX_POR_CUADRO = 6
 LUPA_CADA = 3  # cuadros entre refrescos de la lupa de un mismo vehículo
 LUPA_ALTO_PX = 72  # alto de la miniatura que viaja a la página
+# Placa más baja que esto en el cuadro = ilegible (carro lejano): no se manda lupa, solo taparía la vista.
+LUPA_MIN_ALTO_PLACA_PX = 14
 
 DetectorPlacas = Callable[[list[Any]], list[tuple[float, float, float, float] | None]]
 _detector_yolo: DetectorPlacas | None = None
@@ -166,6 +168,8 @@ class Sesion:
             if placa is None:
                 continue
             px1, py1, px2, py2 = placa
+            if py2 - py1 < LUPA_MIN_ALTO_PLACA_PX:
+                continue
             mx, my = (px2 - px1) * 0.12, (py2 - py1) * 0.2
             recorte = frame[max(0, int(y1 + py1 - my)):int(y1 + py2 + my), max(0, int(x1 + px1 - mx)):int(x1 + px2 + mx)]
             if recorte.size == 0:

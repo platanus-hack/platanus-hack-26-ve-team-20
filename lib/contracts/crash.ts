@@ -14,7 +14,8 @@ export const CRASH = {
   POST_MS: 5_000,
   /** Límite de cuerpo de una Vercel Function (4,5 MB) con margen. */
   CLIP_MAX_BYTES: 4_000_000,
-  DEFAULT_RADIUS_M: 150,
+  /** Cubre todo el mapa de la demo (800 × 480 m): todos los teléfonos que graban entran en la alerta. */
+  DEFAULT_RADIUS_M: 1000,
 } as const;
 
 export const CRASH_ALERT_STATUSES = ["PENDING", "CAPTURING", "UPLOADED", "MISSED"] as const;
