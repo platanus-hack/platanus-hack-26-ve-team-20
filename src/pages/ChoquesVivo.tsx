@@ -13,11 +13,11 @@ import { COLOR, ETIQUETA, orientacion } from '@/components/choques/estados.ts'
 import { ESTADO_ALERTA, capturaDeAlerta, estadoEnVivo, incidenteDeRed, nodoDeRed } from '@/components/choques/vivo.ts'
 
 const REFRESCO_MS = 1000
-type Radio = '150' | '300' | '500'
+type Radio = '150' | '500' | '1000'
 const RADIOS: Array<{ id: Radio; nombre: string }> = [
   { id: '150', nombre: '150 m' },
-  { id: '300', nombre: '300 m' },
   { id: '500', nombre: '500 m' },
+  { id: '1000', nombre: 'Todo el mapa' },
 ]
 
 /** `Date.now()` en el reloj del servidor, refrescado cada cuadro mientras `activo` (la onda de alerta). */
@@ -42,7 +42,7 @@ export default function ChoquesVivo() {
   const [red, setRed] = useState<CrashNetworkDTO | null>(null)
   const [offset, setOffset] = useState(0)
   const [errorRed, setErrorRed] = useState(false)
-  const [radio, setRadio] = useState<Radio>('150')
+  const [radio, setRadio] = useState<Radio>(String(CRASH.DEFAULT_RADIUS_M) as Radio)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sincro, setSincro] = useState<number | null>(null)
