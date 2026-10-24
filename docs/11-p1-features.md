@@ -135,10 +135,14 @@ Orden de ejecución: F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8 → F10
 **Commit**: `feat(api): portal lookup with rate limit and audit`
 
 ## F12 — Revisión humana
-**Alcance**: `POST /api/violations/[id]/review` (`APPROVE` con corrección de placa opcional → `REVIEWED` → `FINED` → `NOTIFIED`; `VOID` con motivo).
+**Alcance**: `POST /api/violations/[id]/review` (`APPROVE` con corrección de placa opcional → `REVIEWED` → `FINED` → `NOTIFIED`; `VOID` con motivo) y `GET /api/violations/[id]` (detalle con la salida del modelo, necesario para HU-07).
 **Criterios de aceptación (HU-07)**
-- [ ] `APPROVE` crea la multa y notifica (mock); la placa corregida se normaliza y se busca el vehículo.
-- [ ] Transición inválida → 409 `INVALID_TRANSITION`; cada acción escribe `AuditLog` con actor.
+- [x] `APPROVE` crea la multa y notifica; la placa corregida se normaliza, se valida y se enlaza al vehículo.
+- [x] Sin vehículo conocido ni placa válida → 400; estado distinto de `NEEDS_REVIEW` → 409 `INVALID_TRANSITION`; inexistente → 404.
+- [x] Cada acción escribe `AuditLog` con el operador como actor (id de la cuenta, IP, nota y placa anterior).
+- [x] Aprobaciones simultáneas: una sola multa y un solo aviso.
+- [x] Si el aviso falla la multa queda emitida (`FINED`) y se audita `NOTIFY_FAILED`.
+- [x] Probado empaquetado como función de Vercel contra la base real.
 **Commit**: `feat(api): violation review approve and void`
 
 ## F13 — Integración

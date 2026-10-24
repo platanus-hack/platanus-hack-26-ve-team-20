@@ -196,7 +196,11 @@ async function persist(
 }
 
 /** Notifica la multa y, si el envío se registró (SENT o DRY_RUN), pasa FINED → NOTIFIED. Nunca lanza. */
-async function notifyAndAdvance(deps: DetectionDeps, outcome: Outcome, fineId: string): Promise<ViolationStatus> {
+export async function notifyAndAdvance(
+  deps: Pick<DetectionDeps, "db" | "notifyFineIssued">,
+  outcome: Pick<Outcome, "violationId" | "status">,
+  fineId: string,
+): Promise<ViolationStatus> {
   let result: NotificationResult | null = null;
   try {
     result = await deps.notifyFineIssued(fineId);

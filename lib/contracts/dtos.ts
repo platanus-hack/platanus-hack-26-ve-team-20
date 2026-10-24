@@ -52,7 +52,17 @@ export interface ViolationListItemDTO {
 }
 export interface ViolationListDTO { items: ViolationListItemDTO[]; nextSince: string | null }
 
-export interface ReviewResultDTO { status: Extract<ViolationStatus, "NOTIFIED" | "VOID">; fineId?: string }
+/** NOTIFIED: aprobada y avisada; FINED: aprobada pero el aviso falló (queda la multa); VOID: anulada. */
+export interface ReviewResultDTO { status: Extract<ViolationStatus, "NOTIFIED" | "FINED" | "VOID">; fineId?: string }
+
+/** Detalle de una violación para la pantalla de revisión: el ítem de la lista más la salida del modelo. */
+export interface ViolationDetailDTO extends ViolationListItemDTO {
+  modelVersion: string | null;
+  /** Respuesta cruda validada del servicio ML. */
+  aiOutput: unknown;
+  /** Resultado de la regla: `{ verdict, crossing, rules }`. */
+  ruleOutput: unknown;
+}
 
 // ---- §3 multa pública (P1)
 export interface FinePublicDTO {
