@@ -16,6 +16,9 @@ export const ESTADO: Record<FineStatus, string> = {
   VOID: 'ANULADA',
 }
 
+/** Estado en tipo oración para la interfaz ('Pendiente'); ESTADO queda en mayúsculas para el CSV. */
+export const estadoTexto = (s: FineStatus) => ESTADO[s][0] + ESTADO[s].slice(1).toLowerCase()
+
 export const LUZ: Record<LightState, string> = {
   RED: 'ROJO',
   YELLOW: 'AMARILLO',

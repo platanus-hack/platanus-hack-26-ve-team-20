@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesionOficial, cerrarSesionOficial, getSesionOficial, sesionOficialVencio } from '@/lib/oficial/api.ts'
 import { Boton, BotonTema, Hoja } from '@/components/ui/index.tsx'
-import { DemoBanner, Logo } from '@/components/vc/index.tsx'
+import { Logo } from '@/components/vc/index.tsx'
 
 const LOGIN = '/oficial/ingresar'
 
@@ -27,7 +27,6 @@ function Shell() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <DemoBanner />
       <div className="flex min-h-0 flex-1">
         <aside className="tinta hidden w-[248px] flex-none flex-col gap-1 bg-tinta px-3 py-5 lg:flex">
           <div className="px-3 pb-5 text-card"><Logo claro /></div>
@@ -61,7 +60,9 @@ function Shell() {
             </button>
           </header>
           <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-            <Outlet />
+            <div key={pathname} className="vista flex flex-1 flex-col">
+              <Outlet />
+            </div>
           </main>
         </div>
       </div>

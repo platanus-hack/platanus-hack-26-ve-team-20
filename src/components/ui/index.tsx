@@ -76,7 +76,7 @@ export function Hoja({ abierta, onCerrar, etiqueta, modo = 'sheet', bloqueada = 
   )
 }
 
-// ---------------------------------------------------------------- pestañas: pista suave, pastilla tinta que se desliza 220 ms
+// ---------------------------------------------------------------- pestañas: pista suave, pastilla clara que se desliza 220 ms
 export function Pestanas<T extends string>({ opciones, valor, onCambio, etiqueta }: {
   opciones: Array<{ id: T; nombre: string; n?: number }>
   valor: T
@@ -88,7 +88,7 @@ export function Pestanas<T extends string>({ opciones, valor, onCambio, etiqueta
     <div role="tablist" aria-label={etiqueta} className="relative grid max-w-[520px] rounded-control bg-suave p-1" style={{ gridTemplateColumns: `repeat(${opciones.length}, minmax(0, 1fr))` }}>
       <span
         aria-hidden="true"
-        className="absolute top-1 bottom-1 left-1 rounded-[10px] bg-tinta transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none"
+        className="absolute top-1 bottom-1 left-1 rounded-[10px] bg-card shadow-card transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none"
         style={{ width: `calc((100% - 8px) / ${opciones.length})`, transform: `translateX(${i * 100}%)` }}
       />
       {opciones.map((o) => (
@@ -98,7 +98,7 @@ export function Pestanas<T extends string>({ opciones, valor, onCambio, etiqueta
           role="tab"
           aria-selected={o.id === valor}
           onClick={() => onCambio(o.id)}
-          className={cx('relative h-10 rounded-[10px] text-sm font-semibold transition-colors duration-[220ms]', o.id === valor ? 'text-card' : 'text-texto-2')}
+          className={cx('relative h-10 rounded-[10px] text-sm font-semibold transition-colors duration-[220ms]', o.id === valor ? 'text-tinta' : 'text-texto-2 hover:text-tinta')}
         >
           {o.nombre} {o.n != null && <span className="font-mono">{o.n}</span>}
         </button>
@@ -115,9 +115,9 @@ export function Interruptor({ activo, onCambio, etiqueta }: { activo: boolean; o
       aria-checked={activo}
       aria-label={etiqueta}
       onClick={() => onCambio(!activo)}
-      className={cx('flex h-8 w-[52px] rounded-full p-1 transition-colors duration-[220ms]', activo ? 'tinta justify-end bg-tinta-2' : 'justify-start bg-input')}
+      className={cx('flex h-8 w-[52px] rounded-full p-1 transition-colors duration-[220ms]', activo ? 'justify-end bg-primario' : 'justify-start bg-input')}
     >
-      <span className={cx('size-6 rounded-full', activo ? 'bg-brand' : 'bg-card')} />
+      <span className={cx('size-6 rounded-full', activo ? 'bg-boli-on' : 'bg-card')} />
     </button>
   )
 }
@@ -129,7 +129,7 @@ const TEMAS: Array<{ id: Tema; nombre: string; Icono: LucideIcon }> = [
   { id: 'sistema', nombre: 'Sistema', Icono: Monitor },
 ]
 
-/** Tres estados en pista suave; el activo lleva pastilla tinta. */
+/** Tres estados en pista suave; el activo lleva pastilla clara. */
 export function SelectorTema({ className }: { className?: string }) {
   const [tema, cambiar] = useTema()
   return (
@@ -141,7 +141,7 @@ export function SelectorTema({ className }: { className?: string }) {
           role="radio"
           aria-checked={tema === id}
           onClick={() => cambiar(id)}
-          className={cx('flex h-10 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold', tema === id ? 'bg-tinta text-card' : 'text-texto-2')}
+          className={cx('flex h-10 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold', tema === id ? 'bg-card text-tinta shadow-card' : 'text-texto-2 hover:text-tinta')}
         >
           <Icono size={16} strokeWidth={1.75} aria-hidden="true" />
           {nombre}

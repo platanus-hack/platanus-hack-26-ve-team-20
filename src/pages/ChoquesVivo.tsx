@@ -5,7 +5,7 @@ import { conReloj, reportar, verRed } from '@/lib/choques/api.ts'
 import { DURACION_ONDA_MS, MUNDO, ajustarACalle, formatM, lugar, type Punto } from '@/lib/choques/sim.ts'
 import { Boton, Pestanas } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
-import { DemoBanner, Logo, PastillaTinta } from '@/components/vc/index.tsx'
+import { Logo, PastillaTinta } from '@/components/vc/index.tsx'
 import { Pagina, Titulo, h2 } from '@/components/cuenta/piezas.tsx'
 import { Cobertura } from '@/components/choques/Angulo.tsx'
 import { Mapa } from '@/components/choques/Mapa.tsx'
@@ -118,7 +118,6 @@ export default function ChoquesVivo() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <DemoBanner />
       <header className="tinta flex h-14 flex-none items-center gap-3 bg-tinta px-4 text-card lg:px-12">
         <Logo claro />
         <span className="hidden text-niebla sm:inline">/ Red de choques</span>

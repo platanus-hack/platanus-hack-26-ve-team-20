@@ -94,7 +94,7 @@ export default function Multa() {
         isPayable(fine.status) && (
           <Link
             to={`/multa/${encodeURIComponent(fine.token)}/pagar`}
-            className="mt-6 flex min-h-12 items-center justify-center rounded-[6px] bg-rojo px-4 py-3 text-[18px] font-bold text-contraste hover:bg-rojo-osc focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+            className="mt-6 flex min-h-12 items-center justify-center rounded-control bg-primario px-4 py-3 text-[18px] font-bold text-sobre-primario hover:opacity-90 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-tinta"
           >
             Pagar con Pago Móvil C2P
           </Link>

@@ -2,19 +2,9 @@ import type { FineStatus, LightState } from '@contracts'
 import { Isotipo } from './Isotipo.tsx'
 import type { ReactNode } from 'react'
 import { formatBs } from '@/lib/format.ts'
-import { ESTADO, LUZ } from '@/lib/etiquetas.ts'
+import { LUZ, estadoTexto } from '@/lib/etiquetas.ts'
 import { cx } from '@/components/ui/estilos.ts'
 import { EST } from './estados.ts'
-
-/** Franja discreta, siempre visible. */
-export function DemoBanner() {
-  return (
-    <div role="note" className="flex h-7 flex-none items-center justify-center gap-2 border-b border-borde bg-suave text-caption text-texto-2">
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-ambar" />
-      Demo · datos ficticios · pagos simulados
-    </div>
-  )
-}
 
 /** Marca: el carro con sus luces y el nombre. `claro` = sobre superficie tinta. */
 export function Logo({ claro = false }: { claro?: boolean }) {
@@ -29,9 +19,9 @@ export function Logo({ claro = false }: { claro?: boolean }) {
 export function EstadoBadge({ status, className }: { status: FineStatus; className?: string }) {
   const { cls, Icono } = EST[status]
   return (
-    <span className={cx('inline-flex h-6 items-center gap-[5px] rounded-full px-[9px] text-xs font-semibold tracking-[.02em] whitespace-nowrap transition-colors duration-200', cls, className)}>
+    <span className={cx('inline-flex h-6 items-center gap-[5px] rounded-full px-[9px] text-xs font-semibold whitespace-nowrap transition-colors duration-200', cls, className)}>
       <Icono size={12} strokeWidth={2.25} aria-hidden="true" />
-      {ESTADO[status]}
+      {estadoTexto(status)}
     </span>
   )
 }
