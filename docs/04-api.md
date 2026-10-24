@@ -158,6 +158,9 @@ Response 200:
 Lógica: cargar cámara → `lib/vision.analyze()` → `lib/domain.registerDetection()` → (P1 llama `notifyFineIssued` si FINED) → si vehículo con multas impagas previas también `registerSighting` + `dispatchAlert`.
 Errores: servicio ML caído o respuesta inválida → 200 con `verdict: "NEEDS_REVIEW"`, `reviewReason: "ML_SERVICE_ERROR"` (nunca perder el clip).
 
+### `POST /api/live/violations` (servicio ML) — multas del modo en vivo
+La manda `ml/app/en_vivo.py` (no la app) con `Authorization: Bearer ML_SERVICE_TOKEN` cuando el motor cierra una multa de cruce en rojo. Body: `{ cameraCode, occurredAt, trackId, plate|null, plateConfidence, votes, rawReads[], modelVersion, idempotencyKey, sceneJpegBase64, vehicleJpegBase64?, plateJpegBase64? }`. Sube las fotos a Blob, juzga la placa con la misma regla que los clips (`judgePlate`) y llama a `registerDetection`. La escena ocupa el lugar del clip (el modo en vivo no graba video). Response `{ ok, data: { violationId, status, fineId?, duplicate, verdict, plate } }`.
+
 ### `POST /api/sightings` (camera | admin) — "placa vista" sin infracción
 Request `{ "cameraId": "...", "plate": "AB123CD", "seenAt": "ISO", "evidenceUrl": "opcional" }` o `{ "cameraCode", "clip": {...}, "clockOffsetMs" }` (el servicio ML lee la placa).
 Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, officerId?, distanceM? } | null } }`.

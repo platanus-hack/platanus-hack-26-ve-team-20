@@ -163,6 +163,10 @@
       "destination": "/api/p2?route=detections"
     },
     {
+      "source": "/api/live/violations",
+      "destination": "/api/p2?route=live-violation"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
