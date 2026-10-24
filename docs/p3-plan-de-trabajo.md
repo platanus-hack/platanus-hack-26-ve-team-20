@@ -95,7 +95,7 @@ La respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Un err
 
 ## 5. Pasos
 
-**Paso actual: 7.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
+**Paso actual: 8.** Al cerrar un paso, marca su casilla y sube este número en el mismo commit.
 
 Cada paso es **un commit** en la rama `Edwjon` (§6). Columna "Necesita": `—` = se puede hacer ya; **C** = contratos y Vitest del esqueleto de P1 (ya en esta rama); **E** = además Prisma, `lib/db.ts` y `lib/domain` de P1; **S** = además el seed con oficiales y teléfonos demo; **Prod** = hay deploy en Vercel.
 
@@ -107,7 +107,7 @@ Cada paso es **un commit** en la rama `Edwjon` (§6). Columna "Necesita": `—` 
 | [x] 4 | Textos de los 3 mensajes (`04` §7), fechas en Caracas, placa y montos formateados | `lib/notify/templates.ts` + test | C | test de los 3 textos en verde | `feat(notify): add message templates` |
 | [x] 5 | Cliente de WhatsApp Cloud API: mensajes de texto, `NOTIFY_DRY_RUN`, errores de Meta tipados (incluido ventana cerrada) | `lib/notify/whatsapp.ts` + test con `fetch` simulado | C | test verde; un script local envía un mensaje real al teléfono de demo | `feat(notify): add WhatsApp Cloud API client` |
 | [x] 6 | Simulador C2P y lista de bancos de ejemplo | `lib/payments/banks.ts`, `lib/payments/c2p.ts` + test | C | `000000` rechaza, `111111` sin fondos, otra aprueba con `SIM-`; la clave no aparece en nada devuelto | `feat(payments): add simulated C2P` |
-| [ ] 7 | Distancia entre coordenadas | `lib/geo/haversine.ts` + test | C | distancias conocidas dentro de ±1 m | `feat(geo): add haversine` |
+| [x] 7 | Distancia entre coordenadas | `lib/geo/haversine.ts` + test | C | distancias conocidas dentro de ±1 m | `feat(geo): add haversine` |
 | [ ] 8 | `notifyFineIssued` y `notifyPaymentConfirmed` reales: guardan `Notification`, nunca lanzan; si WhatsApp falla queda `FAILED` con el error | `lib/notify/index.ts` + test | E, S | crear una multa con el script de P1 envía WhatsApp y deja `Notification` en `SENT` (o `DRY_RUN`) | `feat(notify): send fine and payment notifications` |
 | [ ] 9 | API de pago: Zod, idempotencia, 409 `ALREADY_PAID`, rate limit, `markFinePaid`, `AuditLog` | `api/payments/c2p.ts` + test | E, S | doble envío con la misma llave = un solo `Payment`; segundo pago de la misma multa = 409 | `feat(payments): add C2P payment endpoint` |
 | [ ] 10 | Página de la multa (HU-04, `05` §3.3); cargar las variables de §3.3 en Vercel | `src/pages/Multa.tsx`, `components/multa/**` | E, S, Prod | en el Preview, una multa del seed se ve a 360 px con evidencia, monto y banner demo, sin cédula ni teléfono | `feat(multa): add fine landing page` |
