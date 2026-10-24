@@ -89,7 +89,7 @@ export default function Login() {
         )}
       </div>
       {fallaServidor && <p role="alert" className="text-sm text-rojo-osc">{fallaServidor}</p>}
-      <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</Boton>
+      <Boton type="submit" variante="acceso" disabled={enviando} aria-busy={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</Boton>
       <div className="flex items-center justify-center gap-1.5 text-sm text-texto-2">
         ¿No tiene cuenta?<Link to="/registro" className={enlace}>Crear cuenta</Link>
       </div>
