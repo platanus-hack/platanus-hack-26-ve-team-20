@@ -150,13 +150,22 @@ export function cerrarSesion() {
 const paraMostrar = (enmascarado: string) => `${enmascarado.slice(0, 4)}000${enmascarado.slice(-4)}`
 
 /** Paso 1: el código va por WhatsApp al `telefono` tecleado (quien lo recibe prueba que es suyo). */
-export async function solicitarCodigo(datos: { cedula: string; telefono: string; correo: string | null; clave: string }): Promise<{ telefono: string }> {
+/**
+ * Paso 1. Si el servidor no exige código (sin `CITIZEN_WHATSAPP_CODE`), la cuenta ya quedó creada y con sesión:
+ * devuelve `vehiculos` y no hay paso 2.
+ */
+export async function solicitarCodigo(datos: { cedula: string; telefono: string; correo: string | null; clave: string }): Promise<{ telefono: string; vehiculos?: Vehiculo[] }> {
   const cedula = normalizeCedula(datos.cedula)
-  const r = await llamar<{ telefono: string }>('/api/citizen/register', {
+  const r = await llamar<{ telefono: string; user?: CitizenProfileDTO; vehicles?: CitizenVehicleDTO[] }>('/api/citizen/register', {
     method: 'POST',
     body: { cedula, password: datos.clave, phone: datos.telefono, ...(datos.correo && { email: datos.correo }) },
   })
   const telefono = paraMostrar(r.telefono)
+  if (r.user) {
+    borrar(K.registro)
+    abrirSesion(r.user)
+    return { telefono, vehiculos: (r.vehicles ?? []).map(aVehiculo) }
+  }
   guardar(K.registro, { cedula, telefono, correo: datos.correo || null, enviadoEn: Date.now() } satisfies Registro)
   return { telefono }
 }

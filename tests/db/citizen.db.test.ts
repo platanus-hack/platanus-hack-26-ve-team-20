@@ -136,6 +136,23 @@ describe('registro: cédula + contraseña con código por WhatsApp', () => {
     expect(reasonOf(again)).toBe('YA_REGISTRADA')
   })
 
+  it('sin código (requireCode false): el paso 1 crea la cuenta y abre sesión sin enviar nada', async () => {
+    const cedula = `V9${DIGITS}02`
+    unknownCedulas.push(cedula)
+    const before = sent.length
+    const out = await svc({ requireCode: () => false }).startRegistration({ cedula, password: PASSWORD, phone: '584141112244', email: 'sin.codigo@ejemplo.com', ip: ip(7) })
+    expect(sent).toHaveLength(before)
+    expect(out.telefono).toBe('0414-***2244')
+    expect(out.session?.person.cedula).toBe(cedula)
+    expect(out.session?.person.email).toBe('sin.codigo@ejemplo.com')
+    expect(await db.citizenRegistration.count({ where: { person: { cedula } } })).toBe(0)
+    // entra con la contraseña elegida, y no puede registrarse dos veces
+    expect((await svc().login({ cedula, password: PASSWORD, ip: ip(7) })).person.cedula).toBe(cedula)
+    expect(reasonOf(await fail(svc({ requireCode: () => false }).startRegistration({ cedula, password: PASSWORD, phone: '584141112244', ip: ip(7) })))).toBe('YA_REGISTRADA')
+    const reg = await db.auditLog.findFirst({ where: { action: 'CITIZEN_REGISTERED', entityId: out.session?.account.id } })
+    expect(reg?.after).toEqual({ verifiedBy: 'NONE' })
+  })
+
   it('un titular conocido con teléfono escrito: el código va al escrito, pero su teléfono (con vehículos) no cambia', async () => {
     const p = await person({ phone: '584120000777' })
     await fine(p.id, `phone-${p.id}`) // le da un vehículo

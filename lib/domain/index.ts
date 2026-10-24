@@ -29,10 +29,12 @@ export const reviewViolation: ReviewViolation = createReviewViolation({ db, noti
 /**
  * Cuenta del ciudadano. `CITIZEN_DEMO_CODE` + `DEMO_CEDULA` (ambas, solo para demos) hacen válido ese código para
  * esa cédula sin enviar nada por WhatsApp; sin ellas la verificación exige el código real.
+ * Por ahora el registro no pide código (el envío falla en producción); `CITIZEN_WHATSAPP_CODE=true` lo exige.
  */
 export const citizen = createCitizenService({
   db,
   sendCode: createCodeSender(),
+  requireCode: () => process.env["CITIZEN_WHATSAPP_CODE"]?.trim().toLowerCase() === "true",
   demo: () => {
     const code = process.env["CITIZEN_DEMO_CODE"] ?? "";
     const cedula = normalizeCedula(process.env["DEMO_CEDULA"] ?? "");
