@@ -13,7 +13,7 @@ const FAKE = 'V99123456' // cédula inventada: las pruebas nunca usan una real
 describe('parseDemoCedula', () => {
   it('normaliza cédulas válidas y descarta lo demás', () => {
     expect(parseDemoCedula('v-99.123.456')).toBe('V99123456')
-    expect(parseDemoCedula(' E-81234567 ')).toBe('E81234567')
+    expect(parseDemoCedula(' E-91234567 ')).toBe('E91234567')
     for (const bad of [undefined, '', 'abc', '99123456', 'V12', 'V123456789012', 'X99123456']) {
       expect(parseDemoCedula(bad), String(bad)).toBeNull()
     }

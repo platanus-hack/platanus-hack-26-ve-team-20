@@ -68,10 +68,8 @@ src/                                # SPA React + Vite (todo cliente)
 api/                                # Vercel Functions (TypeScript, Node)
   detections.ts                     # POST analizar frames (P2)
   sightings.ts                      # POST placa vista (P2 → lib/alerts de P3)
-  violations/index.ts               # GET lista (P1)
-  violations/[id]/review.ts         # POST aprobar/rechazar (P1)
+  p1.ts                             # ÚNICA función de P1: auth, violaciones, revisión (rutas en api/_p1/, URLs por vercel.json)
   fines/[token].ts                  # GET multa pública (P1)
-  auth/login.ts, logout.ts, me.ts   # login de admin/operador por cookie de sesión (P1)
   portal/lookup.ts                  # POST consulta por cédula (P1)
   payments/c2p.ts                   # POST pago simulado (P3)
   officers/location.ts              # POST ubicación oficial (P3)
@@ -105,6 +103,8 @@ public/demo/        # manifiesto y clips de ejemplo (sets A–D) para pruebas y 
 tests/              # e2e Playwright (P1 coordina QA)
 docs/               # esta documentación
 ```
+
+> **Presupuesto de funciones (Vercel Hobby = 12 por deploy).** Cada `.ts` de `api/` fuera de carpetas o archivos con `_` cuenta como una. Hoy: `health`, `fines/[token]`, `portal/lookup`, `webhooks/whatsapp`, `p1`, `p3` = 6. P2 y los demás deben **agrupar sus rutas en un router propio** (`api/p2.ts` + `api/_p2/*.ts` + reescrituras en `vercel.json`, como `api/p1.ts` y `api/p3.ts`) y no crear una función por endpoint. Un test (`tests/unit/vercel-functions.test.ts`) falla si se pasa de 12.
 
 ## 6. Convenciones
 - TS estricto, sin `any`. Validación con **Zod** en todo borde (funciones de `/api`, webhooks, respuesta del servicio ML).
