@@ -80,6 +80,9 @@ export interface PortalLookupDTO {
 
 // ---- §5 pagos (P3)
 export interface C2PResultDTO { status: "APPROVED"; reference: string; paidAt: string; simulated: true }
+/** Pago rechazado por el simulador: 200 con `ok: true` (el pedido fue válido; el "banco" dijo que no). */
+export interface C2PRejectedDTO { status: "REJECTED"; failureCode: string; simulated: true }
+export type C2PPaymentDTO = C2PResultDTO | C2PRejectedDTO;
 
 // ---- §6 oficiales y alertas (P3)
 export interface OfficerAlertDTO {
