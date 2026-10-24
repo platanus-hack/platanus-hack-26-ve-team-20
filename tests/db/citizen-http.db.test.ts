@@ -77,6 +77,7 @@ beforeAll(async () => {
   if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) throw new Error('Falta el seed: corre `pnpm db:seed` antes de `pnpm test:db`')
   vi.stubEnv('SESSION_SECRET', `test-secret-${RUN}-`.padEnd(48, 'h'))
   vi.stubEnv('NOTIFY_DRY_RUN', 'true') // ningún mensaje real en las pruebas
+  vi.stubEnv('CITIZEN_WHATSAPP_CODE', 'true') // estas pruebas cubren el flujo con código; el registro sin código va aparte
 })
 
 afterAll(async () => {
@@ -258,6 +259,21 @@ describe('entradas, errores y fugas', () => {
     expect(r.code).toBe(502)
     expect(r.body.error).toMatchObject({ code: 'UPSTREAM_ERROR', reason: 'ENVIO_FALLIDO' })
     expect(await db.citizenRegistration.count({ where: { personId: p.id } })).toBe(0)
+  })
+
+  it('sin CITIZEN_WHATSAPP_CODE el registro crea la cuenta y abre la sesión en un solo paso, sin enviar nada', async () => {
+    const p = await newPerson()
+    vi.stubEnv('CITIZEN_WHATSAPP_CODE', '')
+    try {
+      const r = await http('citizen-register', { body: { cedula: p.cedula, password: PASSWORD }, ip: 14 })
+      expect(r.code).toBe(200)
+      expect(r.body.data).toMatchObject({ user: { cedula: p.cedula }, vehicles: [] })
+      expect(cookieOf(r)).toBeTruthy()
+      expect(await db.citizenAccount.count({ where: { personId: p.id } })).toBe(1)
+      expect(await db.citizenRegistration.count({ where: { personId: p.id } })).toBe(0)
+    } finally {
+      vi.stubEnv('CITIZEN_WHATSAPP_CODE', 'true')
+    }
   })
 
   it('ninguna respuesta filtra hashes de contraseña, HMAC de códigos ni secretos', async () => {

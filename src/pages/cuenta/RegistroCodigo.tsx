@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router'
+import { Navigate, useLocation, useNavigate } from 'react-router'
 import { DemoError, USA_API_REAL, getRegistroPendiente, reenviarCodigo, verificarCodigo, type Vehiculo } from '@/lib/demo/api.ts'
 import { formatCedula, maskTelefono } from '@/lib/format.ts'
 import { Boton } from '@/components/ui/index.tsx'
@@ -11,6 +11,7 @@ const ESPERA_S = 45
 
 export default function RegistroCodigo() {
   const navigate = useNavigate()
+  const { state } = useLocation()
   const [registro] = useState(getRegistroPendiente)
   const [cod, setCod] = useState('')
   const [error, setError] = useState<'invalido' | 'vencido' | null>(null)
@@ -18,7 +19,8 @@ export default function RegistroCodigo() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [espera, setEspera] = useState(ESPERA_S)
   const [enviando, setEnviando] = useState(false)
-  const [creada, setCreada] = useState<Vehiculo[] | null>(null)
+  // Viene creada desde el paso 1 cuando el servidor no exige código.
+  const [creada, setCreada] = useState<Vehiculo[] | null>(() => (state as { creada?: Vehiculo[] } | null)?.creada ?? null)
 
   useEffect(() => {
     if (espera <= 0) return
@@ -26,7 +28,7 @@ export default function RegistroCodigo() {
     return () => clearTimeout(t)
   }, [espera])
 
-  if (!registro) return <Navigate to="/registro" replace />
+  if (!registro && !creada) return <Navigate to="/registro" replace />
 
   if (creada) {
     return (
@@ -52,6 +54,8 @@ export default function RegistroCodigo() {
       </div>
     )
   }
+
+  if (!registro) return <Navigate to="/registro" replace />
 
   const verificar = async (e: FormEvent) => {
     e.preventDefault()
