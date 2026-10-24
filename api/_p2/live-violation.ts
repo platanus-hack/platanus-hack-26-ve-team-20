@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { VisionResult } from "../../lib/contracts/index.ts";
 import { db } from "../../lib/db.ts";
 import { registerDetection } from "../../lib/domain/index.ts";
+import { assignDemoOwner } from "../../lib/vision/demo-owners.ts";
 import { saveImage } from "../../lib/storage/blob.ts";
 import { judgePlate } from "../../lib/vision/rules.ts";
 import { ApiError, handler, sendOk } from "../_lib/respond.ts";
@@ -77,6 +78,8 @@ export default handler(["POST"], async (req, res) => {
     ruleOutput: check,
     idempotencyKey: body.idempotencyKey,
   };
+  // Demo: una placa confiable que no existe se registra a nombre de un dueño de demo (DEMO_DUENOS_CEDULAS).
+  if (result.verdict === "VIOLATION" && result.plate) await assignDemoOwner(db, result.plate);
   const registered = await registerDetection(result);
   sendOk(res, { ...registered, verdict: result.verdict, plate: result.plate });
 });

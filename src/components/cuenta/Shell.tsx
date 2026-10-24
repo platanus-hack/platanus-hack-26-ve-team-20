@@ -64,7 +64,7 @@ function Shell() {
                   aria-current={on ? 'page' : undefined}
                   aria-label={id === 'multas' && pendientes > 0 ? `${label}, ${pendientes} por pagar` : label}
                   title={label}
-                  className={cx('relative flex size-11 items-center justify-center rounded-full transition-colors duration-150', on ? 'bg-brand text-[#0e1726]' : 'bg-suave text-tinta hover:bg-borde')}
+                  className={cx('press relative flex size-11 items-center justify-center rounded-full transition-colors duration-150', on ? 'bg-brand text-[#0e1726]' : 'bg-suave text-tinta hover:bg-borde')}
                 >
                   <Icono size={18} strokeWidth={on ? 2.2 : 1.9} aria-hidden="true" />
                   {id === 'multas' && pendientes > 0 && (
@@ -87,16 +87,16 @@ function Shell() {
             </Link>
           </header>
 
-          <header className="hidden flex-none items-center gap-5 pb-2 lg:flex">
+          <header className="hidden min-h-11 flex-none items-center gap-5 pb-2 lg:flex">
             <div className="ml-auto flex items-center gap-5">
               <InterruptorTema />
               <Link to="/multas" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
                 <Bell size={20} strokeWidth={2} aria-hidden="true" />
                 {pendientes > 0 && <span aria-hidden="true" className="absolute top-2 right-2.5 size-2 rounded-full bg-rojo" />}
               </Link>
-              <Link to="/perfil" className="flex items-center gap-3 text-tinta">
+              <Link to="/perfil" className="group press flex min-h-11 items-center gap-2.5 text-tinta">
                 <span className="font-mono text-[15px] font-medium">{sesion && formatCedula(sesion.cedula)}</span>
-                <span aria-hidden="true" className="flex size-[51px] items-center justify-center rounded-full bg-brand font-mono text-lg font-bold text-[#0e1726]">{sesion?.cedula.charAt(0)}</span>
+                <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-brand font-mono text-sm font-bold text-[#0e1726] transition-transform duration-150 ease-press group-hover:scale-105">{sesion?.cedula.charAt(0)}</span>
               </Link>
             </div>
           </header>
