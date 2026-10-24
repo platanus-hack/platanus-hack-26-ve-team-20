@@ -7,6 +7,9 @@ import { transition } from "../domain/state-machine.ts";
 import { Prisma, type PrismaClient } from "../generated/prisma/client.ts";
 import type { PaymentStore } from "./pay-fine.ts";
 
+// Igual que P1 (lib/domain/payments.ts): margen para el pooler de Supabase y funciones en frío.
+const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 } as const;
+
 export function createPrismaPaymentStore(db: PrismaClient): PaymentStore {
   return {
     async findPaymentByKey(idempotencyKey) {
@@ -37,7 +40,7 @@ export function createPrismaPaymentStore(db: PrismaClient): PaymentStore {
       await db.$transaction(async (tx) => {
         await tx.payment.update({ where: { id: paymentId }, data: { status: "REJECTED", failureCode } });
         await audit(tx, { actor, action: "PAYMENT_REJECTED", entity: "Payment", entityId: paymentId, after: { failureCode } });
-      });
+      }, TX_OPTIONS);
     },
 
     async markApproved(paymentId, fine, reference, actor) {
@@ -62,7 +65,7 @@ export function createPrismaPaymentStore(db: PrismaClient): PaymentStore {
         });
         const paid = await tx.fine.findUniqueOrThrow({ where: { id: fine.id }, select: { paidAt: true } });
         return { paidAt: paid.paidAt ?? new Date() };
-      });
+      }, TX_OPTIONS);
     },
   };
 }

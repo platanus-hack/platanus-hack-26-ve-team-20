@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import c2p from '../../api/payments/c2p.ts'
+import c2p from '../../api/_p3/payments-c2p.ts'
+import p3 from '../../api/p3.ts'
 import { db } from '../../lib/db.ts'
 import { call, clearTestAttempts } from './_http.ts'
 
@@ -91,5 +92,13 @@ describe('POST /api/payments/c2p', () => {
     for (let i = 0; i < 11; i++) codes.push((await call(c2p, { method: 'POST', body: {}, ip: '198.51.100.250' })).statusCode)
     expect(codes.slice(0, 10).every((c) => c === 400)).toBe(true)
     expect(codes[10]).toBe(429)
+  })
+
+  it('el router api/p3.ts atiende la ruta reescrita y responde 404 a una desconocida', async () => {
+    const f = await pendingFine()
+    const viaRouter = await call(p3, { method: 'POST', query: { route: 'payments-c2p' }, body: body(f.token, `${RUN}-router`), ip: '198.51.100.4' })
+    expect(viaRouter.body).toMatchObject({ ok: true, data: { status: 'APPROVED' } })
+    const unknown = await call(p3, { method: 'POST', query: { route: 'no-existe' }, ip: '198.51.100.4' })
+    expect(unknown.statusCode).toBe(404)
   })
 })

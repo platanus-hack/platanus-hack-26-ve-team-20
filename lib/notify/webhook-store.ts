@@ -5,6 +5,9 @@ import { audit } from "../domain/audit.ts";
 import type { PrismaClient } from "../generated/prisma/client.ts";
 import { nextNotificationStatus, type NotificationStatusStore } from "./webhook.ts";
 
+// Igual que P1 (lib/domain/payments.ts): margen para el pooler de Supabase y funciones en frío.
+const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 } as const;
+
 const WEBHOOK_ACTOR = { type: "WEBHOOK" as const, id: "meta-whatsapp" };
 
 export function createPrismaStatusStore(db: PrismaClient): NotificationStatusStore {
@@ -33,7 +36,7 @@ export function createPrismaStatusStore(db: PrismaClient): NotificationStatusSto
           after: { status: next, at: event.at.toISOString(), ...(event.error && { error: event.error }) },
         });
         return "UPDATED";
-      });
+      }, TX_OPTIONS);
     },
   };
 }
