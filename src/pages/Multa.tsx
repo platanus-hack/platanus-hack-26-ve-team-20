@@ -21,7 +21,7 @@ export default function Multa() {
       <PageShell>
         <Notice title="No encontramos esta multa">
           Revise que el enlace esté completo, tal como llegó por WhatsApp. Si el problema sigue, consulte su historial en{' '}
-          <Link to="/consulta" className="font-semibold text-[#1F5FAD] underline">
+          <Link to="/consulta" className="font-semibold text-azul underline">
             Consultar por cédula
           </Link>
           .
@@ -50,7 +50,7 @@ export default function Multa() {
         <StatusBadge {...status} />
       </div>
       <p className="mt-2 text-[18px] font-semibold">{VIOLATION_LABELS[fine.type]}</p>
-      <p className="text-[#2B3A55]">
+      <p className="text-texto-2">
         {formatDateTime(fine.occurredAt)} (hora de Caracas) · {fine.intersection}
       </p>
 
@@ -71,15 +71,15 @@ export default function Multa() {
           </Row>
           {!paid && (
             <Row label="Vence">
-              <span className={fine.overdue ? 'text-[#A61B1B]' : ''}>{formatDate(fine.dueAt)}</span>
+              <span className={fine.overdue ? 'text-rojo-osc' : ''}>{formatDate(fine.dueAt)}</span>
             </Row>
           )}
         </dl>
       </Card>
 
       {paid ? (
-        <Card className="mt-4 border-[#2D7D46]">
-          <h2 className="text-[18px] font-bold text-[#22603A]">Multa pagada</h2>
+        <Card className="mt-4 border-verde">
+          <h2 className="text-[18px] font-bold text-verde-osc">Multa pagada</h2>
           <dl className="mt-2">
             {fine.paymentReference && (
               <Row label="Referencia">
@@ -94,15 +94,15 @@ export default function Multa() {
         isPayable(fine.status) && (
           <Link
             to={`/multa/${encodeURIComponent(fine.token)}/pagar`}
-            className="mt-6 flex min-h-12 items-center justify-center rounded-[6px] bg-[#D62828] px-4 py-3 text-[18px] font-bold text-white hover:bg-[#B71F1F] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#14213D]"
+            className="mt-6 flex min-h-12 items-center justify-center rounded-[6px] bg-rojo px-4 py-3 text-[18px] font-bold text-contraste hover:bg-rojo-osc focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-tinta"
           >
             Pagar con Pago Móvil C2P
           </Link>
         )
       )}
 
-      <section className="mt-8 text-[13px] text-[#2B3A55]">
-        <p className="font-semibold text-[#14213D]">
+      <section className="mt-8 text-[13px] text-texto-2">
+        <p className="font-semibold text-tinta">
           {fine.verification === 'AUTO' ? 'Verificado automáticamente' : 'Verificado por un operador'}
         </p>
         <p className="mt-1">

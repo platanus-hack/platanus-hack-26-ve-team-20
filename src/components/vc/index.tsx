@@ -1,5 +1,5 @@
 import type { FineStatus, LightState } from '@contracts'
-import { ShieldCheck } from 'lucide-react'
+import { Isotipo } from './Isotipo.tsx'
 import type { ReactNode } from 'react'
 import { formatBs } from '@/lib/format.ts'
 import { ESTADO, LUZ } from '@/lib/etiquetas.ts'
@@ -16,13 +16,11 @@ export function DemoBanner() {
   )
 }
 
-/** Marca: escudo con check, lima sobre tinta (o tinta sobre lima). */
+/** Marca: el carro con sus luces y el nombre. `claro` = sobre superficie tinta. */
 export function Logo({ claro = false }: { claro?: boolean }) {
   return (
     <span className="flex items-center gap-2.5 font-semibold">
-      <span className={cx('flex size-8 items-center justify-center rounded-[10px]', claro ? 'bg-brand text-tinta' : 'tinta bg-tinta text-brand')}>
-        <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" />
-      </span>
+      <Isotipo size={40} className={claro ? 'text-card' : 'text-tinta'} />
       SmartTraffic
     </span>
   )
@@ -56,7 +54,7 @@ export function Monto({ cents, anulada, className }: { cents: number; anulada?: 
 export function Placa({ value, size = 'md' }: { value: string; size?: 'sm' | 'md' | 'lg' }) {
   const t = { sm: 'text-[22px] leading-[26px] px-3', md: 'text-[26px] leading-[30px] px-3.5', lg: 'text-[30px] leading-[34px] px-4' }[size]
   return (
-    <span aria-label={`Placa ${value}`} className={cx('inline-flex flex-none flex-col items-center rounded-placa border-2 border-tinta bg-card pt-1 pb-1.5', t)}>
+    <span aria-label={`Placa ${value}`} className={cx('placa inline-flex flex-none flex-col items-center rounded-placa border-2 border-tinta bg-card pt-1 pb-1.5', t)}>
       <span aria-hidden="true" className="text-[9px] leading-[10px] font-semibold tracking-[.24em]">VENEZUELA</span>
       <span aria-hidden="true" className="font-mono font-bold tracking-[.08em]">{value}</span>
     </span>

@@ -1,5 +1,7 @@
+import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router'
+import { useTema, type Tema } from '@/hooks/useTema.ts'
 import { boton, cx, type Variante } from './estilos.ts'
 
 export function Boton({ variante, className, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variante?: Variante }) {
@@ -113,9 +115,57 @@ export function Interruptor({ activo, onCambio, etiqueta }: { activo: boolean; o
       aria-checked={activo}
       aria-label={etiqueta}
       onClick={() => onCambio(!activo)}
-      className={cx('flex h-8 w-[52px] rounded-full p-1 transition-colors duration-[220ms]', activo ? 'justify-end bg-tinta' : 'justify-start bg-input')}
+      className={cx('flex h-8 w-[52px] rounded-full p-1 transition-colors duration-[220ms]', activo ? 'tinta justify-end bg-tinta-2' : 'justify-start bg-input')}
     >
       <span className={cx('size-6 rounded-full', activo ? 'bg-brand' : 'bg-card')} />
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------- tema (claro / oscuro / sistema)
+const TEMAS: Array<{ id: Tema; nombre: string; Icono: LucideIcon }> = [
+  { id: 'claro', nombre: 'Claro', Icono: Sun },
+  { id: 'oscuro', nombre: 'Oscuro', Icono: Moon },
+  { id: 'sistema', nombre: 'Sistema', Icono: Monitor },
+]
+
+/** Tres estados en pista suave; el activo lleva pastilla tinta. */
+export function SelectorTema({ className }: { className?: string }) {
+  const [tema, cambiar] = useTema()
+  return (
+    <div role="radiogroup" aria-label="Tema" className={cx('grid grid-cols-3 rounded-control bg-suave p-1', className)}>
+      {TEMAS.map(({ id, nombre, Icono }) => (
+        <button
+          key={id}
+          type="button"
+          role="radio"
+          aria-checked={tema === id}
+          onClick={() => cambiar(id)}
+          className={cx('flex h-10 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold', tema === id ? 'bg-tinta text-card' : 'text-texto-2')}
+        >
+          <Icono size={16} strokeWidth={1.75} aria-hidden="true" />
+          {nombre}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Ícono discreto que rota claro → oscuro → sistema. */
+export function BotonTema({ className }: { className?: string }) {
+  const [tema, cambiar] = useTema()
+  const i = TEMAS.findIndex((t) => t.id === tema)
+  const { nombre, Icono } = TEMAS[i]!
+  const siguiente = TEMAS[(i + 1) % TEMAS.length]!
+  return (
+    <button
+      type="button"
+      onClick={() => cambiar(siguiente.id)}
+      aria-label={`Tema: ${nombre}. Cambiar a ${siguiente.nombre.toLowerCase()}`}
+      title={`Tema: ${nombre}`}
+      className={cx('flex size-11 items-center justify-center rounded-control text-texto-2 hover:text-tinta', className)}
+    >
+      <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
     </button>
   )
 }

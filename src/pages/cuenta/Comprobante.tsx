@@ -40,7 +40,7 @@ export default function Comprobante() {
     <Pagina>
       <div className="mx-auto flex w-full max-w-[520px] flex-col gap-5">
         <div className="flex flex-col items-center gap-3 pt-2 text-center">
-          <span className="flex size-20 items-center justify-center rounded-full bg-verde text-card">
+          <span className="flex size-20 items-center justify-center rounded-full bg-verde text-contraste">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path className={st?.recien ? 'check' : undefined} d="M20 6 9 17l-5-5" />
             </svg>

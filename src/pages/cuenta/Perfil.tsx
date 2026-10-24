@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router'
 import { cambiarClave, cerrarSesion, getPerfil } from '@/lib/demo/api.ts'
 import { formatCedula, formatTelefono } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
-import { Boton, Campo, Interruptor } from '@/components/ui/index.tsx'
+import { Boton, Campo, Interruptor, SelectorTema } from '@/components/ui/index.tsx'
 import { cx, input, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Titulo } from '@/components/cuenta/piezas.tsx'
 
@@ -42,6 +42,7 @@ export default function Perfil() {
           <div className={cx(fila, 'border-t border-borde')}><span className="text-texto-2">Teléfono para avisos</span><span className="font-mono font-bold">{formatTelefono(data.telefono)}</span></div>
           <div className={cx(fila, 'border-t border-borde')}><span className="text-texto-2">Correo</span><span className="text-texto-2">{data.correo ?? 'Sin correo'}</span></div>
           <div className={cx(fila, 'border-t border-borde')}><span>Avisos por WhatsApp</span><Interruptor activo={avisos} onCambio={setAvisos} etiqueta="Avisos por WhatsApp" /></div>
+          <div className="flex flex-col gap-2.5 border-t border-borde px-4 py-3.5"><span>Apariencia</span><SelectorTema className="max-w-[360px]" /></div>
           <button type="button" onClick={() => setAbrirClave(!abrirClave)} aria-expanded={abrirClave} aria-controls="p-clave-form" className={cx(fila, 'border-t border-borde text-left font-semibold')}>
             <span className="flex-1">Cambiar contraseña</span>
             <ChevronDown size={18} strokeWidth={2} aria-hidden="true" className={cx('transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none', abrirClave && 'rotate-180')} />

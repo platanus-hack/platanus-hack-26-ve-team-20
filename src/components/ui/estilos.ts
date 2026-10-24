@@ -3,7 +3,7 @@ export const cx = (...c: Array<string | false | null | undefined>) => c.filter(B
 // Botones: 48 px, radio 12, presionar .98 · 120 ms.
 export type Variante = 'pay' | 'primary' | 'outline'
 const VARIANTE: Record<Variante, string> = {
-  pay: 'bg-rojo text-card hover:bg-rojo-osc',
+  pay: 'bg-rojo text-contraste hover:bg-rojo-osc',
   primary: 'bg-tinta text-card',
   outline: 'border border-input bg-card text-tinta',
 }
