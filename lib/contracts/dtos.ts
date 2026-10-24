@@ -28,6 +28,66 @@ export interface SightingResultDTO {
 // ---- Autenticación (P1)
 export interface AdminSessionDTO { id: string; email: string; name: string }
 
+// ---- invitaciones y cuentas de oficiales (docs/04 §0d)
+export type OfficerInvitationStatus = "PENDING" | "USED" | "EXPIRED" | "REVOKED";
+export interface OfficerInvitationDTO {
+  id: string;
+  email: string;
+  name: string;
+  status: OfficerInvitationStatus;
+  expiresAt: string;
+  createdAt: string;
+  createdByName: string;
+  /** Placa del oficial creado, cuando la invitación ya se usó. */
+  officerBadge: string | null;
+}
+/** Oficial con cuenta propia, como lo ve el admin (teléfono enmascarado). */
+export interface AdminOfficerDTO {
+  id: string;
+  badge: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  active: boolean;
+  onDuty: boolean;
+  hasAccount: boolean;
+  createdAt: string;
+}
+export interface OfficerSessionDTO { id: string; badge: string; name: string; email: string | null }
+
+// ---- Cuenta del ciudadano (P1, docs/04 §0c)
+export interface CitizenProfileDTO {
+  cedula: string;
+  /** Teléfono del titular en formato local (`04264180319`); solo se muestra a su dueño ya autenticado. */
+  telefono: string;
+  correo: string | null;
+}
+
+/** Multa propia de un ciudadano autenticado. Lleva la placa completa y el token (para pagar). */
+export interface CitizenFineDTO {
+  id: string;
+  /** `publicToken` de la multa: lo usa `POST /api/payments/c2p`. */
+  token: string;
+  plate: string;
+  type: ViolationType;
+  /** `OVERDUE` se calcula (pendiente con fecha vencida). */
+  status: FineStatus;
+  occurredAt: string;
+  intersection: string;
+  cameraCode: string;
+  amountCents: number;
+  currency: string;
+  dueAt: string;
+  verification: "AUTO" | "HUMAN";
+  confidence: number;
+  paidAt: string | null;
+  paymentReference: string | null;
+  voidReason: string | null;
+  appealedAt: string | null;
+}
+
+export interface CitizenVehicleDTO { plate: string; brand: string; model: string; color: string; year: number | null }
+
 // ---- §2 violaciones y revisión (P1)
 export interface ViolationListItemDTO {
   id: string;

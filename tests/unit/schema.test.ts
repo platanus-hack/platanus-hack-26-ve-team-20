@@ -23,6 +23,7 @@ describe('enums de Prisma vs lib/contracts', () => {
     ['AlertStatus', contracts.ALERT_STATUSES],
     ['EvidenceKind', contracts.EVIDENCE_KINDS],
     ['ActorType', contracts.ACTOR_TYPES],
+    ['CrashAlertStatus', contracts.CRASH_ALERT_STATUSES],
   ]
   it.each(pairs)('%s coincide', (name, values) => {
     expect(prismaEnum(name)).toEqual([...values])
@@ -43,8 +44,8 @@ describe('migraciones', () => {
     expect(created.filter((t) => !secured.includes(t))).toEqual([])
   })
 
-  it('el schema declara todos los modelos de docs/03 (16, con AdminUser)', () => {
-    expect([...schema.matchAll(/^model (\w+) \{/gm)]).toHaveLength(16)
+  it('el schema declara todos los modelos de docs/03 (19, con AdminUser, cuentas de ciudadano e invitaciones de oficiales) + 3 de la red de choques', () => {
+    expect([...schema.matchAll(/^model (\w+) \{/gm)]).toHaveLength(22)
   })
 })
 

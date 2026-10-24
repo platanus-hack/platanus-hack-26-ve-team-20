@@ -8,7 +8,10 @@ Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 | `Intersection` | Cruce físico (nombre, lat/lng) |
 | `Camera` | Cámara (teléfono con app Expo) en una intersección, con calibración (homografía, línea de pare, carriles, zona de velocidad) |
 | `LightChange` | Cambio de estado del semáforo simulado de una cámara (con hora del servidor) |
+| `OfficerInvitation` | Invitación por correo a un oficial (hash del token, vence a las 72 h, un uso); al aceptarla nace el `Officer` (que gana `email`, `passwordHash`, `active`) |
 | `AdminUser` | Cuenta de admin/operador (login de `/admin` y `/camaras`); contraseña con hash scrypt |
+| `CitizenAccount` | Cuenta del ciudadano (cédula + contraseña con hash scrypt), una por titular |
+| `CitizenRegistration` | Registro pendiente de verificar: contraseña elegida y HMAC del código enviado por WhatsApp |
 | `Person` | Propietario (cédula, nombre, teléfono, email) — **datos falsos** |
 | `Vehicle` | Placa, marca, modelo, color, dueño |
 | `Violation` | Evento de infracción detectado (con estado y salida de IA) |
@@ -86,6 +89,8 @@ model Person {
   email     String?
   vehicles  Vehicle[]
   createdAt DateTime @default(now())
+  citizenAccount      CitizenAccount?
+  citizenRegistration CitizenRegistration?
 }
 
 model Vehicle {
@@ -265,6 +270,32 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 }
+
+// Cuenta del ciudadano (cédula + contraseña). Una por titular (Person). Se crea al verificar el código de
+// WhatsApp enviado al teléfono que el sistema ya tiene para esa cédula (docs/04 §0c).
+model CitizenAccount {
+  id           String    @id @default(cuid())
+  personId     String    @unique
+  person       Person    @relation(fields: [personId], references: [id])
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+// Registro pendiente: la contraseña elegida y el HMAC del código hasta que el ciudadano lo confirma.
+model CitizenRegistration {
+  id           String   @id @default(cuid())
+  personId     String   @unique
+  person       Person   @relation(fields: [personId], references: [id])
+  passwordHash String
+  email        String?
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  lastSentAt   DateTime
+  createdAt    DateTime @default(now())
+}
 ```
 
 ## 3. Máquinas de estado
@@ -330,5 +361,7 @@ Todo con prefijo/indicador de ejemplo. Cédulas en rango claramente ficticio, te
 - `V-99000001` "Persona Ejemplo 1" — dueño de **la placa que aparece en los frames demo** (sin multas previas), teléfono = `DEMO_PHONE_DRIVER` (env, inyectado por el seed si existe).
 - `V-99000002` — dueño de placa con **2 multas impagas** → usar para el flujo de alerta a oficial.
 - El texto de las placas en los frames demo debe coincidir con el seed (los frames se generan/editan con placas ficticias).
+
+**Ciudadano de la demo (`DEMO_CEDULA`)**: la cédula REAL de quien presenta entra solo por entorno (igual que `DEMO_PHONE_*`), nunca en el repo ni en la documentación. `pnpm db:seed` y `pnpm demo:reset` le crean un titular ficticio ("Persona Demo", ids `seed_demo_*`) con 2 vehículos de placas inventadas (`DM001AA`, `DM002BB`) y 5 multas falsas: 3 impagas (una vencida), 1 pagada y 1 anulada. Sirve para probar con esa cédula el portal, el link `/multa/<token>`, el pago simulado y el WhatsApp (el teléfono sale de `DEMO_PHONE_DRIVER`). Los tokens se generan una vez al azar y se conservan en las siguientes siembras; el comando imprime los enlaces. Si esa cédula ya pertenece a otra persona de la base, no se modifica. Un test (`seed-demo-citizen.test.ts`) vigila que ninguna cédula real aparezca en archivos versionados.
 
 Seed idempotente (`upsert`), ejecutable en la base de Supabase de producción para la demo: `pnpm prisma db seed`. Script extra `pnpm demo:reset`: borra lo generado por la demo que NO es del seed (ids sin prefijo `seed_`) y fue creado hoy (hora de Caracas), y re-aplica el seed (restaura multas y violaciones sembradas y renueva la posición de los oficiales). `--dry-run` solo cuenta; `--all` ignora la fecha. Hay una sola base compartida, por eso nunca borra filas sembradas ni anteriores a hoy sin `--all`.

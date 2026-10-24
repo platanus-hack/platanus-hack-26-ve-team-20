@@ -1,16 +1,21 @@
 // Tokens de "Asfalto y Señal" (Dirección C). El lima vive solo sobre tinta.
 import type { TextStyle } from 'react-native';
 
-export const color = {
+export const temaClaro = {
   fondo: '#F3F5F8',
   tarjeta: '#FCFDFE',
   suave: '#EEF1F5',
+  // Superficies de tinta (cabeceras, botón principal, pastillas). También es la tinta sobre lima y ámbar.
   tinta: '#0E1726',
   tinta2: '#151C28',
   tinta3: '#2A3446',
+  tintaBorde: '#0E1726',
+  tintaTexto: '#FCFDFE',
+  texto: '#0E1726',
   texto2: '#4B5565',
-  texto3: '#667085',
+  texto3: '#636D82',
   sobreTinta: '#A9B4C4',
+  sobreAcento: '#FCFDFE',
   lima: '#C6F24E',
   borde: '#DDE2E9',
   bordeInput: '#7D8797',
@@ -28,7 +33,61 @@ export const color = {
   azulTexto: '#1A4FB0',
   azulFondo: '#E8F0FD',
   grisFondo: '#ECEFF3',
-} as const;
+  velo: 'rgba(14,23,38,.4)',
+  // Acción principal: tinta en claro, lima en oscuro. El rojo queda para estados.
+  primario: '#0E1726',
+  sobrePrimario: '#FCFDFE',
+  boliOn: '#C6F24E',
+};
+
+export type Colores = typeof temaClaro;
+
+// Grafito neutro: grises sin tinte, superficies separadas por tono, lima solo como acento.
+export const temaOscuro: Colores = {
+  fondo: '#0B0C0E',
+  tarjeta: '#16181C',
+  suave: '#1F2228',
+  tinta: '#16181C',
+  tinta2: '#1F2228',
+  tinta3: '#2A2E35',
+  tintaBorde: '#26292F',
+  tintaTexto: '#F4F5F7',
+  texto: '#F4F5F7',
+  texto2: '#A1A7B3',
+  texto3: '#8B919C',
+  sobreTinta: '#A1A7B3',
+  sobreAcento: '#0B0C0E',
+  lima: '#C6F24E',
+  borde: '#26292F',
+  bordeInput: '#717783',
+  rojo: '#F2706B',
+  rojoHover: '#F58C88',
+  rojoTexto: '#FF9A94',
+  rojoFondo: '#2A1716',
+  verde: '#4CC38A',
+  verdeTexto: '#6FD9A3',
+  verdeFondo: '#10241A',
+  ambar: '#F5B544',
+  ambarTexto: '#F8CB75',
+  ambarFondo: '#2A2212',
+  azul: '#7FAEFF',
+  azulTexto: '#A3C4FF',
+  azulFondo: '#15203A',
+  grisFondo: '#1F2228',
+  velo: 'rgba(0,0,0,.6)',
+  primario: '#C6F24E',
+  sobrePrimario: '#0E1726',
+  boliOn: '#0E1726',
+};
+
+// Compatibilidad: los tokens claros. Las pantallas usan `useTema()` para cambiar en caliente.
+export const color = temaClaro;
+
+export type ModoTema = 'claro' | 'oscuro' | 'sistema';
+export type Esquema = 'claro' | 'oscuro';
+
+export const esquemaDe = (modo: ModoTema, sistema: 'light' | 'dark' | null | undefined): Esquema =>
+  modo === 'sistema' ? (sistema === 'dark' ? 'oscuro' : 'claro') : modo;
 
 // Modo cámara (oscuro)
 export const cam = {
@@ -56,6 +115,27 @@ export const sombra = {
   flotante: '0 8px 24px -6px rgba(14,23,38,.14), 0 0 0 1px rgba(14,23,38,.06)',
   modal: '0 24px 48px -12px rgba(14,23,38,.22)',
 } as const;
+
+export type Sombras = Record<keyof typeof sombra, string>;
+
+// En oscuro la sombra no se ve: un filo blanco al 5 % separa la superficie.
+export const sombraOscura: Sombras = {
+  tarjeta: '0 0 0 1px rgba(255,255,255,.05)',
+  sheet: '0 -1px 0 rgba(255,255,255,.06), 0 8px 24px -6px rgba(0,0,0,.6)',
+  flotante: '0 0 0 1px rgba(255,255,255,.06), 0 12px 28px -8px rgba(0,0,0,.7)',
+  modal: '0 0 0 1px rgba(255,255,255,.06), 0 24px 48px -12px rgba(0,0,0,.75)',
+};
+
+export const estiloInput = (c: Colores): TextStyle => ({
+  height: 48,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderColor: c.bordeInput,
+  borderRadius: radio.control,
+  backgroundColor: c.tarjeta,
+  fontSize: 16,
+  color: c.texto,
+});
 
 // Una familia por peso: en RN el peso de una fuente cargada va en el nombre.
 export const fuente = {

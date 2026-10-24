@@ -53,7 +53,7 @@ export default function EnVivo() {
                     <PastillaTinta className="left-2.5" punto="size-1.5 bg-brand">EN VIVO · <span className="font-mono">{formatHoraSeg(c.capturedAt)}</span></PastillaTinta>
                   </>
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[#F2F5F9]">
+                  <div className="tinta absolute inset-0 flex flex-col items-center justify-center gap-2 text-card">
                     <WifiOff size={28} strokeWidth={1.75} aria-hidden="true" />
                     <span className="font-semibold">Sin señal</span>
                     <span className="text-caption text-niebla">Último fotograma a las <span className="font-mono">{formatHora(c.capturedAt)}</span></span>

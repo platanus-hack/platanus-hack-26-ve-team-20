@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
-import { DemoError, getRegistroPendiente, reenviarCodigo, verificarCodigo, type Vehiculo } from '@/lib/demo/api.ts'
+import { DemoError, USA_API_REAL, getRegistroPendiente, reenviarCodigo, verificarCodigo, type Vehiculo } from '@/lib/demo/api.ts'
 import { formatCedula, maskTelefono } from '@/lib/format.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
@@ -14,6 +14,8 @@ export default function RegistroCodigo() {
   const [registro] = useState(getRegistroPendiente)
   const [cod, setCod] = useState('')
   const [error, setError] = useState<'invalido' | 'vencido' | null>(null)
+  /** Fallos que no son del código en sí: demasiados intentos, sin registro pendiente, no se pudo reenviar, sin conexión. */
+  const [aviso, setAviso] = useState<string | null>(null)
   const [espera, setEspera] = useState(ESPERA_S)
   const [enviando, setEnviando] = useState(false)
   const [creada, setCreada] = useState<Vehiculo[] | null>(null)
@@ -55,16 +57,25 @@ export default function RegistroCodigo() {
     e.preventDefault()
     if (enviando) return
     setEnviando(true)
+    setAviso(null)
     try {
       setCreada((await verificarCodigo(cod)).vehiculos)
     } catch (err) {
-      setError(err instanceof DemoError && err.code === 'CODIGO_VENCIDO' ? 'vencido' : 'invalido')
+      const code = err instanceof DemoError ? err.code : null
+      setError(code === 'CODIGO_VENCIDO' ? 'vencido' : code === 'CODIGO_INVALIDO' || code === 'VALIDACION' ? 'invalido' : null)
+      setAviso(code === 'CODIGO_VENCIDO' || code === 'CODIGO_INVALIDO' || code === 'VALIDACION' ? null : err instanceof Error ? err.message : 'No pudimos verificar el código.')
       setEnviando(false)
     }
   }
 
   const reenviar = async () => {
-    try { await reenviarCodigo() } catch { return }
+    setAviso(null)
+    try {
+      await reenviarCodigo()
+    } catch (err) {
+      setAviso(err instanceof Error && err.message ? err.message : 'No pudimos reenviar el código.')
+      return
+    }
     setEspera(ESPERA_S)
     setError(null)
     setCod('')
@@ -101,6 +112,7 @@ export default function RegistroCodigo() {
             {error === 'vencido' ? 'El código venció. Pida uno nuevo con «Reenviar código».' : 'Código inválido. Revise el mensaje e intente de nuevo.'}
           </span>
         )}
+        {aviso && <span role="alert" className="text-caption text-rojo-osc">{aviso}</span>}
       </div>
       <Boton type="submit" disabled={enviando || cod.length !== 6} aria-busy={enviando}>{enviando ? 'Verificando…' : 'Verificar'}</Boton>
       <div className="flex items-center justify-center gap-1.5 text-sm text-texto-2">
@@ -109,7 +121,7 @@ export default function RegistroCodigo() {
           {espera > 0 ? `Reenviar en 0:${String(espera).padStart(2, '0')}` : 'Reenviar código'}
         </button>
       </div>
-      <span className="text-center text-caption text-texto-3">Prototipo: 123456 es válido; 000000 simula un código vencido y cualquier otro, uno inválido.</span>
+      {!USA_API_REAL && <span className="text-center text-caption text-texto-3">Prototipo: 123456 es válido; 000000 simula un código vencido y cualquier otro, uno inválido.</span>}
     </form>
   )
 }

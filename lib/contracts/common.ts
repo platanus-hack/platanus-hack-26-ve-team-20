@@ -49,7 +49,7 @@ export const ERROR_CODES = [
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 export interface ApiOk<T> { ok: true; data: T }
-export interface ApiErr { ok: false; error: { code: ErrorCode; message: string } }
+export interface ApiErr { ok: false; error: { code: ErrorCode; message: string; reason?: string } }
 export type ApiResponse<T> = ApiOk<T> | ApiErr;
 
 /** Código HTTP que corresponde a cada código de error (docs/04 convenciones). */

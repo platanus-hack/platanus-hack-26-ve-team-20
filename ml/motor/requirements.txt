@@ -1,0 +1,5 @@
+# Paquetes del motor (mismo contenido que exporta el notebook; headless porque corre en servidor).
+ultralytics
+easyocr
+lap
+opencv-python-headless

@@ -1,13 +1,13 @@
-import { Check, WifiOff } from 'lucide-react'
+import { Check, ChevronRight, WifiOff } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { Multa } from '@/lib/demo/api.ts'
-import { esPagable } from '@/lib/demo/api.ts'
-import { TIPO, ESTADO } from '@/lib/etiquetas.ts'
-import { formatBs, formatFecha, formatHora } from '@/lib/format.ts'
+import { TIPO, estadoTexto } from '@/lib/etiquetas.ts'
+import { formatBs, formatFecha } from '@/lib/format.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
-import { EstadoBadge, EstadoTile, Monto, PlacaChip } from '@/components/vc/index.tsx'
+import { EstadoTile, Monto } from '@/components/vc/index.tsx'
+import { EST } from '@/components/vc/estados.ts'
 
 /** Contenedor de cada pantalla: máx. 1160, margen 16 en móvil y 48 en desktop. */
 export function Pagina({ children, className }: { children: ReactNode; className?: string }) {
@@ -73,45 +73,39 @@ export function Vacio({ titulo, texto, icono }: { titulo: string; texto: string;
   )
 }
 
-/** Fila de multa: tile por estado, chip de placa, infracción, fecha y lugar; monto mono y badge a la derecha. */
-export function MultaFila({ m, i, conPagar, desde }: { m: Multa; i: number; conPagar?: boolean; desde: 'inicio' | 'multas' }) {
-  const pagar = conPagar && esPagable(m)
+const diaMes = new Intl.DateTimeFormat('es-VE', { day: 'numeric', month: 'short', timeZone: 'America/Caracas' })
+
+/** Fila de multa: qué pasó, placa y fecha, monto y estado. El pago se hace desde el detalle. */
+export function MultaFila({ m, i, desde }: { m: Multa; i: number; desde: 'inicio' | 'multas' }) {
+  const e = EST[m.status]
   return (
-    <li className={cx('entra flex flex-wrap items-center lg:flex-nowrap', i > 0 && 'border-t border-borde')} style={{ '--i': i } as CSSProperties}>
+    <li className="entra" style={{ '--i': i } as CSSProperties}>
+      {i > 0 && <span aria-hidden="true" className="ml-[68px] block h-px bg-borde" />}
       <Link
         to={`/multas/${m.id}`}
         state={{ desde }}
-        aria-label={`${TIPO[m.type]}, ${m.plate}, ${formatFecha(m.occurredAt)}, ${ESTADO[m.status]}, ${formatBs(m.amountCents)}. Ver detalle`}
-        className="press flex min-h-14 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left"
+        aria-label={`${TIPO[m.type]}, ${m.plate}, ${formatFecha(m.occurredAt)}, ${estadoTexto(m.status)}, ${formatBs(m.amountCents)}. Ver detalle`}
+        className="group flex min-h-[68px] items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-suave"
       >
         <EstadoTile status={m.status} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="flex flex-wrap items-center gap-2"><PlacaChip value={m.plate} /><span className="font-semibold">{TIPO[m.type]}</span></span>
-          <span className="text-caption text-texto-2 lg:truncate">{formatFecha(m.occurredAt)} · {formatHora(m.occurredAt)} · {m.intersection}</span>
+          <span className="truncate font-semibold">{TIPO[m.type]}</span>
+          <span className="text-caption text-texto-2"><span className="font-mono font-semibold">{m.plate}</span> · {diaMes.format(new Date(m.occurredAt)).replace('.', '').replace('sept', 'sep')}</span>
         </span>
-        <span className="flex flex-none flex-col items-end gap-1">
-          <Monto cents={m.amountCents} anulada={m.status === 'VOID'} />
-          <EstadoBadge status={m.status} />
+        <span className="flex flex-none flex-col items-end gap-0.5">
+          <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[15px]" />
+          <span className={cx('text-caption font-semibold', e.txt)}>{estadoTexto(m.status)}</span>
         </span>
+        <ChevronRight size={18} strokeWidth={2} aria-hidden="true" className="flex-none text-texto-3 transition-transform duration-150 group-hover:translate-x-0.5" />
       </Link>
-      {pagar && (
-        <Link
-          to={`/multas/${m.id}/pagar`}
-          state={{ desde }}
-          aria-label={`Pagar ${TIPO[m.type]} de ${m.plate}`}
-          className="press mr-4 mb-3 ml-[68px] inline-flex h-10 flex-[1_1_100%] items-center justify-center rounded-control bg-rojo px-[18px] text-sm font-semibold text-card hover:bg-rojo-osc lg:mb-0 lg:ml-0 lg:flex-none"
-        >
-          Pagar
-        </Link>
-      )}
     </li>
   )
 }
 
-export function ListaMultas({ multas, conPagar, desde }: { multas: Multa[]; conPagar?: boolean; desde: 'inicio' | 'multas' }) {
+export function ListaMultas({ multas, desde }: { multas: Multa[]; desde: 'inicio' | 'multas' }) {
   return (
     <ul className={cx(tarjeta, 'overflow-hidden')}>
-      {multas.map((m, i) => <MultaFila key={m.id} m={m} i={i} conPagar={conPagar} desde={desde} />)}
+      {multas.map((m, i) => <MultaFila key={m.id} m={m} i={i} desde={desde} />)}
     </ul>
   )
 }

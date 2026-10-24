@@ -34,6 +34,19 @@ describe('Vercel Functions', () => {
     expect(rewritten).toEqual(handled)
   })
 
+  it('cada ruta de P2 reescrita en vercel.json existe en api/p2.ts, y al revés', () => {
+    const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')) as { rewrites: Array<{ source: string; destination: string }> }
+    const rewritten = vercel.rewrites
+      .map((r) => /^\/api\/p2\?route=([\w-]+)/.exec(r.destination)?.[1])
+      .filter((r): r is string => Boolean(r))
+      .sort()
+    const router = readFileSync('api/p2.ts', 'utf8')
+    const block = /P2_ROUTES[^{]*\{([\s\S]*?)\n\};/.exec(router)?.[1] ?? ''
+    const handled = [...block.matchAll(/^\s*"([\w-]+)":/gm)].map((m) => m[1]).sort()
+    expect(handled.length).toBeGreaterThan(0)
+    expect(rewritten).toEqual(handled)
+  })
+
   it('las rewrites de la API van antes del fallback del SPA', () => {
     const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')) as { rewrites: Array<{ source: string; destination: string }> }
     const spa = vercel.rewrites.findIndex((r) => r.destination === '/index.html')

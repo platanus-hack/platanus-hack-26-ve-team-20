@@ -8,7 +8,6 @@
     "scheme": "smarttraffic",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "requireFullScreen": true
     },
     "android": {
@@ -31,7 +30,11 @@
         {
           "backgroundColor": "#0E1726",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 76,
+          "dark": {
+            "backgroundColor": "#0B0C0E",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       [

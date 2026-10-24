@@ -8,11 +8,14 @@ import { Hoja, Pantalla, Pie } from '@/components/extra';
 import { Aviso, Campo, SW, T, TipoCedula } from '@/components/ui';
 import { cedulaValida, claveC2PValida, esPendiente, getMultas, pagarMultas, telefonoValido, type RechazoPago } from '@/demo/ciudadano';
 import { bs, fechaCaracas } from '@/demo/format';
-import { color, fuente, radio, tipo } from '@/theme';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { fuente, radio, tipo } from '@/theme';
 
 const BANCOS = ['0102 · Banco de Venezuela (ejemplo)', '0105 · Mercantil (ejemplo)', '0134 · Banesco (ejemplo)', '0191 · BNC (ejemplo)'];
 
 export default function Pago() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const { ids: idsParam } = useLocalSearchParams<{ ids?: string }>();
   const ids = (idsParam ?? '').split(',').filter(Boolean);
   // Lista fija al abrir: así el total no cambia mientras se paga.
@@ -64,7 +67,7 @@ export default function Pago() {
       disabled={enviando}
       onPress={() => (router.canGoBack() ? router.back() : router.replace('/ciudadano'))}
       style={[s.volver, enviando ? { opacity: 0.4 } : null]}>
-      <ChevronLeft size={18} color={color.tinta} strokeWidth={2} />
+      <ChevronLeft size={20} color={c.texto} strokeWidth={2} />
       <T style={tipo.pequenoFuerte}>Volver</T>
     </Pressable>
   );
@@ -82,7 +85,7 @@ export default function Pago() {
     <View style={{ flex: 1 }}>
       <Stack.Screen options={{ gestureEnabled: !enviando }} />
       <Pantalla
-        style={{ gap: 16, paddingTop: 12, paddingHorizontal: 16, paddingBottom: 24 }}
+        style={{ gap: 24, paddingTop: 8, paddingHorizontal: 16, paddingBottom: 32 }}
         pie={
           <Pie>
             <BotonPago texto={enviando ? 'Procesando pago…' : `Pagar ${bs(total)}`} enviando={enviando} onPress={pagar} />
@@ -90,27 +93,30 @@ export default function Pago() {
         }>
         {volver}
         <View style={s.resumen}>
-          <T style={[tipo.pequeno, { color: color.sobreTinta }]}>Total a pagar · monto de ejemplo</T>
-          <T style={[tipo.montoG, { color: color.tarjeta }]}>{bs(total)}</T>
-          <View style={{ gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: color.tinta3 }}>
+          <T style={[tipo.pequeno, { color: c.sobreTinta }]}>Total a pagar</T>
+          <T style={[tipo.montoG, { color: c.tintaTexto }]}>{bs(total)}</T>
+          <View style={{ gap: 8, paddingTop: 14, marginTop: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.tinta3 }}>
             {lista.map((m) => (
               <View key={m.id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-                <T style={[tipo.pequeno, { color: color.tarjeta }]}>
-                  <T style={[tipo.mono, { fontSize: 14, color: color.tarjeta }]}>{m.placa}</T> · {m.tipo}
+                <T style={[tipo.pequeno, { color: c.sobreTinta }]}>
+                  {m.tipo} · <T style={[tipo.mono, { fontSize: 13, color: c.sobreTinta }]}>{m.placa}</T>
                 </T>
-                <T style={{ fontFamily: fuente.mono, fontSize: 14, color: color.tarjeta }}>{bs(m.amountCents)}</T>
+                <T style={{ fontFamily: fuente.mono, fontSize: 14, color: c.sobreTinta }}>{bs(m.amountCents)}</T>
               </View>
             ))}
           </View>
         </View>
         <View style={s.form}>
-          <T accessibilityRole="header" style={tipo.h3}>
-            Pago Móvil C2P
-          </T>
+          <View style={{ gap: 2 }}>
+            <T accessibilityRole="header" style={tipo.h3}>
+              Pago Móvil C2P
+            </T>
+            <T style={[tipo.pequeno, { color: c.texto2 }]}>Pago simulado: no se mueve dinero real.</T>
+          </View>
           {rechazo ? (
             <Aviso tono="rojo">
-              <T style={[tipo.pequenoFuerte, { color: color.rojoTexto }]}>{rechazo === 'fondos' ? 'Fondos insuficientes' : 'Clave C2P inválida'}</T>
-              <T style={[tipo.pequeno, { color: color.rojoTexto }]}>
+              <T style={[tipo.pequenoFuerte, { color: c.rojoTexto }]}>{rechazo === 'fondos' ? 'Fondos insuficientes' : 'Clave C2P inválida'}</T>
+              <T style={[tipo.pequeno, { color: c.rojoTexto }]}>
                 {rechazo === 'fondos' ? 'Su cuenta no tiene saldo suficiente. No se cobró nada.' : 'Su banco rechazó la clave. Genere una nueva e intente otra vez; no se cobró nada.'}
               </T>
             </Aviso>
@@ -121,7 +127,7 @@ export default function Pago() {
               <T style={{ flex: 1 }} numberOfLines={1}>
                 {banco}
               </T>
-              <ChevronDown size={18} color={color.texto2} strokeWidth={SW} />
+              <ChevronDown size={18} color={c.texto2} strokeWidth={SW} />
             </Pressable>
           </View>
           <Campo etiqueta="Teléfono" mono keyboardType="phone-pad" value={tel} onChangeText={setTel} error={intento && !telOk ? 'Use 0412, 0414, 0416, 0424 o 0426 y 7 dígitos.' : null} />
@@ -147,7 +153,7 @@ export default function Pago() {
             error={intento && !claveOk ? 'La clave C2P tiene entre 6 y 8 dígitos.' : null}
             ayuda="Genere su clave C2P en la app de su banco."
           />
-          <T style={[tipo.caption, { color: color.texto3 }]}>Prototipo: 000000 = clave inválida · 111111 = fondos insuficientes.</T>
+          <T style={[tipo.caption, { color: c.texto3 }]}>Prototipo: 000000 = clave inválida · 111111 = fondos insuficientes.</T>
         </View>
       </Pantalla>
       <Hoja abierta={hojaBanco} onCerrar={() => setHojaBanco(false)} etiqueta="Banco">
@@ -163,7 +169,7 @@ export default function Pago() {
               setBanco(b);
               setHojaBanco(false);
             }}
-            style={[s.opcion, i ? { borderTopWidth: 1, borderTopColor: color.borde } : null]}>
+            style={[s.opcion, i ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.borde } : null]}>
             <T style={banco === b ? tipo.cuerpoFuerte : tipo.cuerpo}>{b}</T>
           </Pressable>
         ))}
@@ -172,8 +178,10 @@ export default function Pago() {
   );
 }
 
-// El botón se llena de tinta durante 1,2 s mientras se procesa el pago.
+// Mientras se procesa, un velo claro recorre el botón durante 1,2 s.
 function BotonPago({ texto, enviando, onPress }: { texto: string; enviando: boolean; onPress: () => void }) {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const rm = useReducedMotion();
   const p = useSharedValue(0);
   useEffect(() => {
@@ -185,18 +193,19 @@ function BotonPago({ texto, enviando, onPress }: { texto: string; enviando: bool
       accessibilityRole="button"
       accessibilityState={{ busy: enviando }}
       onPress={onPress}
-      style={[s.pagar, { backgroundColor: enviando ? color.tinta3 : color.rojo }]}>
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.tinta, transformOrigin: 'left' }, relleno]} />
-      <T style={[tipo.cuerpoFuerte, { color: color.tarjeta }]}>{texto}</T>
+      style={[s.pagar, { backgroundColor: c.primario }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,.28)', transformOrigin: 'left' }, relleno]} />
+      <T style={[tipo.cuerpoFuerte, { color: c.sobrePrimario }]}>{texto}</T>
     </Pressable>
   );
 }
 
-const s = StyleSheet.create({
-  volver: { alignSelf: 'flex-start', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 8 },
-  resumen: { gap: 8, padding: 24, backgroundColor: color.tinta, borderRadius: radio.tarjeta },
-  form: { gap: 14, padding: 16, backgroundColor: color.tarjeta, borderRadius: radio.tarjeta, boxShadow: '0 1px 2px rgba(14,23,38,.06), 0 0 0 1px rgba(14,23,38,.06)' },
-  select: { height: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: color.bordeInput, borderRadius: radio.control, backgroundColor: color.tarjeta },
+const estilos = ({ c, sombra }: Tema) =>
+  StyleSheet.create({
+  volver: { alignSelf: 'flex-start', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 8, marginLeft: -4 },
+  resumen: { gap: 4, padding: 20, backgroundColor: c.tinta, borderRadius: radio.tarjeta, boxShadow: sombra.tarjeta },
+  form: { gap: 16 },
+  select: { height: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: c.bordeInput, borderRadius: radio.control, backgroundColor: c.tarjeta },
   opcion: { minHeight: 56, justifyContent: 'center' },
   pagar: { height: 48, borderRadius: radio.control, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
 });
