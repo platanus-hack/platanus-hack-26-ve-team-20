@@ -10,11 +10,11 @@ Objetivo: 4 verticales con **mínimo solapamiento de archivos** para no pisarse 
 | `api/violations/**`, `api/fines/**`, `api/portal/**` | P1 | — |
 | `tests/e2e/**`, `vitest.config.ts`, `playwright.config.ts` | P1 | agregar specs de su vertical |
 | `lib/vision/**`, `lib/storage/**`, `public/demo/**`, `mobile/**`, `ml/**` | P2 | — |
-| `src/pages/Camaras.tsx`, `components/camaras/**`, `api/detections/**`, `api/sightings/**`, `api/cameras/**`, `api/blob/**`, `api/time.ts` | P2 | — |
+| `src/pages/Camaras.tsx`, `src/components/camaras/**`, `api/detections/**`, `api/sightings/**`, `api/cameras/**`, `api/blob/**`, `api/time.ts` | P2 | — |
 | `lib/notify/**`, `lib/payments/**`, `lib/geo/**`, `lib/alerts/**` | P3 | — |
-| `src/pages/{Multa,Pagar}.tsx`, `components/multa/**`, `api/payments/**`, `api/officers/**`, `api/alerts/**`, `api/webhooks/**` | P3 | P4 ajusta estilos por PR |
-| `src/index.css`, `src/main.tsx`, `src/App.tsx`, `src/pages/Landing.tsx`, `tailwind` config, `vite.config.ts`, `components/ui/**`, `components/vc/**` | P4 | usar, no modificar |
-| `src/pages/{Consulta,Oficial,AdminRevision}.tsx`, `components/{consulta,oficial,admin}/**`, `pitch/**`, `DESIGN.md` | P4 | — |
+| `src/pages/{Multa,Pagar}.tsx`, `src/components/multa/**`, `api/payments/**`, `api/officers/**`, `api/alerts/**`, `api/webhooks/**` | P3 | P4 ajusta estilos por PR |
+| `src/index.css`, `src/main.tsx`, `src/App.tsx`, `src/pages/Landing.tsx`, `tailwind` config, `vite.config.ts`, `src/components/ui/**`, `src/components/vc/**` | P4 | usar, no modificar |
+| `src/pages/{Consulta,Oficial,AdminRevision}.tsx`, `src/components/{consulta,oficial,admin}/**`, `pitch/**`, `DESIGN.md` | P4 | — |
 | `package.json`, `pnpm-lock.yaml` | compartido | agregar deps en PR propio y pequeño; si hay conflicto en lock: `pnpm install` y recommit |
 | `docs/**`, `AGENTS.md`, `CLAUDE.md` | P4 (producto) | cualquiera por PR |
 
@@ -47,8 +47,8 @@ P4 páginas ──> GET/POST APIs de P1 y P3 (DTOs de lib/contracts)
 **Tareas en orden**
 | Bloque | Tarea | Entregable en checkpoint |
 |---|---|---|
-| h0–1 | Crear app Vite + React (TS estricto, Tailwind, shadcn, ESLint) y carpeta `api/` para Vercel Functions, pnpm, estructura de carpetas, `lib/contracts` con equipo, `.env.example` | h1: contratos en `main` |
-| h1–4 | Prisma schema (doc 03), Neon vía Vercel Marketplace, migración, `seed.ts` v1, repo espejo + Vercel prod | h4: app desplegada con seed |
+| h0–1 | Crear app Vite + React (TS estricto, Tailwind, oxlint; shadcn lo inicializa P4) y carpeta `api/` para Vercel Functions, pnpm, estructura de carpetas, `lib/contracts` con equipo, `.env.example` | h1: contratos en `main` |
+| h1–4 | Prisma schema (doc 03), Supabase (proyecto Postgres), migración, `seed.ts` v1, repo espejo + Vercel prod | h4: app desplegada con seed |
 | h4–8 | `lib/domain`: `state-machine.ts`, `violations.ts` (`registerDetection` con dedup e idempotencia), `fines.ts` (montos de ejemplo, token), `audit.ts`; APIs `GET /api/violations`, `GET /api/fines/[token]` | h8: crear multa vía script/API |
 | h8–12 | Integrar: reemplazar mocks por reales; `markFinePaid`; auth passcode (`api/_lib/auth.ts` (guardas por passcode), cookie firmada) | h12: E2E happy path |
 | h12–14 | `POST /api/portal/lookup` (+ rate limit, enmascarado, AuditLog), `POST /api/violations/[id]/review` | h16: portal y revisión en prod |
@@ -111,7 +111,7 @@ Tests Vitest de rules y analyze con respuestas ML simuladas, y pytest en ml/. Ve
 | h18–22 | Duerme | — |
 | h22–24 | Stretch: respuesta "PAGAR"/"APELAR" por WhatsApp; OTP del portal (con P1) | h24: freeze |
 | h24–36 | Bugs; verificar ventana 24 h; teléfono del oficial en demo | h30 ensayo |
-**Depende de**: `markFinePaid` (P1; mock), componentes `components/vc` (P4; usar HTML simple hasta h8), datos de oficiales en seed (P1).
+**Depende de**: `markFinePaid` (P1; mock), componentes `src/components/vc` (P4; usar HTML simple hasta h8), datos de oficiales en seed (P1).
 **Prompt de arranque**:
 ```
 Eres el agente de Persona 3 (notificaciones, pagos y alertas) de VíaClara. Lee AGENTS.md, docs/04-api.md §0, §5, §6, §7, §9, docs/05-ui.md §3.3, §3.4, docs/08-privacidad-y-riesgos.md y docs/09 §1, §2, §6.
@@ -130,7 +130,7 @@ Tests Vitest para c2p, haversine, dispatch y webhook. Verifica HU-03, HU-04 y HU
 | Bloque | Tarea | Entregable |
 |---|---|---|
 | h0–1 | Dirección de diseño (doc 05 §1), `DESIGN.md` (skill `design-md`), revisar DTOs | h1: tokens acordados |
-| h1–4 | Tokens en `src/index.css`, fuentes (Public Sans, IBM Plex Mono vía `@fontsource`), shadcn tematizado, `components/vc/*` (`Placa`, `EstadoBadge`, `Evidencia`, `Monto`, `DemoBanner`, `SemaforoMini`), `layout.tsx`, landing | h4: landing en prod |
+| h1–4 | Tokens en `src/index.css`, fuentes (Public Sans, IBM Plex Mono vía `@fontsource`), shadcn tematizado, `src/components/vc/*` (`Placa`, `EstadoBadge`, `Evidencia`, `Monto`, `DemoBanner`, `SemaforoMini`), `layout.tsx`, landing | h4: landing en prod |
 | h4–8 | `/consulta` y `/admin/revision` con datos mock (fixtures del seed) | h8: pantallas navegables |
 | h8–12 | Apoyar a P3 en estilo de `/multa` y `/pagar` (PRs de estilo) y a P2 en el feed/pasos de la consola | h12: E2E se ve bien |
 | h12–14 | `/oficial`: login, toggle servicio, mapa Leaflet (dynamic import, sin SSR), lista de alertas con polling; conectar `/consulta` y `/admin` a APIs reales | h16 |
@@ -145,7 +145,7 @@ Solo modifica archivos de P4 (docs/09 §1). Usa las skills design-md, frontend-u
 Pasos (PRs pequeños):
 1) DESIGN.md con la dirección de docs/05 §1 (sobrio, cívico; sin degradados morados, sin Inter por defecto, sin emojis como íconos; lucide-react).
 2) Tokens de docs/05 §2 en src/index.css y Tailwind; fuentes Public Sans e IBM Plex Mono vía @fontsource; tematizar shadcn (Button, Input, Select, Card, Badge, Table, Sheet, Dialog, Skeleton, Sonner).
-3) components/vc: Placa, EstadoBadge, Evidencia, Monto (es-VE, céntimos), DemoBanner, SemaforoMini.
+3) src/components/vc: Placa, EstadoBadge, Evidencia, Monto (es-VE, céntimos), DemoBanner, SemaforoMini.
 4) src/pages/Landing.tsx, src/pages/Consulta.tsx, src/pages/AdminRevision.tsx con fixtures tipados con los DTOs de lib/contracts; luego src/pages/Oficial.tsx con Leaflet (import dinámico) y polling de alertas.
 Mobile-first a 360 px, contraste AA, foco visible, fechas en America/Caracas. Verifica criterios de docs/05 §3 con playwright-cli/browser-testing-with-devtools antes de terminar.
 ```

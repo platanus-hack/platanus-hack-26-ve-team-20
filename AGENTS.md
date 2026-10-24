@@ -23,7 +23,7 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 - Frontend: **React puro (SPA) con Vite** + React Router, desplegado en **Vercel**. Sin Next.js.
 - Backend: **Vercel Functions** en `/api` (TypeScript, runtime Node).
 - Tailwind CSS + shadcn/ui (tematizado, ver `docs/05-ui.md`).
-- Postgres (**Neon** vía Vercel Marketplace) + **Prisma**.
+- Postgres en **Supabase** (solo como base de datos SQL) + **Prisma**. No se usan Supabase Auth, Storage ni `supabase-js`; el acceso es solo desde el servidor con Prisma.
 - **Vercel Blob** para evidencia (clips, fotogramas clave y recortes de placa); el teléfono sube el clip por client upload con token de `api/blob/upload.ts`.
 - App de cámara: **Expo (React Native, TypeScript)** en `mobile/`. El teléfono hace de cámara de tráfico: graba clips cortos de video.
 - Visión: **detector preentrenado con ajuste fino** (YOLO con pesos COCO, datasets de Kaggle) + ByteTrack + EasyOCR; velocidad y contravía por **homografía y reglas geométricas** sobre las trayectorias. Servido por un **servicio Python (FastAPI) fuera de Vercel** en `ml/`; el ajuste fino se entrena en notebooks de Kaggle. Sin Claude/LLM en el pipeline de visión.
@@ -92,8 +92,8 @@ lib/
   payments/         # c2p.ts simulado (P3)
   geo/              # haversine, oficial más cercano (P3)
   alerts/           # creación/despacho de alertas (P3)
-components/ui/      # shadcn tematizado (P4)
-components/<feature>/  # componentes de cada vertical (dueño de la vertical)
+src/components/ui/      # shadcn tematizado (P4)
+src/components/<feature>/  # componentes de cada vertical (dueño de la vertical)
 prisma/schema.prisma, prisma/seed.ts   # (P1)
 public/demo/        # manifiesto y clips de ejemplo (sets A–D) para pruebas y plan B (P2)
 tests/              # e2e Playwright (P1 coordina QA)
@@ -115,8 +115,8 @@ docs/               # esta documentación
 ## 7. Variables de entorno
 | Variable | Uso | Dueño |
 |---|---|---|
-| `DATABASE_URL` | Postgres Neon (pooled) | P1 |
-| `DIRECT_URL` | Neon directo para migraciones | P1 |
+| `DATABASE_URL` | Supabase: cadena del pooler en modo transacción (puerto 6543, con `?pgbouncer=true`) | P1 |
+| `DIRECT_URL` | Supabase: conexión directa o session pooler (puerto 5432) para migraciones | P1 |
 | `ML_SERVICE_URL` | URL del servicio Python de inferencia (fuera de Vercel) | P2 |
 | `ML_SERVICE_TOKEN` | token Bearer entre `api/` y el servicio ML | P2 |
 | `CAMERA_API_KEY` | secreto que envía la app móvil en `X-Camera-Key` | P2 |

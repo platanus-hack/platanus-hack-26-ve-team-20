@@ -13,6 +13,7 @@
 | 08 | `08-privacidad-y-riesgos.md` | Privacidad, legal, ética, riesgos técnicos | Todos |
 | 09 | `09-reparto-equipo.md` | Reparto en 4 personas, contratos, ramas, prompts de arranque | Todos |
 | 10 | `10-ml-y-app-movil.md` | Modelo propio (Kaggle), servicio Python, app Expo de cámara, calibración, velocidad y dirección | P2, P1 |
+| 11 | `11-p1-features.md` | P1: features, entregables, criterios y commits | P1 |
 
 Orden de lectura sugerido para un agente nuevo: AGENTS → 01 → 09 (tu rol) → 04 → 03 → 02 → 05.
 
