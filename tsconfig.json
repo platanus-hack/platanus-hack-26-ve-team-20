@@ -1,6 +1,10 @@
 {
   "files": [],
   "compilerOptions": {
+    // Vercel compila api/ con ESTE archivo (ignora las references): sin estas dos opciones
+    // emite `import "./x.ts"` y la función falla en runtime (FUNCTION_INVOCATION_FAILED).
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "paths": {
       "@/*": ["./src/*"]
     }

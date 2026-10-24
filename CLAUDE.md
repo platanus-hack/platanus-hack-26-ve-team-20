@@ -128,7 +128,7 @@ docs/               # esta documentación
 | `KAPSO_WEBHOOK_SECRET` | verificar `X-Webhook-Signature` | P3 |
 | `KAPSO_TEMPLATE_FINE` | nombre de plantilla aprobada (opcional) | P3 |
 | `RESEND_API_KEY`, `EMAIL_FROM` | email respaldo | P3 |
-| `APP_BASE_URL` | p.ej. `https://<pendiente>.vercel.app` | P1 |
+| `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
 | `ADMIN_PASSCODE` | acceso simple a `/admin` y `/camaras` | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
