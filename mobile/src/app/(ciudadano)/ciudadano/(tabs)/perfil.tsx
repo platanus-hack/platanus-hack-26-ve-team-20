@@ -4,12 +4,15 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Pantalla } from '@/components/extra';
-import { Boton, Campo, Interruptor, SW, T, Tarjeta } from '@/components/ui';
+import { Boton, Campo, Interruptor, SW, SelectorTema, T, Tarjeta } from '@/components/ui';
 import { CIUDADANO, reiniciarCiudadano } from '@/demo/ciudadano';
 import { guardarSesion } from '@/lib/dispositivo';
-import { color, tipo } from '@/theme';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { tipo } from '@/theme';
 
 export default function PerfilCiudadano() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const [avisos, setAvisos] = useState(true);
   const [abrirClave, setAbrirClave] = useState(false);
 
@@ -32,7 +35,7 @@ export default function PerfilCiudadano() {
           <T style={tipo.mono}>{CIUDADANO.telefono}</T>
         </Fila>
         <Fila etiqueta="Correo">
-          <T style={{ color: color.texto2 }}>Sin correo</T>
+          <T style={{ color: c.texto2 }}>Sin correo</T>
         </Fila>
         <View style={[s.fila, s.borde]}>
           <T>Avisos por WhatsApp</T>
@@ -40,7 +43,7 @@ export default function PerfilCiudadano() {
         </View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: abrirClave }} onPress={() => setAbrirClave(!abrirClave)} style={[s.fila, s.borde]}>
           <T style={tipo.cuerpoFuerte}>Cambiar contraseña</T>
-          <ChevronDown size={20} color={color.tinta} strokeWidth={SW} style={{ transform: [{ rotate: abrirClave ? '180deg' : '0deg' }] }} />
+          <ChevronDown size={20} color={c.texto} strokeWidth={SW} style={{ transform: [{ rotate: abrirClave ? '180deg' : '0deg' }] }} />
         </Pressable>
         {abrirClave ? (
           <View style={{ gap: 10, paddingHorizontal: 16, paddingBottom: 16 }}>
@@ -50,21 +53,28 @@ export default function PerfilCiudadano() {
           </View>
         ) : null}
       </Tarjeta>
+      <Tarjeta style={{ gap: 10, padding: 16 }}>
+        <T style={tipo.cuerpoFuerte}>Apariencia</T>
+        <SelectorTema />
+      </Tarjeta>
       <Boton titulo="Cerrar sesión" variante="peligro" onPress={salir} style={{ alignSelf: 'flex-start', paddingHorizontal: 20 }} />
     </Pantalla>
   );
 }
 
 function Fila({ etiqueta, children, primera }: { etiqueta: string; children: ReactNode; primera?: boolean }) {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   return (
     <View style={[s.fila, primera ? null : s.borde]}>
-      <T style={{ color: color.texto2 }}>{etiqueta}</T>
+      <T style={{ color: c.texto2 }}>{etiqueta}</T>
       {children}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const estilos = ({ c }: Tema) =>
+  StyleSheet.create({
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16 },
-  borde: { borderTopWidth: 1, borderTopColor: color.borde },
+  borde: { borderTopWidth: 1, borderTopColor: c.borde },
 });

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
 import { formatCedula } from '@/lib/format.ts'
-import { Boton, Hoja } from '@/components/ui/index.tsx'
+import { Boton, Hoja, SelectorTema } from '@/components/ui/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
 import { DemoBanner, Logo } from '@/components/vc/index.tsx'
 
@@ -68,7 +68,7 @@ function Shell() {
                   <Icono size={20} strokeWidth={1.75} aria-hidden="true" className={on ? 'text-brand' : undefined} />
                   <span className="flex-1">{label}</span>
                   {id === 'multas' && pendientes > 0 && (
-                    <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-rojo px-1.5 font-mono text-xs font-bold text-card" aria-label={`${pendientes} por pagar`}>{pendientes}</span>
+                    <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-rojo px-1.5 font-mono text-xs font-bold text-contraste" aria-label={`${pendientes} por pagar`}>{pendientes}</span>
                   )}
                 </Link>
               )
@@ -105,7 +105,7 @@ function Shell() {
                 className="pointer-events-none absolute top-1.5 left-1 flex h-8 justify-center transition-transform duration-[220ms] ease-sheet motion-reduce:transition-none"
                 style={{ width: 'calc((100% - 8px) / 5)', transform: `translateX(${iAbajo * 100}%)` }}
               >
-                <span className="h-8 w-14 rounded-full bg-tinta" />
+                <span className="tinta h-8 w-14 rounded-full bg-tinta" />
               </span>
               {[...ABAJO.map((id) => NAV.find((n) => n.id === id)), null].map((n, i) => {
                 const on = i === iAbajo
@@ -131,6 +131,10 @@ function Shell() {
       <Hoja abierta={mas} onCerrar={() => setMas(false)} etiqueta="Más secciones">
         <Link to="/en-vivo" onClick={() => setMas(false)} className="flex min-h-14 items-center gap-3 px-2 font-semibold"><Video size={20} strokeWidth={1.75} aria-hidden="true" />Cámaras en vivo</Link>
         <Link to="/perfil" onClick={() => setMas(false)} className="flex min-h-14 items-center gap-3 border-t border-borde px-2 font-semibold"><User size={20} strokeWidth={1.75} aria-hidden="true" />Perfil</Link>
+        <div className="flex flex-col gap-2 border-t border-borde px-2 py-3">
+          <span className="text-sm font-semibold">Apariencia</span>
+          <SelectorTema />
+        </div>
         <button type="button" onClick={salir} className="flex min-h-14 items-center gap-3 border-t border-borde px-2 text-left font-semibold text-rojo-osc"><LogOut size={20} strokeWidth={1.75} aria-hidden="true" />Cerrar sesión</button>
       </Hoja>
 

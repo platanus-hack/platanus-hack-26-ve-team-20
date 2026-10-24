@@ -99,7 +99,7 @@ export function MultaFila({ m, i, conPagar, desde }: { m: Multa; i: number; conP
           to={`/multas/${m.id}/pagar`}
           state={{ desde }}
           aria-label={`Pagar ${TIPO[m.type]} de ${m.plate}`}
-          className="press mr-4 mb-3 ml-[68px] inline-flex h-10 flex-[1_1_100%] items-center justify-center rounded-control bg-rojo px-[18px] text-sm font-semibold text-card hover:bg-rojo-osc lg:mb-0 lg:ml-0 lg:flex-none"
+          className="press mr-4 mb-3 ml-[68px] inline-flex h-10 flex-[1_1_100%] items-center justify-center rounded-control bg-rojo px-[18px] text-sm font-semibold text-contraste hover:bg-rojo-osc lg:mb-0 lg:ml-0 lg:flex-none"
         >
           Pagar
         </Link>

@@ -8,11 +8,14 @@ import { ListaMultas, Pantalla } from '@/components/extra';
 import { Pressy, SW, T, Tarjeta } from '@/components/ui';
 import { VEHICULOS, esPendiente, useCiudadano, type Multa } from '@/demo/ciudadano';
 import { abrirMulta, irAPagar } from '@/lib/nav';
-import { color, fuente, radio, tipo } from '@/theme';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { fuente, radio, tipo } from '@/theme';
 
 const PESTANAS = ['Por pagar', 'Pagadas', 'Otras'] as const;
 
 export default function Multas() {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const params = useLocalSearchParams<{ tab?: string; filtro?: string }>();
   const { multas } = useCiudadano();
   const tab = Math.min(2, Math.max(0, Math.trunc(Number(params.tab)) || 0));
@@ -44,15 +47,15 @@ export default function Multas() {
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => router.setParams({ filtro: f })}
-              style={[s.filtro, on ? { backgroundColor: color.tinta, borderColor: color.tinta } : null]}>
-              <T style={[f === 'todos' ? tipo.pequenoFuerte : { fontFamily: fuente.monoFuerte, fontSize: 13 }, { color: on ? color.tarjeta : color.tinta }]}>{f === 'todos' ? 'Todos' : f}</T>
+              style={[s.filtro, on ? { backgroundColor: c.tinta, borderColor: c.tintaBorde } : null]}>
+              <T style={[f === 'todos' ? tipo.pequenoFuerte : { fontFamily: fuente.monoFuerte, fontSize: 13 }, { color: on ? c.tintaTexto : c.texto }]}>{f === 'todos' ? 'Todos' : f}</T>
             </Pressy>
           );
         })}
       </View>
       {meses.flatMap((mes) => [
         <View key={`h-${mes}`} style={s.mes}>
-          <T style={[tipo.captionFuerte, { color: color.texto2 }]}>{mes}</T>
+          <T style={[tipo.captionFuerte, { color: c.texto2 }]}>{mes}</T>
         </View>,
         <View key={`l-${mes}`} style={{ marginTop: -20 }}>
           <ListaMultas multas={filtradas.filter((m) => m.mes === mes)} onAbrir={abrirMulta} onPagar={tab === 0 ? (m) => irAPagar([m.id]) : undefined} />
@@ -61,10 +64,10 @@ export default function Multas() {
       {meses.length === 0 ? (
         <Tarjeta style={{ gap: 10, padding: 24 }}>
           <View style={s.vacioIco}>
-            <Check size={24} color={color.lima} strokeWidth={SW} />
+            <Check size={24} color={c.lima} strokeWidth={SW} />
           </View>
           <T style={tipo.h3}>{['Está al día', 'Aún no hay pagos', 'Nada por aquí'][tab]}</T>
-          <T style={{ color: color.texto2 }}>
+          <T style={{ color: c.texto2 }}>
             {tab === 0
               ? `No tiene multas por pagar${filtro !== 'todos' ? ` para ${filtro}` : ''}. Siga así.`
               : tab === 1
@@ -78,6 +81,8 @@ export default function Multas() {
 }
 
 function Segmentado({ tab, onCambio, cuentas }: { tab: number; onCambio: (i: number) => void; cuentas: number[] }) {
+  const { c } = useTema();
+  const s = useEstilos(estilos);
   const rm = useReducedMotion();
   const [ancho, setAncho] = useState(0);
   const x = useSharedValue(0);
@@ -91,8 +96,8 @@ function Segmentado({ tab, onCambio, cuentas }: { tab: number; onCambio: (i: num
       {w ? <Animated.View style={[s.segInd, { width: w }, ind]} /> : null}
       {PESTANAS.map((n, i) => (
         <Pressable key={n} accessibilityRole="tab" accessibilityState={{ selected: tab === i }} onPress={() => onCambio(i)} style={s.segBtn}>
-          <T style={[tipo.pequenoFuerte, { color: tab === i ? color.tarjeta : color.texto2 }]}>
-            {n} <T style={{ fontFamily: fuente.mono, fontSize: 14, color: tab === i ? color.tarjeta : color.texto2 }}>{cuentas[i]}</T>
+          <T style={[tipo.pequenoFuerte, { color: tab === i ? c.tintaTexto : c.texto2 }]}>
+            {n} <T style={{ fontFamily: fuente.mono, fontSize: 14, color: tab === i ? c.tintaTexto : c.texto2 }}>{cuentas[i]}</T>
           </T>
         </Pressable>
       ))}
@@ -100,11 +105,12 @@ function Segmentado({ tab, onCambio, cuentas }: { tab: number; onCambio: (i: num
   );
 }
 
-const s = StyleSheet.create({
-  seg: { flexDirection: 'row', padding: 4, backgroundColor: color.suave, borderRadius: radio.control },
-  segInd: { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: color.tinta },
+const estilos = ({ c }: Tema) =>
+  StyleSheet.create({
+  seg: { flexDirection: 'row', padding: 4, backgroundColor: c.suave, borderRadius: radio.control },
+  segInd: { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: c.tinta, borderWidth: 1, borderColor: c.tintaBorde },
   segBtn: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
-  filtro: { height: 36, minWidth: 44, paddingHorizontal: 14, borderRadius: radio.pastilla, borderWidth: 1, borderColor: color.bordeInput, backgroundColor: color.tarjeta, alignItems: 'center', justifyContent: 'center' },
-  mes: { paddingVertical: 10, paddingHorizontal: 4, backgroundColor: color.fondo },
-  vacioIco: { width: 48, height: 48, borderRadius: 12, backgroundColor: color.tinta, alignItems: 'center', justifyContent: 'center' },
+  filtro: { height: 36, minWidth: 44, paddingHorizontal: 14, borderRadius: radio.pastilla, borderWidth: 1, borderColor: c.bordeInput, backgroundColor: c.tarjeta, alignItems: 'center', justifyContent: 'center' },
+  mes: { paddingVertical: 10, paddingHorizontal: 4, backgroundColor: c.fondo },
+  vacioIco: { width: 48, height: 48, borderRadius: 12, backgroundColor: c.tinta, alignItems: 'center', justifyContent: 'center' },
 });

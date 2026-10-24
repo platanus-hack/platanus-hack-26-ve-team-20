@@ -2,7 +2,7 @@ import { LogOut, ReceiptText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesionOficial, cerrarSesionOficial, getSesionOficial, sesionOficialVencio } from '@/lib/oficial/api.ts'
-import { Boton, Hoja } from '@/components/ui/index.tsx'
+import { Boton, BotonTema, Hoja } from '@/components/ui/index.tsx'
 import { DemoBanner, Logo } from '@/components/vc/index.tsx'
 
 const LOGIN = '/oficial/ingresar'
@@ -38,7 +38,8 @@ function Shell() {
               Historial de multas
             </Link>
           </nav>
-          <div className="mt-auto flex items-center gap-2.5 rounded-control bg-tinta-2 p-3 text-card">
+          <BotonTema className="mt-auto text-niebla! hover:text-card!" />
+          <div className="flex items-center gap-2.5 rounded-control bg-tinta-2 p-3 text-card">
             <span aria-hidden="true" className="flex size-9 flex-none items-center justify-center rounded-full bg-tinta-3 font-mono text-[13px] font-bold text-brand">{iniciales(sesion?.name ?? '')}</span>
             <span className="flex min-w-0 flex-1 flex-col leading-[18px]">
               <span className="truncate text-[13px] font-bold">{sesion?.name}</span>
@@ -54,7 +55,8 @@ function Shell() {
           <header className="flex h-14 flex-none items-center gap-2.5 border-b border-borde bg-card pr-2 pl-4 lg:hidden">
             <Logo />
             <span className="text-sm text-texto-2">· Policía</span>
-            <button type="button" onClick={salir} className="ml-auto flex min-h-11 items-center gap-1.5 px-2 text-sm font-semibold">
+            <BotonTema className="ml-auto" />
+            <button type="button" onClick={salir} className="flex min-h-11 items-center gap-1.5 px-2 text-sm font-semibold">
               <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />Salir
             </button>
           </header>

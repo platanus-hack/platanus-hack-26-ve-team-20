@@ -73,7 +73,7 @@ export default function Pago() {
       form="pago-c2p"
       disabled={enviando}
       aria-busy={enviando}
-      className={cx('relative h-12 w-full overflow-hidden rounded-control text-base font-semibold text-card', enviando ? 'cursor-progress bg-tinta-3' : 'press bg-rojo hover:bg-rojo-osc', extra)}
+      className={cx('relative h-12 w-full overflow-hidden rounded-control text-base font-semibold', enviando ? 'tinta cursor-progress bg-tinta-3 text-card' : 'press bg-rojo text-contraste hover:bg-rojo-osc', extra)}
     >
       {enviando && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-full origin-left animate-[llenar_1200ms_linear_both] bg-tinta motion-reduce:animate-none" />}
       <span className="relative">{enviando ? 'Procesando pago…' : `Pagar ${formatBs(total)}`}</span>

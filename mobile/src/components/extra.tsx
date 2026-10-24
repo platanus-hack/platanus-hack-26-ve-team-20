@@ -7,15 +7,17 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { esPendiente, type Multa } from '@/demo/ciudadano';
 import { bs } from '@/demo/format';
-import { color, radio, sombra, tipo } from '@/theme';
-import { Badge, DemoBanner, ESTADO, Entrada, PlacaChip, Pressy, SW, T } from './ui';
+import { useEstilos, useTema, type Tema } from '@/lib/tema';
+import { radio, tipo } from '@/theme';
+import { Badge, DemoBanner, Entrada, PlacaChip, Pressy, SW, T, estados } from './ui';
 
 const EASE_SHEET = Easing.bezier(0.32, 0.72, 0, 1);
 
 // Contenedor de pantalla vertical (ciudadano y policía): franja de demo arriba.
 export function Pantalla({ children, scroll = true, pie, style, fijos }: { children: ReactNode; scroll?: boolean; pie?: ReactNode; style?: StyleProp<ViewStyle>; fijos?: number[] }) {
+  const { c } = useTema();
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: color.fondo }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.fondo }}>
       <DemoBanner />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scroll ? (
@@ -33,12 +35,15 @@ export function Pantalla({ children, scroll = true, pie, style, fijos }: { child
 
 // Barra fija inferior con una sola acción (detalle y pago).
 export function Pie({ children }: { children: ReactNode }) {
+  const st = useEstilos(estilos);
   const insets = useSafeAreaInsets();
   return <View style={[st.pie, { paddingBottom: Math.max(16, insets.bottom) }]}>{children}</View>;
 }
 
 // Sheet inferior: 280 ms (.32,.72,0,1); con movimiento reducido, 120 ms.
 export function Hoja({ abierta, onCerrar, children, etiqueta }: { abierta: boolean; onCerrar: () => void; children: ReactNode; etiqueta: string }) {
+  const { c } = useTema();
+  const st = useEstilos(estilos);
   const rm = useReducedMotion();
   const insets = useSafeAreaInsets();
   const [alto, setAlto] = useState(600);
@@ -46,11 +51,11 @@ export function Hoja({ abierta, onCerrar, children, etiqueta }: { abierta: boole
   useEffect(() => {
     p.set(withTiming(abierta ? 1 : 0, { duration: rm ? 120 : 280, easing: EASE_SHEET }));
   }, [abierta, rm, p]);
-  const velo = useAnimatedStyle(() => ({ opacity: p.get() * 0.4 }));
+  const velo = useAnimatedStyle(() => ({ opacity: p.get() }));
   const panel = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - p.get()) * (alto + 40) }] }));
   return (
     <View pointerEvents={abierta ? 'auto' : 'none'} style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.tinta }, velo]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: c.velo }, velo]}>
         <Pressable accessibilityLabel="Cerrar" style={{ flex: 1 }} onPress={onCerrar} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={st.hojaWrap} pointerEvents="box-none">
@@ -74,8 +79,10 @@ export interface ItemTab {
   punto?: boolean;
 }
 
-// Tab bar clara con pastilla tinta e ícono lima que se desliza en 220 ms.
+// Tab bar con pastilla tinta e ícono lima que se desliza en 220 ms.
 export function BarraTabs({ state, navigateToTab, insets, items }: BottomTabBarProps & { items: ItemTab[] }) {
+  const { c } = useTema();
+  const st = useEstilos(estilos);
   const rm = useReducedMotion();
   const [ancho, setAncho] = useState(0);
   const x = useSharedValue(0);
@@ -108,10 +115,10 @@ export function BarraTabs({ state, navigateToTab, insets, items }: BottomTabBarP
             onPress={() => ruta && navigateToTab(ruta.key)}
             style={st.tab}>
             <View style={st.tabIcono}>
-              <I size={22} color={on ? color.lima : color.texto2} strokeWidth={SW} />
+              <I size={22} color={on ? c.lima : c.texto2} strokeWidth={SW} />
               {it.punto && !on ? <View style={st.punto} /> : null}
             </View>
-            <T style={[tipo.caption, { fontSize: 12, lineHeight: 16, fontFamily: on ? 'Geist_600SemiBold' : 'Geist_500Medium', color: on ? color.tinta : color.texto2 }]}>{it.label}</T>
+            <T style={[tipo.caption, { fontSize: 12, lineHeight: 16, fontFamily: on ? 'Geist_600SemiBold' : 'Geist_500Medium', color: on ? c.texto : c.texto2 }]}>{it.label}</T>
           </Pressable>
         );
       })}
@@ -120,11 +127,13 @@ export function BarraTabs({ state, navigateToTab, insets, items }: BottomTabBarP
 }
 
 export function FilaMulta({ m, i, onAbrir, onPagar }: { m: Multa; i: number; onAbrir: () => void; onPagar?: () => void }) {
-  const e = ESTADO[m.estado];
+  const { c } = useTema();
+  const st = useEstilos(estilos);
+  const e = estados(c)[m.estado];
   const I = e.icono;
   const pagar = onPagar && esPendiente(m);
   return (
-    <Entrada i={i} style={[i ? { borderTopWidth: 1, borderTopColor: color.borde } : null]}>
+    <Entrada i={i} style={[i ? { borderTopWidth: 1, borderTopColor: c.borde } : null]}>
       <Pressy
         accessibilityRole="button"
         accessibilityLabel={`${m.tipo}, ${m.placa}, ${m.fecha}, ${m.estado}, ${bs(m.amountCents)}. Ver detalle`}
@@ -138,18 +147,18 @@ export function FilaMulta({ m, i, onAbrir, onPagar }: { m: Multa; i: number; onA
             <PlacaChip placa={m.placa} />
             <T style={tipo.cuerpoFuerte}>{m.tipo}</T>
           </View>
-          <T style={[tipo.caption, { color: color.texto2 }]}>
+          <T style={[tipo.caption, { color: c.texto2 }]}>
             {m.fecha} · {m.hora} · {m.lugar}
           </T>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <T style={[tipo.mono, m.estado === 'ANULADA' ? { textDecorationLine: 'line-through', color: color.texto2 } : null]}>{bs(m.amountCents)}</T>
+          <T style={[tipo.mono, m.estado === 'ANULADA' ? { textDecorationLine: 'line-through', color: c.texto2 } : null]}>{bs(m.amountCents)}</T>
           <Badge estado={m.estado} />
         </View>
       </Pressy>
       {pagar ? (
         <Pressy accessibilityRole="button" accessibilityLabel={`Pagar ${m.tipo} de ${m.placa}`} onPress={onPagar} style={st.pagarFila}>
-          <T style={[tipo.pequenoFuerte, { color: color.tarjeta }]}>Pagar</T>
+          <T style={[tipo.pequenoFuerte, { color: c.sobreAcento }]}>Pagar</T>
         </Pressy>
       ) : null}
     </Entrada>
@@ -157,6 +166,7 @@ export function FilaMulta({ m, i, onAbrir, onPagar }: { m: Multa; i: number; onA
 }
 
 export function ListaMultas({ multas, onAbrir, onPagar }: { multas: Multa[]; onAbrir: (m: Multa) => void; onPagar?: (m: Multa) => void }) {
+  const st = useEstilos(estilos);
   return (
     <View style={st.lista}>
       {multas.map((m, i) => (
@@ -166,19 +176,20 @@ export function ListaMultas({ multas, onAbrir, onPagar }: { multas: Multa[]; onA
   );
 }
 
-const st = StyleSheet.create({
-  pie: { paddingTop: 12, paddingHorizontal: 16, backgroundColor: color.tarjeta, borderTopWidth: 1, borderTopColor: color.borde },
-  hojaWrap: { flex: 1, justifyContent: 'flex-end' },
-  hoja: { gap: 14, paddingTop: 12, paddingHorizontal: 20, backgroundColor: color.tarjeta, borderTopLeftRadius: 16, borderTopRightRadius: 16, boxShadow: sombra.sheet },
-  asa: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: color.borde },
-  tabs: { flexDirection: 'row', paddingTop: 6, paddingHorizontal: 4, backgroundColor: color.tarjeta, borderTopWidth: 1, borderTopColor: color.borde },
-  indWrap: { position: 'absolute', top: 6, left: 4, height: 32, alignItems: 'center' },
-  ind: { width: 56, height: 32, borderRadius: radio.pastilla, backgroundColor: color.tinta },
-  tab: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  tabIcono: { width: 56, height: 32, alignItems: 'center', justifyContent: 'center' },
-  punto: { position: 'absolute', top: 4, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: color.rojo, borderWidth: 2, borderColor: color.tarjeta },
-  fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 8, paddingHorizontal: 16 },
-  tileIcono: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  pagarFila: { height: 40, marginLeft: 68, marginRight: 16, marginBottom: 12, borderRadius: 12, backgroundColor: color.rojo, alignItems: 'center', justifyContent: 'center' },
-  lista: { backgroundColor: color.tarjeta, borderRadius: radio.tarjeta, boxShadow: sombra.tarjeta, overflow: 'hidden' },
-});
+const estilos = ({ c, sombra }: Tema) =>
+  StyleSheet.create({
+    pie: { paddingTop: 12, paddingHorizontal: 16, backgroundColor: c.tarjeta, borderTopWidth: 1, borderTopColor: c.borde },
+    hojaWrap: { flex: 1, justifyContent: 'flex-end' },
+    hoja: { gap: 14, paddingTop: 12, paddingHorizontal: 20, backgroundColor: c.tarjeta, borderTopLeftRadius: 16, borderTopRightRadius: 16, boxShadow: sombra.sheet },
+    asa: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: c.borde },
+    tabs: { flexDirection: 'row', paddingTop: 6, paddingHorizontal: 4, backgroundColor: c.tarjeta, borderTopWidth: 1, borderTopColor: c.borde },
+    indWrap: { position: 'absolute', top: 6, left: 4, height: 32, alignItems: 'center' },
+    ind: { width: 56, height: 32, borderRadius: radio.pastilla, backgroundColor: c.tinta, borderWidth: 1, borderColor: c.tintaBorde },
+    tab: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
+    tabIcono: { width: 56, height: 32, alignItems: 'center', justifyContent: 'center' },
+    punto: { position: 'absolute', top: 4, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: c.rojo, borderWidth: 2, borderColor: c.tarjeta },
+    fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 8, paddingHorizontal: 16 },
+    tileIcono: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    pagarFila: { height: 40, marginLeft: 68, marginRight: 16, marginBottom: 12, borderRadius: 12, backgroundColor: c.rojo, alignItems: 'center', justifyContent: 'center' },
+    lista: { backgroundColor: c.tarjeta, borderRadius: radio.tarjeta, boxShadow: sombra.tarjeta, overflow: 'hidden' },
+  });

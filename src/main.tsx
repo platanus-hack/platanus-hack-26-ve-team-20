@@ -8,7 +8,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import App from './App.tsx'
+import { iniciarTema } from './hooks/useTema.ts'
 import './index.css'
+
+// Antes del primer render; el <script> inline de index.html evita el destello previo a este módulo.
+iniciarTema()
 
 const root = document.getElementById('root')
 if (!root) throw new Error('No se encontró #root')

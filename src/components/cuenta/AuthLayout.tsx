@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router'
+import { BotonTema } from '@/components/ui/index.tsx'
 import { DemoBanner, Logo } from '@/components/vc/index.tsx'
 
 const LEMA = 'La multa llega con la prueba, y se paga en un minuto.'
@@ -13,7 +14,8 @@ export default function AuthLayout() {
           <Logo claro />
           <span className="font-display text-h2 font-bold tracking-[-0.02em]">{LEMA}</span>
         </div>
-        <div className="flex flex-1 items-start justify-center px-4 pt-6 pb-8 lg:items-center lg:p-12">
+        <div className="relative flex flex-1 items-start justify-center px-4 pt-6 pb-8 lg:items-center lg:p-12">
+          <BotonTema className="absolute top-2 right-2" />
           <div className="flex w-full max-w-[400px] flex-col gap-5">
             <Outlet />
           </div>
