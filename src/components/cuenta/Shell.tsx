@@ -15,7 +15,6 @@ const NAV: Array<{ id: Seccion; label: string; Icono: LucideIcon }> = [
   { id: 'estadisticas', label: 'Estadísticas', Icono: ChartColumn },
   { id: 'vehiculos', label: 'Vehículos', Icono: Car },
   { id: 'en-vivo', label: 'Cámaras en vivo', Icono: Video },
-  { id: 'perfil', label: 'Perfil', Icono: User },
 ]
 const ABAJO: Seccion[] = ['inicio', 'multas', 'estadisticas', 'vehiculos']
 
