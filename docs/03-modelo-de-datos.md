@@ -312,4 +312,4 @@ Todo con prefijo/indicador de ejemplo. Cédulas en rango claramente ficticio, te
 - `V-99000002` — dueño de placa con **2 multas impagas** → usar para el flujo de alerta a oficial.
 - El texto de las placas en los frames demo debe coincidir con el seed (los frames se generan/editan con placas ficticias).
 
-Seed idempotente (`upsert`), ejecutable en la base de Supabase de producción para la demo: `pnpm prisma db seed`. Script extra `pnpm demo:reset` que borra violaciones/multas creadas hoy y re-siembra.
+Seed idempotente (`upsert`), ejecutable en la base de Supabase de producción para la demo: `pnpm prisma db seed`. Script extra `pnpm demo:reset`: borra lo generado por la demo que NO es del seed (ids sin prefijo `seed_`) y fue creado hoy (hora de Caracas), y re-aplica el seed (restaura multas y violaciones sembradas y renueva la posición de los oficiales). `--dry-run` solo cuenta; `--all` ignora la fecha. Hay una sola base compartida, por eso nunca borra filas sembradas ni anteriores a hoy sin `--all`.

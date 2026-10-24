@@ -36,13 +36,17 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 pnpm install
 pnpm dev                     # Vite en http://localhost:5173 (solo SPA)
 vercel dev                   # SPA + funciones /api juntas (http://localhost:3000)
-pnpm prisma migrate dev      # aplica schema local
-pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts)
+pnpm db:migrate              # prisma migrate deploy (usa DIRECT_URL, puerto 5432)
+pnpm db:migrate:pooler       # mismo efecto por el pooler 6543, si el 5432 no responde (sin IPv6)
+pnpm db:check                # conexión, tablas y RLS de Supabase
+pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts); idempotente. Alias: pnpm db:seed
+pnpm demo:reset              # borra lo generado por la demo HOY (no sembrado) y re-siembra; --dry-run, --all
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
 cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
 cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
-pnpm test                    # vitest
+pnpm test                    # vitest (unit, sin red)
+pnpm test:db                 # vitest contra la base real (requiere seed; limpia sus filas test_*)
 pnpm test:e2e                # playwright (requiere dev server)
 vercel --prod                # o deploy automático desde el repo espejo personal
 ```
