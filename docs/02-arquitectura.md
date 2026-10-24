@@ -1,4 +1,4 @@
-# 02 — Arquitectura · VíaClara
+# 02 — Arquitectura · SmartTraffic
 
 ## 1. Componentes
 | Componente | Tecnología | Responsabilidad |
@@ -10,9 +10,9 @@
 | Servicio de inferencia | `ml/` (Python/FastAPI), **fuera de Vercel** | Detector preentrenado afinado, ByteTrack, EasyOCR; homografía, velocidad, carril y dirección |
 | Pipeline de visión | `lib/vision/*` en Vercel Function (Node) | Llama al servicio ML, valida con Zod, aplica reglas (luz en el cruce, placa) y doble llave |
 | Dominio | `lib/domain/*` | Máquina de estados, creación de multas, deduplicación, auditoría |
-| Base de datos | Neon Postgres + Prisma | Persistencia |
+| Base de datos | Supabase (Postgres) + Prisma | Persistencia; acceso solo desde el servidor |
 | Evidencia | Vercel Blob | Clip, fotogramas clave y recorte de placa (URLs con sufijo aleatorio) |
-| Notificaciones | `lib/notify/*` → Kapso (WhatsApp), Resend (email) | Multas, confirmaciones, alertas a oficiales |
+| Notificaciones | `lib/notify/*` → WhatsApp Cloud API de Meta (número de prueba, texto) | Multas, confirmaciones, alertas a oficiales |
 | Pagos | `lib/payments/c2p.ts` | **Simulador** de C2P con la misma interfaz que tendría un adaptador bancario real |
 | Geo/alertas | `lib/geo`, `lib/alerts` | Oficial más cercano (haversine), anti-spam |
 
@@ -36,10 +36,9 @@ flowchart LR
     ALR[lib/alerts + geo]
   end
   BLOB[(Vercel Blob)]
-  DB[(Neon Postgres)]
+  DB[(Supabase Postgres)]
   ML[Servicio ML Python<br/>modelo propio, fuera de Vercel]
-  KP[Kapso WhatsApp]
-  RS[Resend email]
+  KP[WhatsApp Cloud API<br/>Meta]
 
   PH -- clip (client upload) --> BLOB
   PH -- POST /api/detections --> API
@@ -47,7 +46,6 @@ flowchart LR
   API --> VIS -- POST /predict --> ML
   VIS --> DOM --> DB
   DOM --> NOT --> KP
-  NOT --> RS
   DOM --> ALR --> NOT
   DRV --> API --> PAY --> DOM
   POR --> API
@@ -67,7 +65,7 @@ sequenceDiagram
   participant C as Servicio ML (Python)
   participant Dom as lib/domain
   participant DB as Postgres
-  participant K as Kapso
+  participant K as WhatsApp (Meta)
   actor Dr as Conductor (WhatsApp)
   participant P as POST /api/payments/c2p
 
@@ -103,7 +101,7 @@ sequenceDiagram
   participant S as POST /api/sightings (o detección)
   participant A as lib/alerts
   participant DB as Postgres
-  participant K as Kapso
+  participant K as WhatsApp (Meta)
 
   O->>L: {lat,lng,accuracy} cada 30 s (en servicio)
   L->>DB: OfficerLocation
@@ -160,12 +158,12 @@ Nota: la ubicación usada para la distancia es la **de la cámara** (GPS del tel
 - La inferencia **no** corre en Vercel: se sirve desde `ml/` en una máquina del equipo con túnel (ngrok/Cloudflare) o un host gratuito. Si el servicio cae, el flujo cae a `NEEDS_REVIEW`.
 - Vercel no procesa video: solo guarda el clip y pasa la URL; el servicio ML lo decodifica.
 - Sin WebSockets garantizados en el MVP: "tiempo real" = polling cada 2–3 s (`/api/violations?since=`).
-- Región: alinear región de Functions con la de Neon para latencia.
+- Región: alinear región de Functions con la del proyecto de Supabase para latencia.
 
 ## 7. Seguridad mínima
 - La app móvil y el botón de sets demo autentican con `X-Camera-Key` (`CAMERA_API_KEY`); el servicio ML solo acepta `Authorization: Bearer ML_SERVICE_TOKEN`.
-- `/camaras`, `/admin/*` protegidos con `ADMIN_PASSCODE` (cookie httpOnly firmada; la validan las funciones de `/api` con `api/_lib/auth.ts` y la SPA redirige a login si recibe 401). `/oficial` con `OFFICER_PASSCODE` + selección de oficial seed.
-- Webhook Kapso: verificar HMAC-SHA256 de `X-Webhook-Signature` sobre el body crudo con `KAPSO_WEBHOOK_SECRET`.
+- `/camaras`, `/admin/*`: **login de admin** (correo + contraseña de la tabla `AdminUser`, hash scrypt) que emite una cookie `vc_admin` HttpOnly, SameSite=Lax y Secure, firmada con `SESSION_SECRET` (8 h). Las funciones de `/api` la validan con `api/_lib/auth.ts` (comprueba firma, vigencia, cuenta activa y que la contraseña no haya cambiado) y la SPA redirige a `/login` si recibe 401. Intentos fallidos limitados por IP (10) y por correo (5) cada 10 min. `/oficial` con `OFFICER_PASSCODE` + selección de oficial seed (cookie `vc_officer`, la emite P3).
+- Webhook de WhatsApp (Meta): verificar `X-Hub-Signature-256` (HMAC-SHA256 del body crudo con `WHATSAPP_APP_SECRET`) y el `GET` de verificación con `WHATSAPP_VERIFY_TOKEN`.
 - `publicToken` de multa: 22+ caracteres aleatorios (nanoid), no secuencial.
 - Rate limit en `/api/portal/lookup` y `/api/payments/c2p` (tabla en DB o memoria por instancia; suficiente para demo).
 

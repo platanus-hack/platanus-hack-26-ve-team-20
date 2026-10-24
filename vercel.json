@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/payments/c2p", "destination": "/api/p3?route=payments-c2p" },
+    { "source": "/api/officers/session", "destination": "/api/p3?route=officer-session" },
+    { "source": "/api/officers/location", "destination": "/api/p3?route=officer-location" },
+    { "source": "/api/officers/:id/alerts", "destination": "/api/p3?route=officer-alerts&id=:id" },
+    { "source": "/api/alerts/:id/ack", "destination": "/api/p3?route=alert-ack&id=:id" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

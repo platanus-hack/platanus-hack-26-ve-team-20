@@ -1,0 +1,304 @@
+// Fuente: docs/03-modelo-de-datos.md §2. Dueño: P1.
+// Prisma 7: las URLs de conexión viven en prisma.config.ts (CLI) y lib/db.ts (runtime, adaptador pg).
+// Los enums deben coincidir con lib/contracts/common.ts (lo verifica tests/unit/schema.test.ts).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../lib/generated/prisma"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ViolationType {
+  RED_LIGHT
+  TURN_ARROW
+  SPEEDING
+}
+enum ViolationStatus {
+  DETECTED
+  NEEDS_REVIEW
+  REVIEWED
+  FINED
+  NOTIFIED
+  PAID
+  APPEALED
+  VOID
+}
+enum ReviewReason {
+  LOW_CONFIDENCE
+  NO_PLATE
+  PLATE_NOT_FOUND
+  MODEL_RULE_DISAGREE
+  ML_SERVICE_ERROR
+  MANUAL
+}
+enum FineStatus {
+  PENDING
+  PAID
+  OVERDUE
+  APPEALED
+  VOID
+}
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+enum Channel {
+  WHATSAPP
+  EMAIL
+}
+enum NotificationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  DRY_RUN
+}
+enum AlertStatus {
+  SENT
+  ACKNOWLEDGED
+  NO_OFFICER_NEARBY
+  SUPPRESSED
+}
+enum EvidenceKind {
+  CLIP
+  FRAME
+  PLATE_CROP
+  ANNOTATED
+}
+enum ActorType {
+  SYSTEM
+  OPERATOR
+  OFFICER
+  CITIZEN
+  WEBHOOK
+}
+
+model Intersection {
+  id        String   @id @default(cuid())
+  name      String                       // "Av. Ejemplo con Calle Demo" (ficticio)
+  lat       Float
+  lng       Float
+  cameras   Camera[]
+}
+
+model Camera {
+  id             String   @id @default(cuid())
+  code           String   @unique         // "CAM-001"
+  intersectionId String
+  intersection   Intersection @relation(fields: [intersectionId], references: [id])
+  stopLine       Json                     // [[x1,y1],[x2,y2]] normalizado 0-1
+  homography     Json                     // {imagePoints, groundPointsM, controlImage, controlGroundM, reprojectionErrorM}
+  lanes          Json                     // [{id, polygon, allowedDirection:[dx,dy], limitKmh?, limitSource?}]
+  speedZone      Json?                    // {yAM, yBM, toleranceKmh} en metros (base 15-25 m)
+  parameters     Json?                    // edad mínima de track, ventana/ángulo de contravía, fotogramas de confirmación
+  configVersion  Int      @default(1)     // se incrementa al cambiar la calibración
+  refFrameUrl    String?                  // fotograma de referencia (detectar si la cámara se movió)
+  speedLimitKmh  Int?                     // límite por defecto si el carril no define uno
+  lightChanges   LightChange[]
+  active         Boolean  @default(true)
+  violations     Violation[]
+  sightings      Sighting[]
+}
+
+model LightChange {
+  id        String   @id @default(cuid())
+  cameraId  String
+  camera    Camera   @relation(fields: [cameraId], references: [id])
+  state     String                        // RED | GREEN (amarillo cuenta como verde)
+  at        DateTime @default(now())      // hora del servidor
+  @@index([cameraId, at])
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  cedula    String   @unique             // normalizada "V12345678" (FALSA)
+  fullName  String
+  phone     String                       // E.164 sin "+", ej "584120000001" (FALSO)
+  email     String?
+  vehicles  Vehicle[]
+  createdAt DateTime @default(now())
+}
+
+model Vehicle {
+  id        String   @id @default(cuid())
+  plate     String   @unique             // normalizada "AB123CD" (FALSA)
+  make      String
+  model     String
+  color     String
+  year      Int?
+  ownerId   String
+  owner     Person   @relation(fields: [ownerId], references: [id])
+  violations Violation[]
+  sightings Sighting[]
+  alerts    Alert[]
+}
+
+model Violation {
+  id             String          @id @default(cuid())
+  type           ViolationType
+  status         ViolationStatus @default(DETECTED)
+  reviewReason   ReviewReason?
+  cameraId       String
+  camera         Camera          @relation(fields: [cameraId], references: [id])
+  vehicleId      String?
+  vehicle        Vehicle?        @relation(fields: [vehicleId], references: [id])
+  plateRead      String?                 // lo que leyó la IA (normalizado)
+  plateConfidence Float?
+  confidence     Float                   // confianza global del veredicto
+  occurredAt     DateTime
+  measuredSpeedKmh Float?                // estimación del servicio ML (requiere homografía y speedZone)
+  laneId         String?                 // carril del vehículo
+  roadRelation   String?                 // WITH_FLOW | AGAINST_FLOW | UNKNOWN (según la dirección permitida del carril)
+  modelVersion   String?                 // versión del modelo ML que produjo la detección
+  aiOutput       Json                    // respuesta cruda validada del servicio ML
+  ruleOutput     Json                    // resultado regla geométrica
+  idempotencyKey String          @unique
+  voidReason     String?
+  evidence       Evidence[]
+  fine           Fine?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  @@index([status])
+  @@index([plateRead, cameraId, occurredAt])
+}
+
+model Evidence {
+  id          String       @id @default(cuid())
+  violationId String
+  violation   Violation    @relation(fields: [violationId], references: [id])
+  kind        EvidenceKind
+  url         String                    // Vercel Blob
+  capturedAt  DateTime
+  meta        Json?                     // bbox, light_state del frame, GPS del teléfono
+}
+
+model Fine {
+  id           String     @id @default(cuid())
+  violationId  String     @unique
+  violation    Violation  @relation(fields: [violationId], references: [id])
+  publicToken  String     @unique       // nanoid(24)
+  amountCents  Int                      // MONTO DE EJEMPLO
+  currency     String     @default("VES")
+  status       FineStatus @default(PENDING)
+  issuedAt     DateTime   @default(now())
+  dueAt        DateTime
+  paidAt       DateTime?
+  payments     Payment[]
+  notifications Notification[]
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  fineId         String
+  fine           Fine          @relation(fields: [fineId], references: [id])
+  method         String        @default("C2P_SIMULATED")
+  status         PaymentStatus @default(PENDING)
+  payerBankCode  String                 // "0102" etc. (lista de ejemplo)
+  payerPhone     String
+  payerCedula    String
+  amountCents    Int
+  reference      String?                // referencia simulada
+  failureCode    String?
+  idempotencyKey String        @unique
+  createdAt      DateTime      @default(now())
+  // NUNCA se guarda la clave C2P
+}
+
+model Notification {
+  id          String             @id @default(cuid())
+  fineId      String?
+  fine        Fine?              @relation(fields: [fineId], references: [id])
+  alertId     String?
+  alert       Alert?             @relation(fields: [alertId], references: [id])
+  channel     Channel
+  to          String
+  template    String                    // "FINE_ISSUED" | "PAYMENT_CONFIRMED" | "OFFICER_ALERT"
+  status      NotificationStatus @default(QUEUED)
+  providerId  String?                   // wamid de Kapso / id Resend
+  error       String?
+  createdAt   DateTime           @default(now())
+  @@index([providerId])
+}
+
+model Officer {
+  id        String   @id @default(cuid())
+  badge     String   @unique            // "OF-0001" (ficticio)
+  name      String
+  phone     String
+  onDuty    Boolean  @default(false)
+  locations OfficerLocation[]
+  alerts    Alert[]
+}
+
+model OfficerLocation {
+  id         String   @id @default(cuid())
+  officerId  String
+  officer    Officer  @relation(fields: [officerId], references: [id])
+  lat        Float
+  lng        Float
+  accuracyM  Float?
+  recordedAt DateTime @default(now())
+  @@index([officerId, recordedAt])
+}
+
+model Sighting {
+  id        String   @id @default(cuid())
+  cameraId  String
+  camera    Camera   @relation(fields: [cameraId], references: [id])
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+  plateRead String
+  seenAt    DateTime
+  evidenceUrl String?
+  alert     Alert?
+}
+
+model Alert {
+  id          String      @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle     @relation(fields: [vehicleId], references: [id])
+  sightingId  String      @unique
+  sighting    Sighting    @relation(fields: [sightingId], references: [id])
+  officerId   String?
+  officer     Officer?    @relation(fields: [officerId], references: [id])
+  distanceM   Int?
+  unpaidCount Int
+  status      AlertStatus
+  createdAt   DateTime    @default(now())
+  ackAt       DateTime?
+  notifications Notification[]
+  @@index([vehicleId, createdAt])
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  actorType  ActorType
+  actorId    String?
+  action     String                    // "VIOLATION_TRANSITION", "PORTAL_LOOKUP", ...
+  entity     String                    // "Violation" | "Fine" | ...
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  @@index([entity, entityId])
+  @@index([action, createdAt])           // límites de intentos (login, portal)
+}
+
+// Cuentas de admin/operador (login de /admin y /camaras). La contraseña se guarda con hash scrypt:
+// `scrypt$N$r$p$salt$hash` (lib/auth/password.ts). Nunca en claro.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique               // normalizado en minúsculas
+  name         String
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}

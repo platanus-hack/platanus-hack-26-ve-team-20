@@ -1,10 +1,10 @@
-# AGENTS.md — VíaClara
+# AGENTS.md — SmartTraffic
 
 > Guía para agentes (Claude Code, Cursor, etc.) y humanos. Léela completa antes de tocar código. `CLAUDE.md` es una copia idéntica.
 
 ## 1. Qué es
-**VíaClara**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
-Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (Kapso) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
+**SmartTraffic**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
+Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (WhatsApp Cloud API de Meta) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
 
 Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único requisito técnico: **hosting en Vercel**.
 
@@ -23,11 +23,11 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 - Frontend: **React puro (SPA) con Vite** + React Router, desplegado en **Vercel**. Sin Next.js.
 - Backend: **Vercel Functions** en `/api` (TypeScript, runtime Node).
 - Tailwind CSS + shadcn/ui (tematizado, ver `docs/05-ui.md`).
-- Postgres (**Neon** vía Vercel Marketplace) + **Prisma**.
+- Postgres en **Supabase** (solo como base de datos SQL) + **Prisma**. No se usan Supabase Auth, Storage ni `supabase-js`; el acceso es solo desde el servidor con Prisma.
 - **Vercel Blob** para evidencia (clips, fotogramas clave y recortes de placa); el teléfono sube el clip por client upload con token de `api/blob/upload.ts`.
 - App de cámara: **Expo (React Native, TypeScript)** en `mobile/`. El teléfono hace de cámara de tráfico: graba clips cortos de video.
 - Visión: **detector preentrenado con ajuste fino** (YOLO con pesos COCO, datasets de Kaggle) + ByteTrack + EasyOCR; velocidad y contravía por **homografía y reglas geométricas** sobre las trayectorias. Servido por un **servicio Python (FastAPI) fuera de Vercel** en `ml/`; el ajuste fino se entrena en notebooks de Kaggle. Sin Claude/LLM en el pipeline de visión.
-- **Kapso** para WhatsApp; **Resend** para email (respaldo).
+- **WhatsApp Cloud API de Meta**, directo y sin intermediarios, desde el número de prueba de Meta y con mensajes de texto dentro de la ventana de 24 h (detalle en `docs/p3-plan-de-trabajo.md` §3). Sin plantillas ni email de respaldo.
 - Mapas: Leaflet + OpenStreetMap (sin API key).
 - Tests: Vitest (unit) + Playwright (E2E).
 
@@ -36,13 +36,17 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 pnpm install
 pnpm dev                     # Vite en http://localhost:5173 (solo SPA)
 vercel dev                   # SPA + funciones /api juntas (http://localhost:3000)
-pnpm prisma migrate dev      # aplica schema local
-pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts)
+pnpm db:migrate              # prisma migrate deploy (usa DIRECT_URL, puerto 5432)
+pnpm db:migrate:pooler       # mismo efecto por el pooler 6543, si el 5432 no responde (sin IPv6)
+pnpm db:check                # conexión, tablas y RLS de Supabase
+pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts); idempotente. Alias: pnpm db:seed
+pnpm demo:reset              # borra lo generado por la demo HOY (no sembrado) y re-siembra; --dry-run, --all
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
-cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
+cd mobile && npm install && npx expo start   # app (ciudadano, policía y cámara); npm propio, fuera del workspace pnpm
 cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
-pnpm test                    # vitest
+pnpm test                    # vitest (unit, sin red)
+pnpm test:db                 # vitest contra la base real (requiere seed; limpia sus filas test_*)
 pnpm test:e2e                # playwright (requiere dev server)
 vercel --prod                # o deploy automático desde el repo espejo personal
 ```
@@ -67,12 +71,13 @@ api/                                # Vercel Functions (TypeScript, Node)
   violations/index.ts               # GET lista (P1)
   violations/[id]/review.ts         # POST aprobar/rechazar (P1)
   fines/[token].ts                  # GET multa pública (P1)
+  auth/login.ts, logout.ts, me.ts   # login de admin/operador por cookie de sesión (P1)
   portal/lookup.ts                  # POST consulta por cédula (P1)
   payments/c2p.ts                   # POST pago simulado (P3)
   officers/location.ts              # POST ubicación oficial (P3)
   officers/[id]/alerts.ts           # GET alertas (P3)
   alerts/[id]/ack.ts                # POST acuse (P3)
-  webhooks/kapso.ts                 # POST eventos Kapso (P3)
+  webhooks/whatsapp.ts              # GET verificación + POST eventos de WhatsApp (Meta) (P3)
   cameras/index.ts                  # GET lista de cámaras con calibración (P2)
   blob/upload.ts                    # token client-upload Vercel Blob para el clip (P2)
   time.ts                           # GET hora del servidor (offset de reloj de la app) (P2)
@@ -85,15 +90,16 @@ ml/                                 # servicio de visión (Python/FastAPI) + ent
 lib/
   contracts/        # tipos + Zod compartidos (P1 dueño, todos revisan)
   db.ts             # Prisma client singleton (P1)
+  auth/             # hash scrypt de contraseñas y sesiones firmadas (P1)
   domain/           # máquina de estados, multas, auditoría (P1)
   vision/           # cliente del servicio ML, reglas (luz en el cruce, placa), doble llave (P2)
   storage/          # Vercel Blob (P2)
-  notify/           # kapso.ts, email.ts, templates.ts (P3)
+  notify/           # whatsapp.ts, templates.ts (P3)
   payments/         # c2p.ts simulado (P3)
   geo/              # haversine, oficial más cercano (P3)
   alerts/           # creación/despacho de alertas (P3)
-components/ui/      # shadcn tematizado (P4)
-components/<feature>/  # componentes de cada vertical (dueño de la vertical)
+src/components/ui/      # shadcn tematizado (P4)
+src/components/<feature>/  # componentes de cada vertical (dueño de la vertical)
 prisma/schema.prisma, prisma/seed.ts   # (P1)
 public/demo/        # manifiesto y clips de ejemplo (sets A–D) para pruebas y plan B (P2)
 tests/              # e2e Playwright (P1 coordina QA)
@@ -115,21 +121,23 @@ docs/               # esta documentación
 ## 7. Variables de entorno
 | Variable | Uso | Dueño |
 |---|---|---|
-| `DATABASE_URL` | Postgres Neon (pooled) | P1 |
-| `DIRECT_URL` | Neon directo para migraciones | P1 |
+| `DATABASE_URL` | Supabase: cadena del pooler en modo transacción (puerto 6543, con `?pgbouncer=true`) | P1 |
+| `DIRECT_URL` | Supabase: conexión directa o session pooler (puerto 5432) para migraciones | P1 |
 | `ML_SERVICE_URL` | URL del servicio Python de inferencia (fuera de Vercel) | P2 |
 | `ML_SERVICE_TOKEN` | token Bearer entre `api/` y el servicio ML | P2 |
 | `CAMERA_API_KEY` | secreto que envía la app móvil en `X-Camera-Key` | P2 |
 | `EXPO_PUBLIC_API_BASE_URL` | URL de la API para la app móvil (en `mobile/.env`) | P2 |
 | `VISION_CONFIDENCE_THRESHOLD` | p.ej. `0.8` | P2 |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob (evidencia) | P2 |
-| `KAPSO_API_KEY` | Kapso | P3 |
-| `KAPSO_PHONE_NUMBER_ID` | número WhatsApp emisor | P3 |
-| `KAPSO_WEBHOOK_SECRET` | verificar `X-Webhook-Signature` | P3 |
-| `KAPSO_TEMPLATE_FINE` | nombre de plantilla aprobada (opcional) | P3 |
-| `RESEND_API_KEY`, `EMAIL_FROM` | email respaldo | P3 |
-| `APP_BASE_URL` | p.ej. `https://<pendiente>.vercel.app` | P1 |
-| `ADMIN_PASSCODE` | acceso simple a `/admin` y `/camaras` | P1 |
+| `WHATSAPP_ACCESS_TOKEN` | token permanente del usuario del sistema de Meta | P3 |
+| `WHATSAPP_PHONE_NUMBER_ID` | id del número WhatsApp emisor (el número de prueba de Meta) | P3 |
+| `WHATSAPP_WABA_ID` | id de la cuenta de WhatsApp Business (diagnóstico) | P3 |
+| `WHATSAPP_APP_SECRET` | clave secreta de la app; verifica `X-Hub-Signature-256` del webhook | P3 |
+| `WHATSAPP_VERIFY_TOKEN` | texto para el GET de verificación del webhook | P3 |
+| `WHATSAPP_GRAPH_VERSION` | versión de la Graph API, p.ej. `v23.0` | P3 |
+| `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
+| `SESSION_SECRET` | firma las cookies de sesión (≥ 32 caracteres; `openssl rand -base64 48`). Obligatoria en Vercel | P1 |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |
 | `OFFICER_PASSCODE` | acceso simple a `/oficial` | P3 |
 | `DEMO_PHONE_DRIVER`, `DEMO_PHONE_OFFICER` | teléfonos reales del equipo para la demo | P3 |
 | `ALERT_RADIUS_METERS` | p.ej. `1500` | P3 |

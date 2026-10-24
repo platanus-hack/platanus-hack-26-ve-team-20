@@ -1,0 +1,41 @@
+# Dependencias y builds
+node_modules
+dist
+dist-ssr
+coverage
+.vercel
+*.tsbuildinfo
+
+# Secretos (solo .env.example va al repo)
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+logs
+*.log
+pnpm-debug.log*
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.sw?
+*:Zone.Identifier
+
+# Tests
+playwright-report
+test-results
+
+# Modelo ML (pesos pesados, entorno Python)
+ml/weights/
+ml/.venv/
+__pycache__/
+*.pt
+*.onnx
+
+# Prisma (el cliente se genera en postinstall)
+lib/generated/
+prisma/*.db

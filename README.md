@@ -1,12 +1,12 @@
-# VíaClara
+# SmartTraffic
 
 Multas de tránsito automáticas, con evidencia y pagables desde el teléfono. Proyecto de **team-20** en Platanus Hack 26: Caracas. Track: Trust.
 
-<img src="./project-logo.png" alt="VíaClara logo" width="200" />
+<img src="./project-logo.png" alt="SmartTraffic logo" width="200" />
 
 ## Qué hace
 - Detecta cruces en luz roja desde fotogramas de cámaras de semáforo (detector preentrenado con ajuste fino en datasets de Kaggle + tracking + homografía por cámara; un teléfono con app Expo graba el clip).
-- Lee la placa, crea la multa con evidencia y avisa al propietario por WhatsApp (Kapso).
+- Lee la placa, crea la multa con evidencia y avisa al propietario por WhatsApp (WhatsApp Cloud API de Meta).
 - Pago con Pago Móvil C2P (**simulado** en la demo, sin dinero real).
 - Portal público de consulta por cédula con datos limitados.
 - Alerta al oficial más cercano cuando se ve un vehículo con multas impagas.
@@ -18,7 +18,7 @@ Todos los datos de la demo son ficticios.
 https://<pendiente>.vercel.app
 
 ## Stack
-React + Vite (TypeScript) y Vercel Functions en Vercel · Tailwind + shadcn/ui · Neon Postgres + Prisma · Vercel Blob · detector de visión afinado (Python) · Expo · Kapso · Resend.
+React + Vite (TypeScript) y Vercel Functions en Vercel · Tailwind + shadcn/ui · Supabase (Postgres) + Prisma · Vercel Blob · detector de visión afinado (Python) · Expo · WhatsApp Cloud API (Meta).
 
 ## Correr localmente
 ```bash

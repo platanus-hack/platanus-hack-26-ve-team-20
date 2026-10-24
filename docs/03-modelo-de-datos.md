@@ -1,4 +1,4 @@
-# 03 — Modelo de datos · VíaClara
+# 03 — Modelo de datos · SmartTraffic
 
 Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 
@@ -8,6 +8,7 @@ Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 | `Intersection` | Cruce físico (nombre, lat/lng) |
 | `Camera` | Cámara (teléfono con app Expo) en una intersección, con calibración (homografía, línea de pare, carriles, zona de velocidad) |
 | `LightChange` | Cambio de estado del semáforo simulado de una cámara (con hora del servidor) |
+| `AdminUser` | Cuenta de admin/operador (login de `/admin` y `/camaras`); contraseña con hash scrypt |
 | `Person` | Propietario (cédula, nombre, teléfono, email) — **datos falsos** |
 | `Vehicle` | Placa, marca, modelo, color, dueño |
 | `Violation` | Evento de infracción detectado (con estado y salida de IA) |
@@ -182,7 +183,7 @@ model Notification {
   to          String
   template    String                    // "FINE_ISSUED" | "PAYMENT_CONFIRMED" | "OFFICER_ALERT"
   status      NotificationStatus @default(QUEUED)
-  providerId  String?                   // wamid de Kapso / id Resend
+  providerId  String?                   // wamid de WhatsApp (Meta)
   error       String?
   createdAt   DateTime           @default(now())
   @@index([providerId])
@@ -250,6 +251,19 @@ model AuditLog {
   ip         String?
   createdAt  DateTime  @default(now())
   @@index([entity, entityId])
+  @@index([action, createdAt])           // límites de intentos (login, portal)
+}
+
+// Cuentas de admin/operador. La contraseña se guarda con hash scrypt `scrypt$N$r$p$salt$hash`
+// (lib/auth/password.ts), nunca en claro. La cuenta inicial se siembra con ADMIN_EMAIL / ADMIN_PASSWORD.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique               // normalizado en minúsculas
+  name         String
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
 }
 ```
 
@@ -276,7 +290,7 @@ stateDiagram-v2
   NEEDS_REVIEW --> REVIEWED: operador aprueba (corrige placa)
   NEEDS_REVIEW --> VOID: operador anula
   REVIEWED --> FINED
-  FINED --> NOTIFIED: WhatsApp/email enviado
+  FINED --> NOTIFIED: WhatsApp enviado
   FINED --> PAID
   NOTIFIED --> PAID: pago C2P aprobado
   NOTIFIED --> APPEALED: conductor apela (stretch)
@@ -294,6 +308,11 @@ Nota de alcance: "Revisado" en el brief = `REVIEWED`; en el camino automático s
 - **Idempotencia**: `idempotencyKey` = hash(cameraId + URL del clip) si el cliente no envía una.
 - **Monto**: tabla de ejemplo en `lib/domain/fines.ts` (`FINE_AMOUNTS_EXAMPLE = { RED_LIGHT: ..., TURN_ARROW: ..., SPEEDING: ... }`), marcada como `// MONTOS DE EJEMPLO, no legales`. `dueAt = issuedAt + 30 días` (ejemplo).
 - **Unpaid** = Fines con status `PENDING` (incluye vencidas).
+- **`registerDetection`** (`lib/domain/violations.ts`): `VIOLATION` con placa válida, confianza (veredicto y placa) ≥ `VISION_CONFIDENCE_THRESHOLD` y vehículo registrado → `Fine` + `FINED`, se llama `notifyFineIssued` (P3) y, si el resultado es `SENT` o `DRY_RUN`, pasa a `NOTIFIED`. Si el envío falla queda `FINED` y se audita `NOTIFY_FAILED` (la detección nunca se pierde). Orden de los motivos de revisión: `NO_PLATE` → `LOW_CONFIDENCE` → `PLATE_NOT_FOUND`.
+- **Idempotencia y dedup** devuelven la violación existente con `duplicate: true` (tanto la repetición de una `idempotencyKey` como la misma placa + cámara + tipo a menos de 60 s).
+- **Alerta por avistamiento**: si el vehículo tenía multas `PENDING` **antes** de esta detección y la placa es confiable (`plateConfidence` ≥ umbral, vehículo registrado), `registerDetection` llama `registerSighting` (guarda placa, cámara y hora) y luego `dispatchAlert` (P3). Aplica también a `NO_VIOLATION`: la cámara "vio" al vehículo. Un fallo al alertar se audita (`ALERT_FAILED`) y no afecta a la detección. `registerSighting` también se usa directo desde `POST /api/sightings` (P2); no falla con placas desconocidas y cuenta como impagas las vencidas.
+- **`markFinePaid(fineId, paymentId)`** (lo llama P3 al aprobar el pago simulado): bloquea la violación, verifica que el pago exista, sea de esa multa y esté `APPROVED`, y pasa a `PAID` por `transition()` (solo desde `FINED`/`NOTIFIED`). Una multa ya pagada lanza `ALREADY_PAID` (409): dos pagos simultáneos nunca se aplican dos veces. El `AuditLog` guarda solo `payment:<id>`, sin cédula ni teléfono del pagador.
+- **`NO_VIOLATION`** no tiene estado propio: se guarda como `VOID` con `voidReason = "NO_VIOLATION"` para que aparezca en el feed de `/camaras`. Quien liste violaciones lo distingue por ese motivo.
 
 ## 5. Seed (datos FALSOS) — `prisma/seed.ts`
 Todo con prefijo/indicador de ejemplo. Cédulas en rango claramente ficticio, teléfonos `58412000000X`.
@@ -312,4 +331,4 @@ Todo con prefijo/indicador de ejemplo. Cédulas en rango claramente ficticio, te
 - `V-99000002` — dueño de placa con **2 multas impagas** → usar para el flujo de alerta a oficial.
 - El texto de las placas en los frames demo debe coincidir con el seed (los frames se generan/editan con placas ficticias).
 
-Seed idempotente (`upsert`), ejecutable en Neon de producción para la demo: `pnpm prisma db seed`. Script extra `pnpm demo:reset` que borra violaciones/multas creadas hoy y re-siembra.
+Seed idempotente (`upsert`), ejecutable en la base de Supabase de producción para la demo: `pnpm prisma db seed`. Script extra `pnpm demo:reset`: borra lo generado por la demo que NO es del seed (ids sin prefijo `seed_`) y fue creado hoy (hora de Caracas), y re-aplica el seed (restaura multas y violaciones sembradas y renueva la posición de los oficiales). `--dry-run` solo cuenta; `--all` ignora la fecha. Hay una sola base compartida, por eso nunca borra filas sembradas ni anteriores a hoy sin `--all`.
