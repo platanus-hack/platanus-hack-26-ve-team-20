@@ -25,7 +25,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: riel de íconos + barra superior (buscador, tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos (con el logo) + barra superior (tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()

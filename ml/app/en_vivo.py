@@ -38,7 +38,7 @@ AJUSTES_VIVO: dict[str, Any] = {
     "conf_placas": 0.25,  # defecto 0.30
     "leer_cada": 1,  # defecto 3: con pocos cuadros por segundo cada cuadro cuenta para leer la placa
     "max_lecturas": 15,  # defecto 10
-    "frames_despues": 20,  # defecto 30 (pensado para 30 fps): a ~6 fps la multa cerraría muy tarde
+    "frames_despues": 10,  # defecto 30 (pensado para 30 fps): a pocos cuadros/s la multa tardaba en salir
 }
 
 
