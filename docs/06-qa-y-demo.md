@@ -15,7 +15,7 @@ Coordinador de QA: **P1** (después de h12); cada dueño prueba su vertical.
 | `lib/payments/c2p` | `000000` rechaza, `111111` sin fondos, otra aprueba; nunca devuelve/loguea la clave |
 | `lib/geo/haversine` | distancias conocidas (dos puntos fijos), radio |
 | `lib/alerts/dispatch` | oficial más cercano; ninguno en radio; ubicación vieja ignorada; supresión 10 min |
-| webhook Kapso | firma válida/inválida; lote; evento repetido |
+| webhook de WhatsApp (Meta) | `GET` de verificación (token bueno/malo); firma válida/inválida; varios estados en un envío; evento repetido; estado atrasado no baja de `READ` |
 
 ### E2E (Playwright, `tests/e2e/`)
 1. `happy-path.spec.ts` (la app móvil no se automatiza con Playwright: usa `POST /api/detections` con el set demo A o el botón de `/camaras`): login admin → `/camaras` → set demo A → ver VIOLATION → abrir link de multa → pagar con clave `123456` → ver comprobante → `/consulta` con `V-99000001` muestra PAGADA.
@@ -39,7 +39,7 @@ Correr con `NOTIFY_DRY_RUN=true` y `DEMO_VISION_CACHE=true` en CI/local para no 
 | Multa ya pagada | 409 `ALREADY_PAID`, UI muestra comprobante |
 | Doble submit de pago | mismo `idempotencyKey` → un solo `Payment` |
 | Clave C2P inválida | `REJECTED` con mensaje, se puede reintentar |
-| WhatsApp falla (fuera de ventana 24 h / número inválido) | intento email; `Notification.FAILED` visible en consola |
+| WhatsApp falla (fuera de ventana 24 h / número no verificado) | `Notification.FAILED` con el error, visible en consola; la multa se crea igual |
 | Ningún oficial cerca | `Alert.NO_OFFICER_NEARBY` visible en consola |
 | Ubicación de oficial vieja (> 10 min) | ignorada |
 | Misma placa vista 3 veces en 5 min | 1 alerta, resto `SUPPRESSED` |
@@ -50,7 +50,7 @@ Correr con `NOTIFY_DRY_RUN=true` y `DEMO_VISION_CACHE=true` en CI/local para no 
 ## 3. Checklist de demo (h30 y antes del pitch)
 - [ ] Deploy de producción en Vercel accesible desde 4G (no solo wifi del evento).
 - [ ] `pnpm demo:reset` corrido; seed con `DEMO_PHONE_DRIVER` y `DEMO_PHONE_OFFICER` correctos.
-- [ ] Ambos teléfonos de demo enviaron "hola" al número Kapso (ventana 24 h abierta) o plantilla aprobada.
+- [ ] Ambos teléfonos de demo enviaron "hola" al número de prueba de WhatsApp poco antes del pitch (ventana 24 h abierta); token permanente de Meta cargado.
 - [ ] `NOTIFY_DRY_RUN=false` en prod. `DEMO_VISION_CACHE` listo como plan B (toggle).
 - [ ] Oficial OF-0001 logueado en el teléfono 2, "En servicio", posición demo cerca de CAM-001.
 - [ ] Servicio ML (`ml/`) y su túnel arriba; `GET /health` responde. Teléfono-cámara (app Expo) en trípode fijo, con `CAM-001` configurada y la `CAMERA_API_KEY`; cámara calibrada (error de reproyección ≤ 0,15 m) y semáforo simulado en ROJO.
@@ -69,6 +69,6 @@ Correr con `NOTIFY_DRY_RUN=true` y `DEMO_VISION_CACHE=true` en CI/local para no 
 | 1:55–2:15 | Operador | `/consulta` con cédula ficticia: historial, datos limitados (placa enmascarada). |
 | 2:15–2:35 | Operador + teléfono 2 | Set "vehículo con deuda": la cámara lo ve → **teléfono del oficial vibra**: alerta con placa y distancia, en el mapa. |
 | 2:35–2:50 | Presentador | Confianza: si la IA duda, va a revisión humana (mostrar cola 3 s); toda acción auditada; datos ficticios. Producción: detección en el borde (YOLO + ALPR) y Claude como segundo revisor; integración C2P con banco/agregador. |
-| 2:50–3:00 | Presentador | Cierre: "Calles más seguras con multas justas, transparentes y fáciles de pagar. VíaClara." Stack: modelo propio entrenado con Kaggle, app Expo, Kapso, Vercel. |
+| 2:50–3:00 | Presentador | Cierre: "Calles más seguras con multas justas, transparentes y fáciles de pagar. VíaClara." Stack: modelo propio entrenado con Kaggle, app Expo, WhatsApp Cloud API de Meta, Vercel. |
 
 Reglas del pitch: nadie lee slides; si algo falla > 5 s, pasar al video plan B sin disculpas largas; ensayar 3 veces con cronómetro (h30, h32, h34).
