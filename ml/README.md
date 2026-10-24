@@ -13,20 +13,33 @@ ML_SERVICE_TOKEN=dev uvicorn app.main:app --reload --port 8000
 pytest -q
 ```
 
-Sin los pesos el servicio responde en **modo simulado** (set A: cruza, placa `AB123CD`).
-`GET /health` dice en qué modo está (`"mode": "motor" | "simulado"`).
+`GET /health` dice en qué modo está:
+
+| Modo | Cuándo | Qué hace |
+|---|---|---|
+| `motor` | están `ml/weights/vehiculos.pt` y `placas.pt` | tus modelos entrenados |
+| `coco` | `ML_USAR_COCO=true` | YOLO genérico de COCO (se descarga solo) para vehículos; placas solo si está `placas.pt` |
+| `simulado` | sin pesos | respuesta fija del set A (cruza, placa `AB123CD`) |
+
+Probar un video local sin servidor (imprime la respuesta del contrato y la carpeta de evidencias):
+
+```bash
+ML_USAR_COCO=true ML_DEVICE=mps python probar_clip.py clip.mp4 --linea 0,0.6,1,0.6
+```
 
 ## Cuando termine el entrenamiento en Kaggle
 
+El código del motor (`ml/motor/`) ya está en el repo, extraído de `deteccion_semaforo_placas.ipynb`. Solo faltan los pesos:
+
 1. Descargar `app_infracciones.zip` de la pestaña **Output** de la versión guardada.
-2. Copiar el código del motor a `ml/motor/` (sí va al repo) y los pesos a `ml/weights/` (no van al repo):
+2. Copiar los pesos a `ml/weights/` (no van al repo). Si cambiaste el motor en el notebook, copia también `motor_infracciones.py`:
    ```bash
    unzip app_infracciones.zip -d /tmp/motor
-   cp /tmp/motor/{motor_infracciones.py,configurar_camara.py,prueba_camara.py,camara_ejemplo.json,requirements.txt} ml/motor/
    mkdir -p ml/weights && cp /tmp/motor/*.pt ml/weights/
    pip install -r ml/motor/requirements.txt
    ```
-   Si al instalar EasyOCR se rompe OpenCV: `pip uninstall -y opencv-python opencv-python-headless && pip install opencv-python-headless`.
+   Ultralytics instala `opencv-python` y choca con la versión headless. Dejar solo una:
+   `pip uninstall -y opencv-python opencv-python-headless && pip install opencv-python-headless==4.11.0.86`.
 3. `ML_DEVICE=mps` en Mac con chip Apple, `0` con NVIDIA, `cpu` por defecto.
 4. Reiniciar uvicorn: `/health` debe decir `"mode": "motor"`.
 5. Probar con un clip: `prueba_camara.py --camara clip.mp4` (referencia del motor) y luego `/predict`.
@@ -37,6 +50,7 @@ Sin los pesos el servicio responde en **modo simulado** (set A: cruza, placa `AB
 |---|---|---|
 | `ML_SERVICE_TOKEN` | — (obligatoria) | Bearer que envía `lib/vision/ml-client.ts`. Sin ella todo `/predict` da 401 |
 | `ML_DEVICE` | `cpu` | `0`, `mps` o `cpu` |
+| `ML_USAR_COCO` | `false` | `true` = YOLO de COCO sin `vehiculos.pt` (pruebas) |
 | `ML_MODEL_VERSION` | `vc-0.1` | Va en cada `VisionResult` |
 | `ML_MOTOR_DIR`, `ML_WEIGHTS_DIR`, `ML_EVIDENCE_DIR` | `ml/motor`, `ml/weights`, `ml/evidencias` | Rutas |
 

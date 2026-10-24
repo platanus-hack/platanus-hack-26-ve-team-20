@@ -19,7 +19,9 @@ ML_DIR = Path(__file__).resolve().parents[1]
 MOTOR_DIR = Path(os.getenv("ML_MOTOR_DIR", ML_DIR / "motor"))
 WEIGHTS_DIR = Path(os.getenv("ML_WEIGHTS_DIR", ML_DIR / "weights"))
 EVIDENCE_DIR = Path(os.getenv("ML_EVIDENCE_DIR", ML_DIR / "evidencias"))
-MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "vc-0.1")
+# Sin vehiculos.pt: YOLO genérico de COCO (se descarga solo). Sin placas.pt la placa sale "NO LEIDA".
+USAR_COCO = os.getenv("ML_USAR_COCO", "false") == "true"
+MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "vc-0.1") + ("-coco" if USAR_COCO else "")
 MAX_CLIP_BYTES = 100 * 1024 * 1024
 PLACA_NO_LEIDA = "NO LEIDA"
 
@@ -29,8 +31,8 @@ class ClipError(Exception):
 
 
 def motor_disponible() -> bool:
-    return (MOTOR_DIR / "motor_infracciones.py").exists() and all(
-        (WEIGHTS_DIR / f).exists() for f in ("vehiculos.pt", "placas.pt")
+    return (MOTOR_DIR / "motor_infracciones.py").exists() and (
+        USAR_COCO or all((WEIGHTS_DIR / f).exists() for f in ("vehiculos.pt", "placas.pt"))
     )
 
 
@@ -43,11 +45,12 @@ def crear_motor(**kwargs: Any) -> Any:
     sys.path.insert(0, str(MOTOR_DIR))
     from motor_infracciones import MotorInfracciones  # type: ignore[import-not-found]
 
-    senales = WEIGHTS_DIR / "senales.pt"
+    placas, senales = WEIGHTS_DIR / "placas.pt", WEIGHTS_DIR / "senales.pt"
     return MotorInfracciones(
-        pesos_vehiculos=str(WEIGHTS_DIR / "vehiculos.pt"),
-        pesos_placas=str(WEIGHTS_DIR / "placas.pt"),
+        pesos_vehiculos="yolo11n.pt" if USAR_COCO else str(WEIGHTS_DIR / "vehiculos.pt"),
+        pesos_placas=str(placas) if placas.exists() else None,
         pesos_senales=str(senales) if senales.exists() else None,
+        usar_coco=USAR_COCO,
         device=_device(),
         **kwargs,
     )

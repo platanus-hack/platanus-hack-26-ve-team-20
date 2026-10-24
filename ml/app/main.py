@@ -24,7 +24,7 @@ def auth(authorization: Annotated[str, Header()] = "") -> None:
 
 @app.get("/health")
 def health() -> dict[str, object]:
-    modo = "motor" if pipeline.motor_disponible() else "simulado"
+    modo = ("coco" if pipeline.USAR_COCO else "motor") if pipeline.motor_disponible() else "simulado"
     return {"ok": True, "modelVersion": pipeline.MODEL_VERSION, "mode": modo}
 
 
