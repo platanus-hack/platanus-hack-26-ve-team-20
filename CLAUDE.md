@@ -36,7 +36,9 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 pnpm install
 pnpm dev                     # Vite en http://localhost:5173 (solo SPA)
 vercel dev                   # SPA + funciones /api juntas (http://localhost:3000)
-pnpm prisma migrate dev      # aplica schema local
+pnpm db:migrate              # prisma migrate deploy (usa DIRECT_URL, puerto 5432)
+pnpm db:migrate:pooler       # mismo efecto por el pooler 6543, si el 5432 no responde (sin IPv6)
+pnpm db:check                # conexión, tablas y RLS de Supabase
 pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts)
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
