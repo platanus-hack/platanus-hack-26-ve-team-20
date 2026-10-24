@@ -6,7 +6,8 @@ Dueño: **P1**. Archivo: `prisma/schema.prisma`, seed en `prisma/seed.ts`.
 | Entidad | Descripción |
 |---|---|
 | `Intersection` | Cruce físico (nombre, lat/lng) |
-| `Camera` | Cámara en una intersección, con calibración (línea de pare, ROI semáforo) |
+| `Camera` | Cámara (teléfono con app Expo) en una intersección, con calibración (homografía, línea de pare, carriles, zona de velocidad) |
+| `LightChange` | Cambio de estado del semáforo simulado de una cámara (con hora del servidor) |
 | `Person` | Propietario (cédula, nombre, teléfono, email) — **datos falsos** |
 | `Vehicle` | Placa, marca, modelo, color, dueño |
 | `Violation` | Evento de infracción detectado (con estado y salida de IA) |
@@ -31,13 +32,13 @@ datasource db {
 
 enum ViolationType   { RED_LIGHT TURN_ARROW SPEEDING }
 enum ViolationStatus { DETECTED NEEDS_REVIEW REVIEWED FINED NOTIFIED PAID APPEALED VOID }
-enum ReviewReason    { LOW_CONFIDENCE NO_PLATE PLATE_NOT_FOUND MODEL_RULE_DISAGREE VISION_PARSE_ERROR MANUAL }
+enum ReviewReason    { LOW_CONFIDENCE NO_PLATE PLATE_NOT_FOUND MODEL_RULE_DISAGREE ML_SERVICE_ERROR MANUAL }
 enum FineStatus      { PENDING PAID OVERDUE APPEALED VOID }
 enum PaymentStatus   { PENDING APPROVED REJECTED }
 enum Channel         { WHATSAPP EMAIL }
 enum NotificationStatus { QUEUED SENT DELIVERED READ FAILED DRY_RUN }
 enum AlertStatus     { SENT ACKNOWLEDGED NO_OFFICER_NEARBY SUPPRESSED }
-enum EvidenceKind    { FRAME PLATE_CROP ANNOTATED }
+enum EvidenceKind    { CLIP FRAME PLATE_CROP ANNOTATED }
 enum ActorType       { SYSTEM OPERATOR OFFICER CITIZEN WEBHOOK }
 
 model Intersection {
@@ -53,15 +54,27 @@ model Camera {
   code           String   @unique         // "CAM-001"
   intersectionId String
   intersection   Intersection @relation(fields: [intersectionId], references: [id])
-  heading        String?                  // "Norte→Sur"
   stopLine       Json                     // [[x1,y1],[x2,y2]] normalizado 0-1
-  lightRoi       Json                     // {x,y,w,h}
-  turnZone       Json?                    // stretch
-  speedLines     Json?                    // stretch {a:[[..],[..]], b:[[..],[..]], distanceMeters}
-  speedLimitKmh  Int?
+  homography     Json                     // {imagePoints, groundPointsM, controlImage, controlGroundM, reprojectionErrorM}
+  lanes          Json                     // [{id, polygon, allowedDirection:[dx,dy], limitKmh?, limitSource?}]
+  speedZone      Json?                    // {yAM, yBM, toleranceKmh} en metros (base 15-25 m)
+  parameters     Json?                    // edad mínima de track, ventana/ángulo de contravía, fotogramas de confirmación
+  configVersion  Int      @default(1)     // se incrementa al cambiar la calibración
+  refFrameUrl    String?                  // fotograma de referencia (detectar si la cámara se movió)
+  speedLimitKmh  Int?                     // límite por defecto si el carril no define uno
+  lightChanges   LightChange[]
   active         Boolean  @default(true)
   violations     Violation[]
   sightings      Sighting[]
+}
+
+model LightChange {
+  id        String   @id @default(cuid())
+  cameraId  String
+  camera    Camera   @relation(fields: [cameraId], references: [id])
+  state     String                        // RED | GREEN (amarillo cuenta como verde)
+  at        DateTime @default(now())      // hora del servidor
+  @@index([cameraId, at])
 }
 
 model Person {
@@ -101,8 +114,11 @@ model Violation {
   plateConfidence Float?
   confidence     Float                   // confianza global del veredicto
   occurredAt     DateTime
-  measuredSpeedKmh Float?                // stretch
-  aiOutput       Json                    // salida cruda validada de Claude
+  measuredSpeedKmh Float?                // estimación del servicio ML (requiere homografía y speedZone)
+  laneId         String?                 // carril del vehículo
+  roadRelation   String?                 // WITH_FLOW | AGAINST_FLOW | UNKNOWN (según la dirección permitida del carril)
+  modelVersion   String?                 // versión del modelo ML que produjo la detección
+  aiOutput       Json                    // respuesta cruda validada del servicio ML
   ruleOutput     Json                    // resultado regla geométrica
   idempotencyKey String          @unique
   voidReason     String?
@@ -121,7 +137,7 @@ model Evidence {
   kind        EvidenceKind
   url         String                    // Vercel Blob
   capturedAt  DateTime
-  meta        Json?                     // bbox, light_state del frame
+  meta        Json?                     // bbox, light_state del frame, GPS del teléfono
 }
 
 model Fine {
@@ -275,7 +291,7 @@ Nota de alcance: "Revisado" en el brief = `REVIEWED`; en el camino automático s
 
 ## 4. Reglas de dominio (P1)
 - **Dedup**: no crear `Violation` si existe otra con mismo `plateRead` + `cameraId` + `type` y `|occurredAt − nueva| < 60 s`. Devuelve la existente (`duplicate: true`).
-- **Idempotencia**: `idempotencyKey` = hash(cameraId + urls de frames) si el cliente no envía una.
+- **Idempotencia**: `idempotencyKey` = hash(cameraId + URL del clip) si el cliente no envía una.
 - **Monto**: tabla de ejemplo en `lib/domain/fines.ts` (`FINE_AMOUNTS_EXAMPLE = { RED_LIGHT: ..., TURN_ARROW: ..., SPEEDING: ... }`), marcada como `// MONTOS DE EJEMPLO, no legales`. `dueAt = issuedAt + 30 días` (ejemplo).
 - **Unpaid** = Fines con status `PENDING` (incluye vencidas).
 
@@ -284,7 +300,7 @@ Todo con prefijo/indicador de ejemplo. Cédulas en rango claramente ficticio, te
 | Tipo | Cantidad | Detalle |
 |---|---|---|
 | Intersection | 3 | "Av. Demo Norte con Calle 1 (ejemplo)", coords en Caracas aproximadas (zona pública genérica) |
-| Camera | 4 | `CAM-001..004`, calibración que coincide con los frames de `public/demo/` |
+| Camera | 4 | `CAM-001..004`, calibración (homografía y carriles) que coincide con los clips de `public/demo/` |
 | Person | 8 | "Persona Ejemplo 1..8", cédulas `V-99000001..V-99000008`, emails `persona1@example.com` |
 | Vehicle | 10 | placas `AA000AA`-estilo ficticias (p.ej. `AB123CD`), marca/modelo/color variados |
 | Violation+Fine | 12 | historial mixto: PAID, NOTIFIED (vencidas y no), VOID, 2 NEEDS_REVIEW |

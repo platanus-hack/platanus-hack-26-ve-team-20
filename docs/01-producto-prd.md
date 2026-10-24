@@ -23,8 +23,8 @@ Cámara en semáforo → IA detecta la infracción y lee la placa → multa con 
 
 ## 4. Alcance
 ### MVP (debe funcionar en la demo)
-1. Simulador de cámara: elegir intersección/cámara y subir 2–3 frames (o usar los de `public/demo/`).
-2. Detección de **luz roja** con Claude visión + regla geométrica de línea de pare.
+1. Cámara = teléfono con la app Expo: apunta al semáforo y graba un clip corto (o se envía un set de `public/demo/` desde `/camaras`); el semáforo es simulado por el operador.
+2. Detección de **luz roja**: detector preentrenado con ajuste fino (datasets de Kaggle) + tracking + regla de cruce de línea de pare; la placa se lee con OCR; velocidad y dirección se estiman con homografía (no sancionatorias).
 3. Lectura de placa y match contra registro vehicular **falso** (seed).
 4. Creación de `Violation` + `Evidence` + `Fine` (si confianza ≥ umbral) o envío a revisión.
 5. Notificación WhatsApp (Kapso) con link a la multa; email (Resend) como respaldo.
@@ -35,7 +35,7 @@ Cámara en semáforo → IA detecta la infracción y lee la placa → multa con 
 
 ### Stretch (si sobra tiempo, en este orden)
 1. Infracción de **flecha de giro** (misma lógica, polígono de giro + estado de flecha).
-2. **Velocidad**: dos marcas de tiempo sobre distancia conocida entre dos líneas virtuales.
+2. **Multa por velocidad y por contravía**: ya se estiman en cada detección; falta la regla de sanción, el monto y, para velocidad, un instrumento homologado (`docs/10` §7).
 3. Flujo de **apelación** desde la página de multa.
 4. Respuesta por WhatsApp ("PAGAR", "APELAR") vía webhook Kapso.
 5. OTP por WhatsApp para ver detalle completo en el portal.
@@ -46,15 +46,16 @@ Cámara en semáforo → IA detecta la infracción y lee la placa → multa con 
 - Integración bancaria real, dinero real, conexión a registros oficiales (INTT, SAIME).
 - Procesamiento de video en tiempo real / RTSP desde cámaras reales.
 - Validez legal de la multa, firma digital oficial.
-- App nativa.
 
 ## 5. Historias de usuario y criterios de aceptación
 
 **HU-01 Detección de luz roja (Operador)**
-Como operador, subo frames de una cámara y veo si hubo infracción.
-- [ ] En `/camaras` puedo elegir cámara (seed) y subir 2–3 imágenes o elegir un set demo.
-- [ ] En ≤ 20 s veo: estado del semáforo, placa leída, confianza, veredicto (`VIOLATION` / `NO_VIOLATION` / `NEEDS_REVIEW`).
-- [ ] Se guarda la evidencia en Blob y se ve en la consola (feed en vivo, polling ≤ 3 s).
+Como operador, el teléfono-cámara graba un evento y veo si hubo infracción.
+- [ ] En la app móvil elijo la cámara (código de seed, p. ej. `CAM-001`) y pulso **Grabar evento**; la app graba un clip de 3–5 s y lo sube con GPS y desfase de reloj.
+- [ ] En `/camaras` veo (≤ 30 s): luz en el cruce, placa leída, carril, velocidad y relación con la dirección estimadas, confianza, veredicto (`VIOLATION` / `NO_VIOLATION` / `NEEDS_REVIEW`).
+- [ ] Se guardan en Blob el clip, los fotogramas clave y el recorte de placa; se ven en la consola (feed en vivo, polling ≤ 3 s).
+- [ ] El operador marca el estado del semáforo (ROJO/VERDE) por cámara en `/camaras`.
+- [ ] Sin teléfono, `/camaras` permite enviar un set demo como plan B.
 - [ ] Si confianza < `VISION_CONFIDENCE_THRESHOLD` o sin placa → `NEEDS_REVIEW`, sin multa.
 
 **HU-02 Multa automática (Sistema)**

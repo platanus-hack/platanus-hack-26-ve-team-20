@@ -4,7 +4,7 @@
 
 ## 1. Qué es
 **VíaClara**: multas de tránsito automáticas, con evidencia y pagables desde el teléfono.
-Cámaras en semáforos detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (Kapso) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
+Cámaras en semáforos (en la demo, un **teléfono con una app Expo**) detectan una infracción (MVP: **luz roja**), se lee la placa, se crea la multa con evidencia, el conductor recibe un **WhatsApp** (Kapso) con un link y paga con **Pago Móvil C2P (SIMULADO)**. Hay un **portal público por cédula** y, si una cámara ve una placa con multas impagas, se **alerta al oficial más cercano**.
 
 Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único requisito técnico: **hosting en Vercel**.
 
@@ -19,13 +19,14 @@ Hackathon: Platanus Hack 26 Caracas (36 h, pitch de 3 min, track Trust). Único 
 8. No modifiques el repo de la organización desde agentes con force-push; PRs pequeños a `main`.
 
 ## 3. Stack
-- **TypeScript estricto en todo el proyecto** (frontend y backend). Sin JavaScript plano.
+- **TypeScript estricto en todo el proyecto** (web, backend y app móvil). Sin JavaScript plano. Única excepción: `ml/` (entrenamiento e inferencia del modelo, Python).
 - Frontend: **React puro (SPA) con Vite** + React Router, desplegado en **Vercel**. Sin Next.js.
 - Backend: **Vercel Functions** en `/api` (TypeScript, runtime Node).
 - Tailwind CSS + shadcn/ui (tematizado, ver `docs/05-ui.md`).
 - Postgres (**Neon** vía Vercel Marketplace) + **Prisma**.
-- **Vercel Blob** para evidencia (imágenes de frames, recortes de placa).
-- **Claude API** (`@anthropic-ai/sdk`) visión sobre frames fijos.
+- **Vercel Blob** para evidencia (clips, fotogramas clave y recortes de placa); el teléfono sube el clip por client upload con token de `api/blob/upload.ts`.
+- App de cámara: **Expo (React Native, TypeScript)** en `mobile/`. El teléfono hace de cámara de tráfico: graba clips cortos de video.
+- Visión: **detector preentrenado con ajuste fino** (YOLO con pesos COCO, datasets de Kaggle) + ByteTrack + EasyOCR; velocidad y contravía por **homografía y reglas geométricas** sobre las trayectorias. Servido por un **servicio Python (FastAPI) fuera de Vercel** en `ml/`; el ajuste fino se entrena en notebooks de Kaggle. Sin Claude/LLM en el pipeline de visión.
 - **Kapso** para WhatsApp; **Resend** para email (respaldo).
 - Mapas: Leaflet + OpenStreetMap (sin API key).
 - Tests: Vitest (unit) + Playwright (E2E).
@@ -39,6 +40,8 @@ pnpm prisma migrate dev      # aplica schema local
 pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts)
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
+cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
+cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
 pnpm test                    # vitest
 pnpm test:e2e                # playwright (requiere dev server)
 vercel --prod                # o deploy automático desde el repo espejo personal
@@ -54,7 +57,7 @@ src/                                # SPA React + Vite (todo cliente)
     Consulta.tsx                    # /consulta    portal por cédula (P4)
     Multa.tsx                       # /multa/:token       aterrizaje de multa (P3)
     Pagar.tsx                       # /multa/:token/pagar pago C2P simulado (P3)
-    Camaras.tsx                     # /camaras     simulador de cámara + consola operador (P2)
+    Camaras.tsx                     # /camaras     consola: feed, calibración (homografía), semáforo simulado, sets demo (P2)
     Oficial.tsx                     # /oficial     vista móvil del oficial (P4 UI, datos P3)
     AdminRevision.tsx               # /admin/revision cola de revisión humana (P4 UI, API P1)
   hooks/, lib/api-client.ts         # fetch tipado a /api con los contratos
@@ -70,12 +73,20 @@ api/                                # Vercel Functions (TypeScript, Node)
   officers/[id]/alerts.ts           # GET alertas (P3)
   alerts/[id]/ack.ts                # POST acuse (P3)
   webhooks/kapso.ts                 # POST eventos Kapso (P3)
-  blob/upload.ts                    # token client-upload Vercel Blob (P2)
+  cameras/index.ts                  # GET lista de cámaras con calibración (P2)
+  blob/upload.ts                    # token client-upload Vercel Blob para el clip (P2)
+  time.ts                           # GET hora del servidor (offset de reloj de la app) (P2)
+  cameras/[id].ts                   # PATCH calibración (P2)
+  cameras/[id]/light.ts             # POST estado del semáforo simulado (P2)
+mobile/                             # app de cámara: Expo (React Native, TypeScript) (P2)
+  app/, src/                        # grabación de clips, GPS, subida a Blob, envío a /api/detections
+ml/                                 # servicio de visión (Python/FastAPI) + entrenamiento. FUERA de Vercel (P2)
+  train/, app/                      # notebooks/scripts de entrenamiento y servidor /predict
 lib/
   contracts/        # tipos + Zod compartidos (P1 dueño, todos revisan)
   db.ts             # Prisma client singleton (P1)
   domain/           # máquina de estados, multas, auditoría (P1)
-  vision/           # prompt Claude, geometría, pipeline (P2)
+  vision/           # cliente del servicio ML, reglas (luz en el cruce, placa), doble llave (P2)
   storage/          # Vercel Blob (P2)
   notify/           # kapso.ts, email.ts, templates.ts (P3)
   payments/         # c2p.ts simulado (P3)
@@ -84,13 +95,13 @@ lib/
 components/ui/      # shadcn tematizado (P4)
 components/<feature>/  # componentes de cada vertical (dueño de la vertical)
 prisma/schema.prisma, prisma/seed.ts   # (P1)
-public/demo/        # frames de ejemplo para el simulador (P2)
+public/demo/        # manifiesto y clips de ejemplo (sets A–D) para pruebas y plan B (P2)
 tests/              # e2e Playwright (P1 coordina QA)
 docs/               # esta documentación
 ```
 
 ## 6. Convenciones
-- TS estricto, sin `any`. Validación con **Zod** en todo borde (funciones de `/api`, webhooks, salida de Claude).
+- TS estricto, sin `any`. Validación con **Zod** en todo borde (funciones de `/api`, webhooks, respuesta del servicio ML).
 - Las funciones de `/api` devuelven `{ ok: true, data }` o `{ ok: false, error: { code, message } }`.
 - Dinero en **céntimos enteros** (`amountCents`) + `currency` ("VES" o "USD" de ejemplo). Nunca float.
 - Fechas en UTC en DB; mostrar en `America/Caracas`.
@@ -106,10 +117,12 @@ docs/               # esta documentación
 |---|---|---|
 | `DATABASE_URL` | Postgres Neon (pooled) | P1 |
 | `DIRECT_URL` | Neon directo para migraciones | P1 |
-| `ANTHROPIC_API_KEY` | Claude visión | P2 |
-| `ANTHROPIC_MODEL` | modelo con visión (configurable) | P2 |
+| `ML_SERVICE_URL` | URL del servicio Python de inferencia (fuera de Vercel) | P2 |
+| `ML_SERVICE_TOKEN` | token Bearer entre `api/` y el servicio ML | P2 |
+| `CAMERA_API_KEY` | secreto que envía la app móvil en `X-Camera-Key` | P2 |
+| `EXPO_PUBLIC_API_BASE_URL` | URL de la API para la app móvil (en `mobile/.env`) | P2 |
 | `VISION_CONFIDENCE_THRESHOLD` | p.ej. `0.8` | P2 |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob | P2 |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob (evidencia) | P2 |
 | `KAPSO_API_KEY` | Kapso | P3 |
 | `KAPSO_PHONE_NUMBER_ID` | número WhatsApp emisor | P3 |
 | `KAPSO_WEBHOOK_SECRET` | verificar `X-Webhook-Signature` | P3 |
@@ -129,7 +142,8 @@ docs/               # esta documentación
 | Alcance, historias, criterios | `docs/01-producto-prd.md` |
 | Componentes, diagramas, límites Vercel | `docs/02-arquitectura.md` |
 | Prisma, estados, seed | `docs/03-modelo-de-datos.md` |
-| Endpoints, webhooks, prompt Claude | `docs/04-api.md` |
+| Endpoints, webhooks, contrato del servicio ML | `docs/04-api.md` |
+| Modelo ML, app móvil Expo, calibración | `docs/10-ml-y-app-movil.md` |
 | Pantallas, tokens de diseño | `docs/05-ui.md` |
 | Tests, demo, guion del pitch | `docs/06-qa-y-demo.md` |
 | Plan por horas | `docs/07-plan-36h.md` |

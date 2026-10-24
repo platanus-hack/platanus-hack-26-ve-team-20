@@ -1,7 +1,7 @@
 # 04 — API · VíaClara
 
 Convenciones: JSON, Zod en `lib/contracts/`, respuesta `{ ok: true, data }` | `{ ok: false, error: { code, message } }`. Códigos HTTP: 200/201, 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 404 `NOT_FOUND`, 409 `CONFLICT`/`INVALID_TRANSITION`, 429 `RATE_LIMITED`, 502 `UPSTREAM_ERROR`.
-Auth: `admin` = cookie de `ADMIN_PASSCODE`; `officer` = cookie de `OFFICER_PASSCODE` + `officerId`; `public` = sin auth.
+Auth: `camera` = header `X-Camera-Key` (= `CAMERA_API_KEY`, lo usa la app móvil); `admin` = cookie de `ADMIN_PASSCODE`; `officer` = cookie de `OFFICER_PASSCODE` + `officerId`; `public` = sin auth.
 
 ## 0. Contratos compartidos (`lib/contracts/index.ts`) — se acuerdan en la hora 1
 ```ts
@@ -9,20 +9,34 @@ export type ViolationType = "RED_LIGHT" | "TURN_ARROW" | "SPEEDING";
 export type Verdict = "VIOLATION" | "NO_VIOLATION" | "NEEDS_REVIEW";
 export type LightState = "RED" | "YELLOW" | "GREEN" | "UNKNOWN";
 
-export interface FrameInput { url: string; capturedAt: string /* ISO */; }
+export interface FrameInput { url: string; capturedAt: string /* ISO, hora real del fotograma (PTS + inicio del clip) */; }
+
+export type RoadRelation = "WITH_FLOW" | "AGAINST_FLOW" | "UNKNOWN";
+export interface MotionEstimate {         // estimación demo del servicio ML (no sancionatoria)
+  speedKmh: number | null;                 // null sin homografía válida, con fps < 24 o track dudoso
+  laneId: string | null;
+  directionDeg: number | null;             // ángulo del movimiento en el plano del suelo
+  relation: RoadRelation;                  // respecto a la dirección permitida del carril
+}
+export interface Crossing { crossedStopLine: boolean; atMs?: number; lightState: LightState }
 
 export interface VisionResult {            // salida de lib/vision (P2) → entrada de lib/domain (P1)
   cameraId: string;
   type: ViolationType;
   verdict: Verdict;
-  reviewReason?: "LOW_CONFIDENCE" | "NO_PLATE" | "MODEL_RULE_DISAGREE" | "VISION_PARSE_ERROR";
+  reviewReason?: "LOW_CONFIDENCE" | "NO_PLATE" | "MODEL_RULE_DISAGREE" | "ML_SERVICE_ERROR";
   plate: string | null;                    // normalizada
   plateConfidence: number;                 // 0..1
   confidence: number;                      // 0..1
   occurredAt: string;
-  frames: Array<FrameInput & { lightState: LightState; vehicleBox?: Box }>;
+  frames: Array<FrameInput & { lightState: LightState; vehicleBox?: Box }>;   // fotogramas clave
   plateCropUrl?: string;
-  aiOutput: unknown; ruleOutput: unknown;
+  clipUrl: string;                         // clip en Blob (evidencia)
+  crossing: Crossing;
+  motion: MotionEstimate;
+  modelVersion: string;                    // versión del modelo ML
+  aiOutput: unknown;                       // respuesta cruda del servicio ML
+  ruleOutput: unknown;                     // resultado de la regla geométrica
   idempotencyKey: string;
 }
 export interface Box { x: number; y: number; w: number; h: number } // normalizado 0..1
@@ -50,22 +64,25 @@ Mientras un módulo no existe, su dueño publica un **mock** con la misma firma 
 
 ## 1. Detecciones y cámaras (P2)
 
-### `POST /api/blob/upload` (admin)
-Handler de `@vercel/blob/client` `handleUpload`. Restringe `allowedContentTypes: ["image/jpeg","image/png","image/webp"]`, máx 5 MB, prefijo `evidence/`.
+### `GET /api/time` (public)
+`{ ok, data: { now: "ISO" } }`. La app calcula `clockOffsetMs = serverNow − phoneNow` al abrir y lo envía con cada evento.
 
-### `POST /api/detections` (admin) · `maxDuration = 60` (vía `vercel.json`)
-Request:
+### `POST /api/blob/upload` (camera | admin)
+Handler de `@vercel/blob/client` `handleUpload` para el clip. `allowedContentTypes: ["video/mp4","video/quicktime"]`, máx 30 MB, prefijo `evidence/clips/`.
+
+### `POST /api/detections` (camera | admin) · `maxDuration = 60` (vía `vercel.json`)
+Request (JSON; el clip ya está en Blob):
 ```json
 {
-  "cameraId": "cam_cuid",
+  "cameraCode": "CAM-001",
   "type": "RED_LIGHT",
-  "frames": [
-    { "url": "https://...blob.vercel-storage.com/evidence/a.jpg", "capturedAt": "2026-10-24T14:03:10.100Z" },
-    { "url": "https://...blob.vercel-storage.com/evidence/b.jpg", "capturedAt": "2026-10-24T14:03:10.900Z" }
-  ],
+  "clip": { "url": "https://...blob.vercel-storage.com/evidence/clips/a.mp4", "startedAt": "2026-10-24T14:03:10.100Z", "durationMs": 4000 },
+  "clockOffsetMs": -230,
+  "device": { "lat": 10.4806, "lng": -66.9036, "accuracyM": 8 },
   "idempotencyKey": "opcional-uuid"
 }
 ```
+La función carga la cámara y los `LightChange` de la ventana del clip, llama al servicio ML (§8), guarda fotogramas clave y recorte de placa en Blob y aplica las reglas (`02-arquitectura.md` §5).
 Response 200:
 ```json
 { "ok": true, "data": {
@@ -75,19 +92,23 @@ Response 200:
   "fineId": "fine_cuid",
   "plate": "AB123CD",
   "confidence": 0.91,
-  "lightStates": ["RED", "RED"],
+  "crossing": { "crossedStopLine": true, "atMs": 1800, "lightState": "RED" },
+  "motion": { "speedKmh": 42.1, "laneId": "C1", "directionDeg": 2, "relation": "WITH_FLOW" },
   "duplicate": false,
   "latencyMs": 6400
 }}
 ```
 Lógica: cargar cámara → `lib/vision.analyze()` → `lib/domain.registerDetection()` → (P1 llama `notifyFineIssued` si FINED) → si vehículo con multas impagas previas también `registerSighting` + `dispatchAlert`.
-Errores: Claude caído → 200 con `verdict: "NEEDS_REVIEW"`, `reviewReason: "VISION_PARSE_ERROR"` (nunca perder la evidencia).
+Errores: servicio ML caído o respuesta inválida → 200 con `verdict: "NEEDS_REVIEW"`, `reviewReason: "ML_SERVICE_ERROR"` (nunca perder el clip).
 
-### `POST /api/sightings` (admin) — "placa vista" sin infracción
-Request `{ "cameraId": "...", "plate": "AB123CD", "seenAt": "ISO", "evidenceUrl": "opcional" }` o `{ "cameraId", "frames":[...] }` (P2 lee placa con Claude).
+### `POST /api/sightings` (camera | admin) — "placa vista" sin infracción
+Request `{ "cameraId": "...", "plate": "AB123CD", "seenAt": "ISO", "evidenceUrl": "opcional" }` o `{ "cameraCode", "clip": {...}, "clockOffsetMs" }` (el servicio ML lee la placa).
 Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, officerId?, distanceM? } | null } }`.
 
-### `GET /api/cameras` (admin) → lista con calibración. `PATCH /api/cameras/[id]` (admin) → `{ stopLine?, lightRoi? }`.
+### Cámaras y semáforo simulado
+- `GET /api/cameras` (camera | admin) → lista con calibración y `configVersion`.
+- `PATCH /api/cameras/[id]` (admin) → `{ homography?, stopLine?, lanes?, speedZone?, parameters? }`; recalcula `reprojectionErrorM`, incrementa `configVersion`.
+- `POST /api/cameras/[id]/light` (admin) → `{ "state": "RED" | "GREEN" | "YELLOW" }` (amarillo se guarda como `GREEN`); crea un `LightChange`.
 
 ## 2. Violaciones y revisión (P1)
 ### `GET /api/violations?status=NEEDS_REVIEW&since=ISO&limit=50` (admin)
@@ -207,56 +228,49 @@ Textos (`lib/notify/templates.ts`):
 - `whatsapp.message.received` (stretch): texto "PAGAR" → responder link; "APELAR" → link de apelación; otro → ayuda. No asumir que existe `phone_number` (puede venir BSUID).
 - Idempotencia: guardar `X-Idempotency-Key`/id de mensaje procesado; ignorar repetidos.
 
-## 8. Claude visión (P2) — `lib/vision/claude.ts`
-- SDK `@anthropic-ai/sdk`, modelo `process.env.ANTHROPIC_MODEL` (uno con visión), `max_tokens: 1024`, `temperature: 0`.
-- Imágenes por URL (`{ type: "image", source: { type: "url", url } }`) o base64 si la URL no es accesible. Redimensionar a ≤ 1568 px lado mayor en el cliente antes de subir.
-- Forzar JSON con **tool use**: `tools: [reportDetectionTool]`, `tool_choice: { type: "tool", name: "report_detection" }`.
+## 8. Servicio de inferencia ML (P2) — `ml/` ↔ `lib/vision/ml-client.ts`
+Detector preentrenado con ajuste fino (datasets de Kaggle) + ByteTrack + EasyOCR, servido por FastAPI fuera de Vercel (`docs/10-ml-y-app-movil.md`). Sin LLM en este pipeline.
 
-### System prompt
-```
-Eres un analista de evidencia de tránsito. Recibes 2–3 fotogramas consecutivos de UNA cámara fija en un semáforo, en orden temporal, con sus timestamps.
-Contexto de calibración (coordenadas normalizadas 0–1, origen arriba-izquierda):
-- Línea de pare: {stopLine}  (también dibujada en rojo sobre las imágenes si existe overlay)
-- Región del semáforo: {lightRoi}
-Tareas:
-1. Para cada fotograma, indica el estado de la luz que controla el carril: RED, YELLOW, GREEN o UNKNOWN.
-2. Identifica el vehículo que avanza hacia/sobre la línea de pare. Da su caja delimitadora normalizada en cada fotograma.
-3. Lee la placa del vehículo (formato venezolano, letras y números, sin espacios). Si no es legible con certeza, devuelve null; NO inventes caracteres. Usa "?" para caracteres dudosos.
-4. Indica si el vehículo cruzó la línea de pare mientras la luz estaba en RED.
-Reglas: sé conservador; ante duda baja la confianza. No describas personas. Responde SOLO llamando a la herramienta report_detection.
-```
-### Tool `report_detection` (input_schema)
+### `POST {ML_SERVICE_URL}/predict`
+Header `Authorization: Bearer ${ML_SERVICE_TOKEN}`. Timeout del cliente: 45 s, 1 reintento.
+Request:
 ```json
 {
-  "name": "report_detection",
-  "description": "Reporta el análisis estructurado de los fotogramas",
-  "input_schema": {
-    "type": "object",
-    "required": ["frames", "plate", "crossed_on_red", "confidence"],
-    "properties": {
-      "frames": { "type": "array", "items": {
-        "type": "object", "required": ["index", "light_state"],
-        "properties": {
-          "index": { "type": "integer" },
-          "light_state": { "type": "string", "enum": ["RED","YELLOW","GREEN","UNKNOWN"] },
-          "vehicle_box": { "type": ["object","null"], "properties": {
-            "x": {"type":"number"}, "y": {"type":"number"}, "w": {"type":"number"}, "h": {"type":"number"} } }
-        } } },
-      "plate": { "type": ["object","null"], "required": ["text","confidence"], "properties": {
-        "text": { "type": "string" }, "confidence": { "type": "number" },
-        "frame_index": { "type": "integer" },
-        "box": { "type": ["object","null"] } } },
-      "vehicle_description": { "type": "string", "description": "tipo y color, p.ej. 'sedán gris'" },
-      "crossed_on_red": { "type": "boolean" },
-      "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-      "notes": { "type": "string" }
-    }
+  "cameraCode": "CAM-001",
+  "clip": { "url": "https://...blob.vercel-storage.com/evidence/clips/a.mp4", "startedAt": "2026-10-24T14:03:10.100Z" },
+  "calibration": {
+    "configVersion": 3,
+    "homography": { "imagePoints": [[0.3,0.9],[0.7,0.9],[0.6,0.4],[0.4,0.4]], "groundPointsM": [[0,0],[7,0],[7,25],[0,25]] },
+    "stopLine": [[0.38, 0.35], [0.62, 0.35]],
+    "lanes": [ { "id": "C1", "polygon": [[0.5,0.9],[0.7,0.9],[0.6,0.4],[0.5,0.4]], "allowedDirection": [0, 1] } ],
+    "speedZone": { "yAM": 3, "yBM": 18 },
+    "parameters": { "minTrackFrames": 15, "wrongWayWindowS": 1.0, "wrongWayMinM": 2.0, "wrongWayAngleDeg": 135, "wrongWayChecks": 10, "stopLineFrames": 3 }
   }
 }
 ```
-Post-proceso (`lib/vision/analyze.ts`): Zod parse → `normalizePlate` (si contiene `?` → `NO_PLATE`/review) → regla geométrica (`02-arquitectura.md` §5) → veredicto. Recorte de placa: si viene `plate.box`, recortar con `sharp` y subir a Blob como `PLATE_CROP` (opcional).
+Response 200:
+```json
+{
+  "modelVersion": "vc-0.1",
+  "latencyMs": 3200,
+  "clip": { "fps": 30, "frameCount": 120, "durationMs": 4000, "timestampSource": "pts" },
+  "tracks": [ {
+    "trackId": 1, "class": "car", "firstMs": 300, "lastMs": 3600, "framesSeen": 98, "idSwitchSuspected": false,
+    "laneId": "C1",
+    "stopLine": { "crossed": true, "atMs": 1800, "framesConfirmed": 5 },
+    "speedKmh": 42.1, "speedValid": true,
+    "directionDeg": 2, "relation": "WITH_FLOW"
+  } ],
+  "plates": [ { "trackId": 1, "text": "AB123CD", "ocrConfidence": 0.88, "votes": 7, "bestFrameMs": 1500 } ],
+  "keyFrames": [ { "ms": 1500, "jpegBase64": "...", "vehicleBox": { "x": 0.3, "y": 0.5, "w": 0.2, "h": 0.2 }, "plateBox": { "x": 0.36, "y": 0.62, "w": 0.06, "h": 0.03 } } ],
+  "plateCropBase64": "..."
+}
+```
+Reglas: coordenadas normalizadas 0–1 (origen arriba-izquierda), instantes en ms desde el inicio del clip (PTS). `speedKmh` es `null` con `speedValid: false` si hay huecos, oclusión, cambio de ID sospechado o fps < 24. La placa con caracteres dudosos usa `?` (→ `NO_PLATE`/revisión). El servicio **no** conoce el semáforo: la luz en el instante del cruce la evalúa `lib/vision/rules.ts` con los `LightChange`. `GET /health` devuelve `{ ok: true, modelVersion }`.
 
-Caché de demo: si `DEMO_VISION_CACHE=true` y el hash de las URLs coincide con un set demo, devolver la respuesta guardada en `public/demo/*.json` (plan B si Claude falla en vivo; mostrar etiqueta "caché").
+Post-proceso (`lib/vision/analyze.ts`): Zod parse → elegir el track que cruzó `stopLine` → `normalizePlate` → `rules.ts` (luz en `atMs`, doble llave) → subir `keyFrames` y recorte a Blob → `VisionResult` (con `clipUrl`, `crossing`, `motion`).
+
+Caché de demo: si `DEMO_VISION_CACHE=true` y el hash de la URL del clip coincide con un set demo, devolver la respuesta guardada en `public/demo/*.json` (plan B si el servicio ML o su túnel falla en vivo; mostrar etiqueta "caché").
 
 ## 9. Idempotencia (resumen)
 | Endpoint | Llave | Comportamiento |

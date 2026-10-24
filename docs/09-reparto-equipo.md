@@ -9,8 +9,8 @@ Objetivo: 4 verticales con **mínimo solapamiento de archivos** para no pisarse 
 | `prisma/**`, `lib/db.ts`, `lib/domain/**`, `lib/auth/**`, `api/_lib/auth.ts` (guardas por passcode) | P1 | solo leer |
 | `api/violations/**`, `api/fines/**`, `api/portal/**` | P1 | — |
 | `tests/e2e/**`, `vitest.config.ts`, `playwright.config.ts` | P1 | agregar specs de su vertical |
-| `lib/vision/**`, `lib/storage/**`, `public/demo/**` | P2 | — |
-| `src/pages/Camaras.tsx`, `components/camaras/**`, `api/detections/**`, `api/sightings/**`, `api/blob/**`, `api/cameras/**` | P2 | — |
+| `lib/vision/**`, `lib/storage/**`, `public/demo/**`, `mobile/**`, `ml/**` | P2 | — |
+| `src/pages/Camaras.tsx`, `components/camaras/**`, `api/detections/**`, `api/sightings/**`, `api/cameras/**`, `api/blob/**`, `api/time.ts` | P2 | — |
 | `lib/notify/**`, `lib/payments/**`, `lib/geo/**`, `lib/alerts/**` | P3 | — |
 | `src/pages/{Multa,Pagar}.tsx`, `components/multa/**`, `api/payments/**`, `api/officers/**`, `api/alerts/**`, `api/webhooks/**` | P3 | P4 ajusta estilos por PR |
 | `src/index.css`, `src/main.tsx`, `src/App.tsx`, `src/pages/Landing.tsx`, `tailwind` config, `vite.config.ts`, `components/ui/**`, `components/vc/**` | P4 | usar, no modificar |
@@ -69,29 +69,33 @@ Objetivo inmediato (en este orden, un PR pequeño por paso, usando las skills in
 Usa los mocks de lib/notify/mock.ts y lib/alerts/mock.ts si los reales no existen. Escribe tests Vitest para la máquina de estados y dedup. Antes de decir terminado, aplica superpowers-verification-before-completion y verifica los criterios de HU-02 en docs/01.
 ```
 
-## 5. Persona 2 — Visión + simulador de cámara + evidencia
+## 5. Persona 2 — Modelo de visión + app de cámara (Expo) + evidencia
+> ⚠ Alcance ampliado: ajuste fino del detector, servicio `ml/`, homografía y reglas, app móvil y consola `/camaras` es el mayor riesgo del proyecto. Pendiente decidir si se divide (p. ej. P2 = `ml/` y `lib/vision`; la app `mobile/` y la consola `/camaras` pasan a otra persona).
+
 **Tareas en orden**
 | Bloque | Tarea | Entregable |
 |---|---|---|
-| h0–1 | Revisar `VisionResult`; preparar frames demo con **placas ficticias** (fotos propias del equipo con placa editada, o imágenes generadas) para sets A (rojo, cruza, placa legible = placa de `V-99000001`), B (verde), C (placa ilegible), D (placa de `V-99000002`, con deuda) | h1: lista de sets y placas acordadas con P1 (seed) |
-| h1–4 | `/api/blob/upload` + `lib/storage/blob.ts`; `/camaras` v0: selector cámara, dropzone, preview, redimensionar a ≤ 1568 px en cliente | h4: subir frames en prod |
-| h4–8 | `lib/vision/prompt.ts`, `claude.ts` (tool use, doc 04 §8), Zod; `geometry.ts` (cruce con signo de producto cruz); `analyze.ts` (doble llave); `POST /api/detections` (contra mock de dominio) | h8: set A → `VIOLATION` |
-| h8–12 | Overlay de `stopLine`/`lightRoi` (SVG/canvas) y calibración por cámara; feed en vivo (polling `/api/violations?since=`); progreso por pasos | h12: E2E |
-| h12–14 | `POST /api/sightings` (con placa directa o frames); recorte de placa (sharp) → Blob; `DEMO_VISION_CACHE` | h16: set D dispara alerta |
+| h0–1 | Revisar `VisionResult` y el contrato `/predict` (doc 04 §8); elegir datasets de Kaggle (doc 10 §2) y revisar licencias; plan de clips demo con el teléfono para sets A (rojo, cruza, placa legible = placa de `V-99000001`), B (verde), C (placa ilegible), D (placa de `V-99000002`, con deuda); placas ficticias | h1: datasets elegidos; lista de sets y placas acordadas con P1 (seed) |
+| h1–4 | Notebook de Kaggle: ajuste fino del detector de vehículos y de placas (v0); `ml/app` con `/predict` y `/health` devolviendo el contrato (salida simulada primero); app Expo v0 (`mobile/`): cámara, grabar clip, `GET /api/time`, subida a Blob; `api/blob/upload.ts` y `lib/storage/blob.ts`; spike del client upload desde Expo | h4: la app sube un clip y llama a `/api/detections` en prod |
+| h4–8 | `ml/`: decodificar con PTS, ByteTrack, EasyOCR con votación, cruce de `stopLine`; `lib/vision/{ml-client.ts,rules.ts,analyze.ts}` (Zod, doble llave); `POST /api/detections` (contra mock de dominio); túnel o host del servicio; `POST /api/cameras/[id]/light` | h8: set A → `VIOLATION` |
+| h8–12 | Calibración en `/camaras` (puntos, homografía, error de reproyección, carriles, `speedZone`); velocidad y contravía en `ml/`; feed en vivo (polling `/api/violations?since=`); control de semáforo simulado; progreso por pasos | h12: E2E |
+| h12–14 | `POST /api/sightings`; recorte de placa; `DEMO_VISION_CACHE`; botón "Enviar set demo" | h16: set D dispara alerta |
 | h14–18 | Duerme | — |
-| h18–24 | Casos borde (C, amarillo, discrepancia); tests geometry/analyze; stretch flecha de giro → velocidad | h24: freeze |
-| h24–36 | Bugs; frames de respaldo; operador en la demo | h30 ensayo |
-**Depende de**: `registerDetection`/`registerSighting` (P1; mock), seed de cámaras con calibración que calce con frames (coordinar con P1 en h1–4).
+| h18–24 | Evaluar detector y OCR en el split de prueba (mAP, exactitud de placa); casos borde de la demo (C, luz que cambia, cambio de ID); pruebas sintéticas de velocidad y contravía; tests de `rules`/`analyze` y pytest de `ml/` | h24: freeze |
+| h24–36 | Bugs; clips de respaldo; túnel estable; operador en la demo | h30 ensayo |
+**Depende de**: `registerDetection`/`registerSighting` (P1; mock), seed de cámaras con calibración que calce con los clips (coordinar con P1 en h1–4).
 **Prompt de arranque**:
 ```
-Eres el agente de Persona 2 (visión y simulador de cámara) de VíaClara. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2 y docs/09 §1, §2, §5.
+Eres el agente de Persona 2 (modelo de visión y app de cámara) de VíaClara. Lee AGENTS.md, docs/02-arquitectura.md §5-§6, docs/04-api.md §0, §1, §8, §9, docs/05-ui.md §3.2, docs/10-ml-y-app-movil.md, docs/Velocidad y contravía en fotomultas.md y docs/09 §1, §2, §5.
 Solo modifica archivos de P2 (docs/09 §1). Usa lib/contracts sin cambiarlo; si necesitas un cambio, propónlo aparte.
+Todo es TypeScript estricto excepto ml/ (Python). No uses Claude ni otro LLM en el pipeline de visión. Detector PREENTRENADO con ajuste fino; no entrenes desde cero.
 Pasos (PRs pequeños, skill incremental-implementation):
-1) api/blob/upload.ts con @vercel/blob/client handleUpload (solo imágenes, máx 5 MB) y lib/storage/blob.ts.
-2) src/pages/Camaras.tsx: selector de cámara (GET /api/cameras o seed), dropzone 2-3 frames, redimensiona en cliente a ≤1568 px, sube a Blob, muestra previews con overlay de stopLine.
-3) lib/vision/{prompt.ts,claude.ts,geometry.ts,analyze.ts}: llamada a Claude con @anthropic-ai/sdk, modelo de process.env.ANTHROPIC_MODEL, tool_choice forzado a report_detection con el input_schema de docs/04 §8, validación Zod, regla geométrica y doble llave; devuelve VisionResult.
-4) api/detections.ts (maxDuration=60 en vercel.json) que llama analyze() y luego registerDetection() (usa lib/domain/mock si no existe).
-Tests Vitest de geometry y analyze con salidas de Claude simuladas. No proceses video en el servidor. Verifica HU-01 de docs/01 con superpowers-verification-before-completion.
+1) ml/: servidor FastAPI con POST /predict y GET /health exactamente como docs/04 §8 (primero con salida simulada); luego el pipeline real: decodificar el clip con PTS, detector + ByteTrack, EasyOCR con votación, homografía (cv2.findHomography), cruce de stopLine, velocidad entre dos líneas métricas con interpolación del instante de cruce y regla de contravía por carril. Notebook de ajuste fino en ml/train/ para Kaggle, con split train/val/test (separado por fuente) y métricas solo sobre test; no hay video propio de validación.
+2) mobile/: app Expo (TypeScript): ajustes (URL API, CAMERA_API_KEY, código de cámara), vista de cámara, botón Grabar evento (clip 3–5 s, 30 fps), GET /api/time para clockOffsetMs, subida a Blob con token de /api/blob/upload y POST /api/detections con X-Camera-Key (docs/04 §1).
+3) lib/vision/{ml-client.ts,rules.ts,analyze.ts}: llamada a /predict con ML_SERVICE_URL y ML_SERVICE_TOKEN, validación Zod, luz en el instante del cruce con los LightChange, doble llave; devuelve VisionResult con clipUrl, crossing, motion y modelVersion.
+4) api/blob/upload.ts, api/time.ts, api/detections.ts (maxDuration=60 en vercel.json), api/cameras/*, api/cameras/[id]/light.ts; llama analyze() y luego registerDetection() (usa lib/domain/mock si no existe).
+5) src/pages/Camaras.tsx: consola con feed en vivo, semáforo simulado, calibración (homografía + error de reproyección, carriles, speedZone) y botón "Enviar set demo".
+Tests Vitest de rules y analyze con respuestas ML simuladas, y pytest en ml/. Verifica HU-01 de docs/01 con superpowers-verification-before-completion.
 ```
 
 ## 6. Persona 3 — Notificaciones, pagos C2P simulados, oficiales y alertas

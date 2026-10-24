@@ -6,7 +6,7 @@
 Comerse la luz roja casi nunca tiene consecuencia si no hay un fiscal presente. Y cuando hay multa, el conductor no se entera a tiempo, no ve la evidencia y pagarla es un trámite.
 
 ## Qué hace VíaClara
-1. **Detecta**: una cámara en el semáforo envía fotogramas; la IA (Claude visión) identifica el estado de la luz, el vehículo y la placa, y una regla geométrica confirma que cruzó la línea de pare en rojo.
+1. **Detecta**: un teléfono con la app de VíaClara hace de cámara en el semáforo y graba un clip corto; un detector preentrenado, afinado con datasets abiertos de Kaggle, sigue al vehículo y lee la placa, y una homografía calibrada estima su velocidad y dirección; una regla geométrica confirma que cruzó la línea de pare en rojo.
 2. **Notifica**: se crea la multa con evidencia (fotos, hora, intersección) y el propietario recibe un **WhatsApp** con el enlace.
 3. **Paga**: desde el teléfono, con **Pago Móvil C2P** (banco, teléfono, cédula y clave C2P). *En la demo el pago es simulado.*
 4. **Consulta**: portal público por **cédula** con información limitada (placa enmascarada, sin datos personales).
@@ -19,9 +19,9 @@ Comerse la luz roja casi nunca tiene consecuencia si no hay un fiscal presente. 
 - Auditoría de cada acción. Demo con **datos 100 % ficticios**.
 
 ## Tecnología
-React + TypeScript en **Vercel** · Postgres (Neon) + Prisma · Vercel Blob · **Claude** (visión) · **Kapso** (WhatsApp) · Resend (email).
+React + TypeScript en **Vercel** · Postgres (Neon) + Prisma · Vercel Blob · **detector de visión afinado** (Python) · **Expo** (app de cámara) · **Kapso** (WhatsApp) · Resend (email).
 
-En producción: detección en el borde (YOLO + ALPR) con Claude como segundo revisor, e integración C2P real vía banco o agregador.
+En producción: cámaras reales con el mismo modelo en el borde, ALPR especializado en placas venezolanas e integración C2P real vía banco o agregador.
 
 ## Equipo
 team-20 · Platanus Hack 26 Caracas

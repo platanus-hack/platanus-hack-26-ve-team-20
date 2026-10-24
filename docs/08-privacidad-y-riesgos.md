@@ -42,11 +42,13 @@ Mitigaciones (MVP marcado ✔, stretch ◻):
 ## 6. Riesgos técnicos del hackathon
 | Riesgo | Prob. | Impacto | Mitigación |
 |---|---|---|---|
-| Claude lee mal la placa o el semáforo en vivo | Media | Alto | Frames demo nítidos, overlay de línea, doble llave, `DEMO_VISION_CACHE` como plan B |
+| El modelo lee mal la placa, o el tracker cambia de ID, o la velocidad sale imprecisa | Alta | Alto | Ajuste fino en datasets de Kaggle con split train/val/test, clips demo controlados, doble llave, revisión humana, velocidad solo como estimación, `DEMO_VISION_CACHE` como plan B |
 | WhatsApp no llega (ventana 24 h / plantilla) | Media | Alto | Teléfonos de demo escriben primero; plantilla pedida en h0; email fallback; mostrar estado en consola |
 | Wifi del evento caído | Media | Alto | Hotspot 4G; video plan B |
-| Límite 4.5 MB / timeout en Vercel | Baja | Medio | Client upload a Blob; imágenes ≤ 1568 px; `maxDuration=60` |
+| Límite 4.5 MB / timeout en Vercel | Baja | Medio | Clip por client upload a Blob; `maxDuration=60`; clip corto (3–5 s) |
 | Conflictos de git entre 4 personas | Media | Medio | Propiedad de carpetas (doc 09), PRs pequeños, merge captain |
 | Repo espejo desincronizado | Media | Medio | P1 hace `git pull && git push` tras cada merge |
-| Costos de API | Baja | Bajo | Caché de visión en dev, `NOTIFY_DRY_RUN` en tests |
+| Servicio ML caído o túnel inestable | Media | Alto | Host/túnel estable con `GET /health`, 1 reintento → `NEEDS_REVIEW`, caché de demo |
+| Licencia/uso de datasets y pesos | Media | Medio | Revisar licencias de Kaggle; Ultralytics es AGPL-3.0 (RF-DETR es Apache-2.0); no redistribuir imágenes con personas o placas reales |
+| Cámara movida o homografía mal calibrada | Media | Alto | Trípode fijo, error de reproyección ≤ 0,15 m, foto de referencia por cámara, `configVersion` en cada detección |
 | Percepción de "vigilancia" por jueces | Media | Medio | Mensaje explícito de privacidad, sin reconocimiento facial, alertas acotadas, revisión humana |
