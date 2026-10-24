@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DemoError } from '../demo/demo.ts'
 import {
-  accionesPermitidas, cambiarEstado, getMulta, getSesionOficial, iniciarSesionOficial, listarMultas, listarTodas, reiniciarOficial,
+  accionesPermitidas, cambiarEstado, getMulta, getSesionOficial, iniciarSesionOficial, listarMultas, listarTodas, reenviarNotificacion, reiniciarOficial,
 } from './api.ts'
 import { destino } from './demo.ts'
 
@@ -108,5 +108,20 @@ describe('transiciones', () => {
   it('cada multa del demo trae su auditoría inicial', async () => {
     const { items } = await listarMultas({ limit: 100 })
     for (const { id } of items) expect((await getMulta(id)).audit.some((a) => a.action === 'FINE_CREATED')).toBe(true)
+  })
+})
+
+describe('reenviar notificación', () => {
+  it('solo las multas por pagar; deja la entrada en la auditoría con el nombre del oficial', async () => {
+    const todas = await listarTodas({})
+    const porPagar = todas.find((m) => m.status === 'PENDING' || m.status === 'OVERDUE')!
+    const r = await reenviarNotificacion(porPagar.id)
+    expect(r.status).toBe('SENT')
+    expect(r.telefono).toMatch(/\*\*\*/)
+    expect(r.fine.audit.at(-1)).toMatchObject({ action: 'NOTIFICATION_RESENT', actor: { type: 'OFFICER' } })
+    expect((await getMulta(porPagar.id)).audit.at(-1)!.action).toBe('NOTIFICATION_RESENT')
+    const cerrada = todas.find((m) => m.status === 'PAID' || m.status === 'VOID')!
+    expect(await codigo(reenviarNotificacion(cerrada.id))).toBe('NO_REENVIABLE')
+    expect(await codigo(reenviarNotificacion('no-existe'))).toBe('NO_ENCONTRADA')
   })
 })

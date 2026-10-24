@@ -83,6 +83,10 @@
       "destination": "/api/p1?route=citizen-fines"
     },
     {
+      "source": "/api/citizen/fines/:id/resend",
+      "destination": "/api/p1?route=citizen-fine-resend&id=:id"
+    },
+    {
       "source": "/api/citizen/fines/:id/appeal",
       "destination": "/api/p1?route=citizen-appeal&id=:id"
     },
@@ -165,6 +169,22 @@
     {
       "source": "/api/live/violations",
       "destination": "/api/p2?route=live-violation"
+    },
+    {
+      "source": "/api/officer/fines/:id/status",
+      "destination": "/api/p1?route=officer-fine-status&id=:id"
+    },
+    {
+      "source": "/api/officer/fines/:id/resend",
+      "destination": "/api/p1?route=officer-fine-resend&id=:id"
+    },
+    {
+      "source": "/api/officer/fines/:id",
+      "destination": "/api/p1?route=officer-fine&id=:id"
+    },
+    {
+      "source": "/api/officer/fines",
+      "destination": "/api/p1?route=officer-fines"
     },
     {
       "source": "/((?!api/).*)",

@@ -42,4 +42,5 @@ export const AUDITORIA: Record<string, string> = {
   VOID: 'Anulada',
   APPEAL_ACCEPT: 'Apelación aceptada',
   APPEAL_REJECT: 'Apelación rechazada',
+  NOTIFICATION_RESENT: 'Notificación reenviada',
 }

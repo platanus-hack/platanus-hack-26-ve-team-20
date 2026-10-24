@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DemoError } from './demo.ts'
 import {
-  apelarMulta, getMultas, getSesion, iniciarSesion, pagarMultas, reiniciarReal, sesionVencio, solicitarCodigo, verificarCodigo,
+  apelarMulta, getMultas, getSesion, iniciarSesion, pagarMultas, reenviarNotificacion, reiniciarReal, sesionVencio, solicitarCodigo, verificarCodigo,
 } from './real.ts'
 
 const user = { cedula: 'V99000001', nombre: 'Ejemplo', telefono: '04120000777', correo: null }
@@ -90,5 +90,14 @@ describe('cuenta real', () => {
     const m = await apelarMulta('a')
     expect(m.status).toBe('APPEALED')
     expect('token' in m).toBe(false)
+  })
+
+  it('reenviar la notificación: POST a la multa y causas precisas del servidor', async () => {
+    simular({ '/api/citizen/login': ok({ user }), '/api/citizen/fines/a/resend': ok({ status: 'SENT', telefono: '0412-***0777' }), '/api/citizen/fines/b/resend': falla(409, 'CONFLICT', 'NO_REENVIABLE'), '/api/citizen/fines/c/resend': falla(429, 'RATE_LIMITED') })
+    await iniciarSesion('V99000001', 'clave-larga')
+    expect(await reenviarNotificacion('a')).toEqual({ status: 'SENT', telefono: '0412-***0777' })
+    expect(llamadas.at(-1)!.init!.method).toBe('POST')
+    await expect(reenviarNotificacion('b')).rejects.toMatchObject({ code: 'NO_REENVIABLE' })
+    await expect(reenviarNotificacion('c')).rejects.toMatchObject({ code: 'LIMITE' })
   })
 })

@@ -100,6 +100,14 @@ export async function requireCameraOrAdmin(db: AdminDb, req: VercelRequest): Pro
 }
 
 // ---------------------------------------------------------------- officer
+/** Sesión de oficial válida Y oficial existente y activo (desactivarlo corta el acceso a los datos). */
+export async function requireActiveOfficer(db: Pick<PrismaClient, "officer">, req: VercelRequest): Promise<{ officerId: string }> {
+  const { officerId } = requireOfficer(req);
+  const officer = await db.officer.findUnique({ where: { id: officerId }, select: { active: true } });
+  if (!officer || !officer.active) throw unauthorized();
+  return { officerId };
+}
+
 /** Lo llama P3 en `POST /api/officers/session` después de validar passcode y placa del oficial. */
 export function issueOfficerSession(res: VercelResponse, officerId: string): void {
   res.setHeader("Set-Cookie", sessionCookie("officer", signSession({ role: "officer", sub: officerId })));

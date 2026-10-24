@@ -7,7 +7,7 @@ import type { ApiResponse, C2PPaymentDTO, CitizenFineDTO, CitizenProfileDTO, Cit
 import { normalizeCedula } from '@contracts'
 import { diaCaracas } from '../format.ts'
 import { CAMARAS_DEMO, type Camara, type Multa, type Vehiculo } from './datos.ts'
-import { DemoError, esPagable, type DatosPago, type DemoErrorCode, type Sesion } from './demo.ts'
+import { DemoError, esPagable, type DatosPago, type DemoErrorCode, type Reenvio, type Sesion } from './demo.ts'
 
 const SESION_MS = 30 * 60_000
 
@@ -81,6 +81,7 @@ const POR_REASON: Record<string, DemoErrorCode> = {
   CREDENCIALES: 'CREDENCIALES', YA_REGISTRADA: 'YA_REGISTRADA', CODIGO_INVALIDO: 'CODIGO_INVALIDO', CODIGO_VENCIDO: 'CODIGO_VENCIDO',
   CODIGO_AGOTADO: 'CODIGO_AGOTADO', SIN_REGISTRO: 'SIN_REGISTRO', SIN_TITULAR: 'SIN_TITULAR', ENVIO_FALLIDO: 'ENVIO_FALLIDO',
   ESPERAR: 'ESPERAR', NO_ENCONTRADA: 'NO_ENCONTRADA', NO_APELABLE: 'VALIDACION', CLAVE_ACTUAL: 'VALIDACION', CLAVE_IGUAL: 'VALIDACION',
+  NO_REENVIABLE: 'NO_REENVIABLE', SIN_TELEFONO: 'SIN_TELEFONO',
 }
 const POR_CODE: Record<string, DemoErrorCode> = {
   UNAUTHORIZED: 'SESION', RATE_LIMITED: 'LIMITE', VALIDATION_ERROR: 'VALIDACION', NOT_FOUND: 'NO_ENCONTRADA', CONFLICT: 'VALIDACION',
@@ -233,6 +234,10 @@ export const getPerfil = () =>
 export async function cambiarClave(actual: string, nueva: string): Promise<void> {
   await protegido(() => llamar('/api/citizen/password', { method: 'POST', body: { current: actual, next: nueva } }))
 }
+
+/** Reenvía a tu WhatsApp la notificación de una multa propia por pagar (máximo 3 por hora por multa). */
+export const reenviarNotificacion = (id: string) =>
+  protegido(() => llamar<Reenvio>(`/api/citizen/fines/${encodeURIComponent(id)}/resend`, { method: 'POST' }))
 
 export async function apelarMulta(id: string): Promise<Multa> {
   return protegido(async () => {

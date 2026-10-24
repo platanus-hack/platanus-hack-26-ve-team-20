@@ -86,6 +86,7 @@ afterAll(async () => {
   await db.auditLog.deleteMany({ where: { OR: [{ ip: { startsWith: '192.0.2.16' } }, { ip: { startsWith: '192.0.2.17' } }, { ip: { startsWith: '192.0.2.18' } }, { entityId: { in: [...violationIds, ...fineIds, ...accounts.map((a) => a.id)] } }, { actorId: { in: accounts.map((a) => a.id) } }] } })
   await db.citizenRegistration.deleteMany({ where: { personId: { in: personIds } } })
   await db.citizenAccount.deleteMany({ where: { personId: { in: personIds } } })
+  await db.notification.deleteMany({ where: { fineId: { in: fineIds } } })
   await db.fine.deleteMany({ where: { id: { in: fineIds } } })
   await db.violation.deleteMany({ where: { id: { in: violationIds } } })
   await db.vehicle.deleteMany({ where: { id: { in: vehicleIds } } })
@@ -295,5 +296,28 @@ describe('entradas, errores y fugas', () => {
       expect(dump).not.toContain(DEMO_CODE)
       expect(dump).not.toContain('SESSION_SECRET')
     }
+  })
+
+  it('reenviar la notificación de una multa propia: 200 en seco, máximo 3 por hora, y las ajenas o pagadas no se reenvían', async () => {
+    const p = await newPerson('584120004466')
+    const other = await newPerson()
+    const mine = await addFine(p.id, 'resend-mine')
+    const paid = await addFine(p.id, 'resend-paid')
+    await db.fine.update({ where: { id: paid }, data: { status: 'PAID', paidAt: new Date() } })
+    const foreign = await addFine(other.id, 'resend-foreign')
+    const { cookie } = await signUp(p.cedula, 14)
+
+    expect((await http('citizen-fine-resend', { query: { id: mine } })).code).toBe(401)
+    const ok = await http('citizen-fine-resend', { cookie, query: { id: mine }, ip: 14 })
+    expect(ok.code, JSON.stringify(ok.body)).toBe(200)
+    expect(ok.body.data).toEqual({ status: 'DRY_RUN', telefono: '0412-***4466' })
+    expect(await db.notification.count({ where: { fineId: mine } })).toBe(1)
+
+    expect((await http('citizen-fine-resend', { cookie, query: { id: foreign }, ip: 14 })).body.error.reason).toBe('NO_ENCONTRADA')
+    expect((await http('citizen-fine-resend', { cookie, query: { id: paid }, ip: 14 })).body.error.reason).toBe('NO_REENVIABLE')
+
+    for (let i = 0; i < 2; i++) expect((await http('citizen-fine-resend', { cookie, query: { id: mine }, ip: 14 })).code).toBe(200)
+    expect((await http('citizen-fine-resend', { cookie, query: { id: mine }, ip: 14 })).code).toBe(429)
+    expect(await db.notification.count({ where: { fineId: mine } })).toBe(3)
   })
 })

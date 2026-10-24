@@ -9,6 +9,8 @@ import type { MarkFinePaid, RegisterDetection, RegisterSighting } from "../contr
 import { normalizeCedula } from "../contracts/index.ts";
 import { createCitizenService } from "./citizen.ts";
 import { createCodeSender } from "./citizen-sender.ts";
+import { resendCitizenFine } from "./citizen-data.ts";
+import { createOfficerFinesService } from "./officer-fines.ts";
 import { createInviteSender } from "./officer-invite-sender.ts";
 import { createOfficerInviteService } from "./officer-invitations.ts";
 import { createMarkFinePaid } from "./payments.ts";
@@ -48,6 +50,12 @@ export const officerInvites = createOfficerInviteService({
   sendInvite: createInviteSender(),
   baseUrl: () => process.env["APP_BASE_URL"] ?? "http://localhost:5173",
 });
+
+/** El titular reenvía a su WhatsApp la notificación de una multa propia. */
+export const resendMyFine = (input: Parameters<typeof resendCitizenFine>[1]) => resendCitizenFine(db, input, notifyFineIssued);
+
+/** Historial de multas del oficial y reenvío de la notificación (docs/12). */
+export const officerFines = createOfficerFinesService({ db, notify: notifyFineIssued });
 
 export { audit, SYSTEM_ACTOR, type Actor } from "./audit.ts";
 export { DomainError, InvalidTransitionError, NotFoundError } from "./errors.ts";
