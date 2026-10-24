@@ -1,5 +1,11 @@
 // Consultas de lectura (P1) que alimentan GET /api/violations y GET /api/fines/[token].
-import { VIOLATION_STATUSES, type FinePublicDTO, type ViolationListDTO, type ViolationStatus } from "../contracts/index.ts";
+import {
+  VIOLATION_STATUSES,
+  type FinePublicDTO,
+  type ViolationDetailDTO,
+  type ViolationListDTO,
+  type ViolationStatus,
+} from "../contracts/index.ts";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.ts";
 import {
   publicFineInclude,
@@ -72,4 +78,15 @@ export async function getPublicFine(
   const fine = await db.fine.findUnique({ where: { publicToken: token }, include: publicFineInclude });
   if (!fine) throw new NotFoundError("Multa", "");
   return toFinePublic(fine, now);
+}
+
+/** Una violación con la salida del modelo y de la regla, para la pantalla de revisión (admin). */
+export async function getViolationDetail(
+  db: Pick<PrismaClient, "violation">,
+  id: string,
+  now: Date = new Date(),
+): Promise<ViolationDetailDTO> {
+  const v = await db.violation.findUnique({ where: { id }, include: violationListInclude });
+  if (!v) throw new NotFoundError("Violación", id);
+  return { ...toViolationListItem(v, now), modelVersion: v.modelVersion, aiOutput: v.aiOutput, ruleOutput: v.ruleOutput };
 }

@@ -145,9 +145,15 @@ Response `{ ok, data: { sightingId, unpaidCount, alert: { alertId, status, offic
 - Auth `admin`: cookie de sesión (§0b); sin sesión válida → 401.
 - Devuelve los tokens de multa (llave de acceso): jamás debe quedar público.
 
+### `GET /api/violations/[id]` (admin)
+Detalle para la pantalla de revisión: el mismo ítem de la lista más `modelVersion`, `aiOutput` (respuesta cruda del servicio ML) y `ruleOutput` (`{ verdict, crossing, rules }`). 404 si no existe.
+
 ### `POST /api/violations/[id]/review` (admin)
 Request `{ "action": "APPROVE", "plate": "AB123CD", "note": "placa legible en frame 2" }` o `{ "action": "VOID", "reason": "Vehículo de emergencia" }`.
-Response `{ ok, data: { status: "NOTIFIED" | "VOID", fineId? } }`. 409 si transición inválida.
+Response `{ ok, data: { status: "NOTIFIED" | "FINED" | "VOID", fineId? } }`.
+- **APPROVE** solo desde `NEEDS_REVIEW`: pasa por `REVIEWED` → `FINED` (crea la multa) y avisa al conductor (`NOTIFIED`). Si el aviso falla, la multa queda emitida y `status` es `FINED`. `plate` (opcional) corrige la placa: debe tener formato válido y ser de un vehículo registrado; sin `plate` se usa el vehículo ya enlazado o la placa leída si corresponde a uno registrado; si no hay vehículo → 400 `VALIDATION_ERROR` ("Indique la placa…"). `note` va al `AuditLog`. La multa queda con `verification: "HUMAN"`. No se despacha alerta a oficiales al aprobar (la detección ya es vieja).
+- **VOID** exige `reason`. Vale desde cualquier estado que la tabla de transiciones permita, así que también anula una multa ya emitida; desde `PAID` o `VOID` → 409.
+- Todo pasa por `transition()` y queda en el `AuditLog` con el operador de la sesión (`OPERATOR`, id de la cuenta, IP). Aprobar es atómico y la fila se bloquea: dos operadores a la vez → uno gana, el otro recibe 409 `INVALID_TRANSITION` y solo existe una multa.
 
 ## 3. Multa pública (P1)
 ### `GET /api/fines/[token]` (public)
@@ -176,7 +182,12 @@ Response (siempre 200, misma forma aunque no exista):
                "status": "PENDING", "amountCents": 0, "currency": "VES", "fineToken": null } ]
 }}
 ```
-`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`). Escribe `AuditLog(PORTAL_LOOKUP, ip)`.
+`fineToken` solo se expone tras OTP (stretch: `POST /api/portal/otp` → WhatsApp con código → `POST /api/portal/verify`); hasta entonces es siempre `null`.
+- **Cédula**: acepta `V12345678`, `v-12.345.678` y letras `V`, `E`, `J`, `G`, `P`; sin letra se busca como `V` y como `E` (el ciudadano suele escribir solo el número). Formato inválido → 400 `VALIDATION_ERROR`.
+- **Qué lista**: las multas **emitidas** de los vehículos del titular (una violación en revisión aún no es multa y no aparece), la más reciente primero, hasta 50; el `summary` cuenta todas. `pending` = pendientes + vencidas; `status` puede ser `OVERDUE` (calculado). Una cédula sin multas o inexistente responde 200 con la misma forma y todo en cero.
+- **Privacidad**: nunca nombre, teléfono, correo, cédula completa, placa completa ni `publicToken`; un test fija las claves exactas de la respuesta.
+- **Límite**: 10 consultas por IP cada 10 min → 429 `RATE_LIMITED`. El conteo y el registro son atómicos (bloqueo por IP): consultas simultáneas no pueden pasarse del máximo, y las bloqueadas no alargan la ventana.
+- **Auditoría**: cada consulta permitida escribe `AuditLog(PORTAL_LOOKUP, ip)` con una huella de la cédula en `entityId`, nunca la cédula.
 
 ## 5. Pagos C2P SIMULADOS (P3)
 ### Contexto: cómo es C2P real
