@@ -4,8 +4,7 @@
 import type { VercelRequest } from "@vercel/node";
 import { C2PRequestSchema } from "../../lib/contracts/index.ts";
 import { db } from "../../lib/db.ts";
-// Hasta el paso 8 del plan de P3: confirmación por WhatsApp en DRY_RUN (lib/notify/mock.ts).
-import { notifyPaymentConfirmed } from "../../lib/notify/mock.ts";
+import { notifyPaymentConfirmed } from "../../lib/notify/index.ts";
 import { chargeC2P } from "../../lib/payments/c2p.ts";
 import { payFine } from "../../lib/payments/pay-fine.ts";
 import { createPrismaPaymentStore } from "../../lib/payments/prisma-store.ts";
