@@ -136,6 +136,7 @@ docs/               # esta documentación
 | `WHATSAPP_APP_SECRET` | clave secreta de la app; verifica `X-Hub-Signature-256` del webhook | P3 |
 | `WHATSAPP_VERIFY_TOKEN` | texto para el GET de verificación del webhook | P3 |
 | `WHATSAPP_GRAPH_VERSION` | versión de la Graph API, p.ej. `v23.0` | P3 |
+| `WHATSAPP_TEMPLATE_CODE`, `WHATSAPP_TEMPLATE_LANG` | plantilla de autenticación aprobada para el código de registro (llega a cualquier número, sin ventana de 24 h); `LANG` por defecto `es`. Sin ella se envía texto libre | P1 |
 | `APP_BASE_URL` | `https://smartvia-smart-via.vercel.app` (producción) | P1 |
 | `SESSION_SECRET` | firma las cookies de sesión (≥ 32 caracteres; `openssl rand -base64 48`). Obligatoria en Vercel | P1 |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | solo para sembrar la cuenta de admin con `pnpm db:seed` (se guarda el hash; contraseña ≥ 10 caracteres) | P1 |

@@ -326,6 +326,7 @@ model CitizenRegistration {
   person       Person   @relation(fields: [personId], references: [id])
   passwordHash String
   email        String?
+  phone        String?                       // E.164 sin "+": teléfono al que se envió el código, si lo escribió la persona
   codeHash     String
   expiresAt    DateTime
   attempts     Int      @default(0)

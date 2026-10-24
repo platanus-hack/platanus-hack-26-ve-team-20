@@ -76,10 +76,23 @@ const citizenCedula = z.string().min(5).max(20).transform(normalizeCedula).pipe(
 export const CITIZEN_MIN_PASSWORD = 8;
 const citizenPassword = z.string().min(CITIZEN_MIN_PASSWORD).max(200);
 
-/** Paso 1 del registro. El código va por WhatsApp al teléfono que el sistema ya tiene para la cédula. */
+/** Teléfono venezolano escrito por la persona (`0412-123 4567`, `+58 412 1234567`) → `584121234567`. */
+const citizenPhone = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/[\s().+-]/g, ""))
+  .transform((v) => (v.startsWith("58") && v.length === 12 ? `0${v.slice(2)}` : v))
+  .pipe(z.string().regex(/^04(12|14|16|24|26)\d{7}$/, "Teléfono venezolano inválido"))
+  .transform((v) => `58${v.slice(1)}`);
+
+/**
+ * Paso 1 del registro. El código va por WhatsApp al `phone` que escribe la persona (quien lo recibe prueba que es
+ * suyo). Sin `phone` solo sirve para titulares que el sistema ya conoce: va al teléfono que tiene para la cédula.
+ */
 export const CitizenRegisterSchema = z.object({
   cedula: citizenCedula,
   password: citizenPassword,
+  phone: citizenPhone.nullish().or(z.literal("").transform(() => null)),
   /** Opcional; se guarda en el perfil solo cuando el código se verifica. */
   email: z.string().trim().toLowerCase().pipe(z.email().max(200)).nullish().or(z.literal("").transform(() => null)),
 });

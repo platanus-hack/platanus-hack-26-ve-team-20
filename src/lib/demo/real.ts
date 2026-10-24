@@ -149,12 +149,12 @@ export function cerrarSesion() {
  */
 const paraMostrar = (enmascarado: string) => `${enmascarado.slice(0, 4)}000${enmascarado.slice(-4)}`
 
-/** Paso 1: el código va al teléfono que el sistema tiene para esa cédula (el `telefono` tecleado no se usa). */
+/** Paso 1: el código va por WhatsApp al `telefono` tecleado (quien lo recibe prueba que es suyo). */
 export async function solicitarCodigo(datos: { cedula: string; telefono: string; correo: string | null; clave: string }): Promise<{ telefono: string }> {
   const cedula = normalizeCedula(datos.cedula)
   const r = await llamar<{ telefono: string }>('/api/citizen/register', {
     method: 'POST',
-    body: { cedula, password: datos.clave, ...(datos.correo && { email: datos.correo }) },
+    body: { cedula, password: datos.clave, phone: datos.telefono, ...(datos.correo && { email: datos.correo }) },
   })
   const telefono = paraMostrar(r.telefono)
   guardar(K.registro, { cedula, telefono, correo: datos.correo || null, enviadoEn: Date.now() } satisfies Registro)

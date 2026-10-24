@@ -21,6 +21,8 @@ const svc = (over: Partial<CitizenDeps> = {}) => createCitizenService({ db, send
 const lastCode = () => sent.at(-1)!.code
 
 const personIds: string[] = []
+/** Cédulas cuyo titular crea el propio registro (no pasan por `person()`); se resuelven a ids al limpiar. */
+const unknownCedulas: string[] = []
 /** Titular de prueba con cédula inventada única (V9 + 7 dígitos). */
 async function person(over: { phone?: string; email?: string | null } = {}) {
   const i = ++n
@@ -68,6 +70,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   vi.unstubAllEnvs()
+  personIds.push(...(await db.person.findMany({ where: { cedula: { in: unknownCedulas } }, select: { id: true } })).map((p) => p.id))
   const accounts = await db.citizenAccount.findMany({ where: { personId: { in: personIds } }, select: { id: true } })
   await db.auditLog.deleteMany({ where: { OR: [{ ip: { startsWith: '192.0.2.1' } }, { entityId: { in: [...violationIds, ...fineIds, ...accounts.map((a) => a.id)] } }, { actorId: { in: accounts.map((a) => a.id) } }] } })
   await db.payment.deleteMany({ where: { fineId: { in: fineIds } } })
@@ -116,6 +119,41 @@ describe('registro: cédula + contraseña con código por WhatsApp', () => {
     expect(codeOf(err)).toBe('NOT_FOUND')
     expect(reasonOf(err)).toBe('SIN_TITULAR')
     expect(sent).toHaveLength(before)
+  })
+
+  it('registro abierto: una cédula desconocida con teléfono crea el titular y envía el código a ESE teléfono', async () => {
+    const cedula = `V9${DIGITS}01`
+    unknownCedulas.push(cedula)
+    const out = await svc().startRegistration({ cedula, password: PASSWORD, phone: '584141112233', ip: ip(4) })
+    expect(out.telefono).toBe('0414-***2233')
+    expect(sent.at(-1)).toMatchObject({ phone: '584141112233' })
+    const created = await db.person.findUniqueOrThrow({ where: { cedula } })
+    expect(created.phone).toBe('584141112233')
+    // verificar abre la cuenta
+    const session = await svc().verifyRegistration({ cedula, code: lastCode(), ip: ip(4) })
+    expect(session.person.cedula).toBe(cedula)
+    const again = await fail(svc().startRegistration({ cedula, password: PASSWORD, phone: '584141112233', ip: ip(4) }))
+    expect(reasonOf(again)).toBe('YA_REGISTRADA')
+  })
+
+  it('un titular conocido con teléfono escrito: el código va al escrito, pero su teléfono (con vehículos) no cambia', async () => {
+    const p = await person({ phone: '584120000777' })
+    await fine(p.id, `phone-${p.id}`) // le da un vehículo
+    const out = await svc().startRegistration({ cedula: p.cedula, password: PASSWORD, phone: '584261234567', ip: ip(5) })
+    expect(out.telefono).toBe('0426-***4567')
+    expect(sent.at(-1)).toMatchObject({ phone: '584261234567' })
+    await svc().verifyRegistration({ cedula: p.cedula, code: lastCode(), ip: ip(5) })
+    expect((await db.person.findUniqueOrThrow({ where: { id: p.id } })).phone).toBe('584120000777')
+  })
+
+  it('un titular sin vehículos adopta el teléfono verificado, y el reenvío usa el mismo teléfono', async () => {
+    const p = await person({ phone: '584120000777' })
+    await svc().startRegistration({ cedula: p.cedula, password: PASSWORD, phone: '584161234567', ip: ip(6) })
+    await db.citizenRegistration.updateMany({ where: { personId: p.id }, data: { lastSentAt: new Date(Date.now() - RESEND_COOLDOWN_MS - 1000) } })
+    await svc().resendCode({ cedula: p.cedula, ip: ip(6) })
+    expect(sent.at(-1)).toMatchObject({ phone: '584161234567' })
+    await svc().verifyRegistration({ cedula: p.cedula, code: lastCode(), ip: ip(6) })
+    expect((await db.person.findUniqueOrThrow({ where: { id: p.id } })).phone).toBe('584161234567')
   })
 
   it('una cédula con cuenta responde YA_REGISTRADA (409) y no envía nada', async () => {

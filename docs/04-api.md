@@ -79,11 +79,13 @@ Cuenta en la tabla `AdminUser` (correo + contraseña con hash scrypt). La sesió
 ## 0c. Cuenta del ciudadano: cédula + contraseña (P1)
 El ciudadano crea su propia contraseña al registrarse y entra con su cédula. Sesión: cookie `vc_citizen` firmada (HttpOnly, SameSite=Lax, Secure en Vercel) de **30 min que se renueva con cada llamada autenticada** (`GET /api/citizen/me?renew=0` comprueba sin renovar, para sondeos). Como en el admin, los `POST` rechazan un `Origin` ajeno.
 
-**Verificación de propiedad.** El registro exige un código de 6 dígitos que se envía por WhatsApp **al teléfono que el sistema ya tiene para esa cédula**, nunca a uno que teclee quien se registra, así nadie puede apropiarse de la cuenta de otra persona. El servidor solo devuelve ese teléfono enmascarado (`0426-***0319`). El código se guarda como HMAC (con `SESSION_SECRET`), vence a los 10 min y admite 5 intentos.
+**Registro abierto.** Cualquier persona puede abrir cuenta: escribe cédula, **teléfono** y contraseña y recibe un código de 6 dígitos por WhatsApp en ese teléfono. Si la cédula no existe se crea el titular (sin vehículos ni multas) al pedir el código. Si el titular ya existe, el código también va al teléfono escrito, pero su teléfono no cambia si tiene vehículos. Sin `phone` solo sirve para titulares conocidos: el código va al teléfono que el sistema tiene. El servidor solo devuelve el teléfono enmascarado (`0426-***0319`). El código se guarda como HMAC (con `SESSION_SECRET`), vence a los 10 min y admite 5 intentos. Con `WHATSAPP_TEMPLATE_CODE` se envía con una plantilla de autenticación aprobada (llega a cualquiera); sin ella, texto libre (solo dentro de la ventana de 24 h).
+
+> **Límite conocido (decisión de producto para la demo).** El código prueba que la persona controla *un* teléfono, no que sea el titular de la cédula: quien conozca la cédula de otro puede abrir esa cuenta con su propio teléfono y ver sus multas. Mitigaciones previstas fuera del MVP: verificar contra el teléfono del titular cuando se conoce, o un dato adicional (p. ej. una placa).
 
 | Endpoint | Auth | Descripción |
 |---|---|---|
-| `POST /api/citizen/register` `{ cedula, password, email? }` | public | Paso 1: guarda la contraseña elegida (mín. 8) y envía el código. 200 `{ telefono }`. |
+| `POST /api/citizen/register` `{ cedula, password, phone?, email? }` | public | Paso 1: guarda la contraseña elegida (mín. 8) y envía el código al `phone` (venezolano, cualquier formato; se normaliza a `58412…`). 200 `{ telefono }`. |
 | `POST /api/citizen/register/resend` `{ cedula }` | public | Código nuevo (30 s entre envíos). 200 `{ telefono }`. |
 | `POST /api/citizen/register/verify` `{ cedula, code }` | public | Paso 2: crea la cuenta y abre la sesión. 200 `{ user, vehicles }` + `Set-Cookie`. |
 | `POST /api/citizen/login` `{ cedula, password }` | public | 200 `{ user }` + `Set-Cookie`. |
@@ -95,7 +97,7 @@ El ciudadano crea su propia contraseña al registrarse y entra con su cédula. S
 | `POST /api/citizen/fines/:id/appeal` | citizen | Apela una multa pendiente o vencida (→ `APPEALED`). |
 | `GET /api/citizen/vehicles` | citizen | `{ items: CitizenVehicleDTO[] }`. |
 
-**Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
+**Errores.** Además de `code`, el error lleva `reason` (legible por máquina): `SIN_TITULAR` (404, no hay titular con esa cédula y no se dio teléfono), `YA_REGISTRADA` (409), `SIN_REGISTRO` (404, no hay registro pendiente), `CODIGO_INVALIDO` / `CODIGO_VENCIDO` (400), `CODIGO_AGOTADO` (429, 5 intentos), `ESPERAR` (429, 30 s entre envíos), `ENVIO_FALLIDO` (502, WhatsApp no entregó: típico si pasó la ventana de 24 h y el mensaje pide escribir primero al número), `CREDENCIALES` (401, igual para cédula desconocida, contraseña errónea y cuenta desactivada), `CLAVE_ACTUAL` / `CLAVE_IGUAL` (400), `NO_ENCONTRADA` (404), `NO_APELABLE` (409).
 
 **Límites.** Registro/reenvío: 10 por IP cada 10 min y 5 por cédula por hora. Verificación: 20 por IP cada 10 min. Login: 5 fallos por cédula y 10 por IP cada 10 min (bloquea aun con la contraseña correcta). Cambio de contraseña: 5 intentos por cuenta cada 10 min. Los fallos se auditan con una huella de la cédula, nunca con la cédula ni la contraseña.
 

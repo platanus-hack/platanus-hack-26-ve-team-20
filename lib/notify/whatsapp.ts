@@ -90,15 +90,53 @@ function metaError(code: number | undefined, message: string): WhatsAppError {
   return code === undefined ? { reason: "META_ERROR", message } : { reason: "META_ERROR", message, metaCode: code };
 }
 
-export async function sendWhatsAppText(
-  message: WhatsAppTextMessage,
-  options: { config?: WhatsAppConfig; fetchImpl?: typeof fetch } = {},
+type SendOptions = { config?: WhatsAppConfig; fetchImpl?: typeof fetch };
+
+export async function sendWhatsAppText(message: WhatsAppTextMessage, options: SendOptions = {}): Promise<WhatsAppSendResult> {
+  if (!message.body.trim()) return { status: "FAILED", error: { reason: "CONFIG", message: "El mensaje está vacío" } };
+  return post(
+    message.to,
+    {
+      type: "text",
+      text: { body: message.body, preview_url: true },
+      ...(message.callbackData ? { biz_opaque_callback_data: message.callbackData } : {}),
+    },
+    options,
+  );
+}
+
+/**
+ * Plantilla de autenticación (código de un solo uso). A diferencia del texto libre, una plantilla aprobada llega a
+ * cualquier número sin ventana de 24 h. Cuerpo y botón "copiar código" reciben el mismo código.
+ */
+export async function sendWhatsAppAuthTemplate(
+  message: { to: string; template: string; language: string; code: string },
+  options: SendOptions = {},
 ): Promise<WhatsAppSendResult> {
+  const param = [{ type: "text", text: message.code }];
+  return post(
+    message.to,
+    {
+      type: "template",
+      template: {
+        name: message.template,
+        language: { code: message.language },
+        components: [
+          { type: "body", parameters: param },
+          { type: "button", sub_type: "url", index: "0", parameters: param },
+        ],
+      },
+    },
+    options,
+  );
+}
+
+/** Envío común a la Graph API: valida destinatario y configuración, aplica el timeout y traduce los errores. */
+async function post(rawTo: string, content: Record<string, unknown>, options: SendOptions): Promise<WhatsAppSendResult> {
   const fail = (error: WhatsAppError): WhatsAppSendResult => ({ status: "FAILED", error });
 
-  const to = normalizeWhatsAppNumber(message.to);
+  const to = normalizeWhatsAppNumber(rawTo);
   if (!to) return fail({ reason: "INVALID_RECIPIENT", message: "El destinatario no es un número internacional válido" });
-  if (!message.body.trim()) return fail({ reason: "CONFIG", message: "El mensaje está vacío" });
 
   let config: WhatsAppConfig;
   try {
@@ -116,9 +154,7 @@ export async function sendWhatsAppText(
     messaging_product: "whatsapp",
     recipient_type: "individual",
     to,
-    type: "text",
-    text: { body: message.body, preview_url: true },
-    ...(message.callbackData ? { biz_opaque_callback_data: message.callbackData } : {}),
+    ...content,
   };
 
   let response: Response;
