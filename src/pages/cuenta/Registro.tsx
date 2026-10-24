@@ -84,7 +84,7 @@ export default function Registro() {
           <Campo id="r-mail" label={<>Correo <span className="font-normal text-texto-2">(opcional)</span></>}>
             <input id="r-mail" type="email" autoComplete="email" placeholder="usted@correo.com" value={f.correo} onChange={set('correo')} className={input()} />
           </Campo>
-          <Boton type="submit" variante="acceso">Continuar</Boton>
+          <Boton type="submit">Continuar</Boton>
           <div className="flex items-center justify-center gap-1.5 text-sm text-texto-2">
             ¿Ya tiene cuenta?<Link to="/ingresar" className={enlace}>Entrar</Link>
           </div>
@@ -113,7 +113,7 @@ export default function Registro() {
             <MessageSquare size={16} strokeWidth={1.75} aria-hidden="true" className="mt-px flex-none" />
             Le enviaremos un código por WhatsApp al teléfono registrado para su cédula, para que nadie abra una cuenta a su nombre.
           </span>
-          <Boton type="submit" variante="acceso" disabled={enviando} aria-busy={enviando}>{enviando ? 'Enviando código…' : 'Enviar código por WhatsApp'}</Boton>
+          <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Enviando código…' : 'Enviar código por WhatsApp'}</Boton>
         </div>
       )}
     </form>
