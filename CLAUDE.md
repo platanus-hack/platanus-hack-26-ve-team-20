@@ -43,7 +43,7 @@ pnpm prisma db seed          # datos FALSOS de ejemplo (prisma/seed.ts); idempot
 pnpm demo:reset              # borra lo generado por la demo HOY (no sembrado) y re-siembra; --dry-run, --all
 pnpm prisma studio
 pnpm lint && pnpm typecheck  # typecheck = tsc --noEmit
-cd mobile && pnpm expo start   # app de cámara (Expo Go en el teléfono)
+cd mobile && npm install && npx expo start   # app (ciudadano, policía y cámara); npm propio, fuera del workspace pnpm
 cd ml && uvicorn app.main:app --reload   # servicio de inferencia (objetivo, ver docs/10)
 pnpm test                    # vitest (unit, sin red)
 pnpm test:db                 # vitest contra la base real (requiere seed; limpia sus filas test_*)

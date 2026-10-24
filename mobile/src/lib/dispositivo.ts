@@ -9,10 +9,6 @@ export function hapticaExito() {
   if (!web) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 }
 
-export function hapticaToque() {
-  if (!web) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-}
-
 // Patrón en ms alternando vibrar/pausar, como navigator.vibrate.
 export function vibrar(patron: number[]) {
   try {

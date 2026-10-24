@@ -5,11 +5,9 @@ import { View } from 'react-native';
 import { CabeceraTinta } from '@/components/auth';
 import { Pantalla } from '@/components/extra';
 import { Boton, Campo, T, Tarjeta } from '@/components/ui';
-import { OFICIAL, institucionValida } from '@/demo/policia';
+import { OFICIAL, institucionValida, soloCodigo } from '@/demo/policia';
 import { guardarSesion } from '@/lib/dispositivo';
 import { color, tipo } from '@/theme';
-
-const soloCodigo = (t: string) => t.toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
 // Primer acceso con Google: se confirma la institución antes de recibir alertas.
 export default function CodigoInstitucion() {

@@ -4,11 +4,10 @@ import { View } from 'react-native';
 import { color, tipo } from '@/theme';
 import { T } from './ui';
 
-export function Marca({ texto, chico }: { texto: string; chico?: boolean }) {
-  const t = chico ? 30 : 32;
+export function Marca({ texto }: { texto: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={{ width: t, height: t, borderRadius: chico ? 9 : 10, backgroundColor: color.lima, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: color.lima, alignItems: 'center', justifyContent: 'center' }}>
         <ShieldCheck size={18} color={color.tinta} strokeWidth={2} />
       </View>
       <T style={[tipo.cuerpoFuerte, { color: color.tarjeta }]}>{texto}</T>

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { urlValida } from './camara';
+import { SinConexionError, duracionClip, sendEvent, urlValida, type DetectionRequest } from './camara';
 import { aplicarPago, multasBase, referenciaSimulada, resultadoPago, validarLogin, validarRegistro, verificarCodigo } from './ciudadano';
 import { bs, decimal, fechaCaracas, horaCaracas } from './format';
 import { evaluarPlaca, institucionValida, validarLoginOficial } from './policia';
@@ -96,5 +96,43 @@ describe('policía y cámara', () => {
   it('URL de la API', () => {
     expect(urlValida('https://api.demo.smarttraffic.example')).toBe(true);
     expect(urlValida('api sin esquema')).toBe(false);
+  });
+
+  it('duración del clip siempre > 0 y como máximo 4 s', () => {
+    expect(duracionClip(1000, 1000)).toBe(1);
+    expect(duracionClip(1000, 3500)).toBe(2500);
+    expect(duracionClip(0, 9999)).toBe(4000);
+  });
+
+  it('subida: sin conexión guarda el % y el reintento sigue desde ahí hasta 100', async () => {
+    vi.useFakeTimers();
+    try {
+      const req: DetectionRequest = {
+        cameraCode: 'CAM-001',
+        type: 'RED_LIGHT',
+        clip: { url: 'https://blob.example/clips/CAM-001-1.mp4', startedAt: new Date(0).toISOString(), durationMs: duracionClip(0, 2500) },
+        clockOffsetMs: 0,
+        idempotencyKey: 'evt-test-0001',
+      };
+      expect(req.clip.durationMs).toBeGreaterThan(0);
+      const vistos: number[] = [];
+      const onProgress = (p: number) => vistos.push(p);
+
+      const fallo = sendEvent(req, { apiUrl: 'api sin esquema', cameraKey: '', onProgress }).catch((e: unknown) => e);
+      await vi.runAllTimersAsync();
+      const e = await fallo;
+      expect(e).toBeInstanceOf(SinConexionError);
+      const pct = (e as SinConexionError).pct;
+      expect(pct).toBe(48);
+      expect(vistos.at(-1)).toBe(pct);
+
+      const ok = sendEvent(req, { apiUrl: 'https://api.demo.smarttraffic.example', cameraKey: '', onProgress }, pct);
+      await vi.runAllTimersAsync();
+      await expect(ok).resolves.toMatchObject({ verdict: 'VIOLATION' });
+      expect(vistos.at(-1)).toBe(100);
+      expect(vistos.every((p, i) => i === 0 || p > vistos[i - 1])).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

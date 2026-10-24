@@ -17,13 +17,13 @@ export function DemoBanner() {
 }
 
 /** Marca: escudo con check, lima sobre tinta (o tinta sobre lima). */
-export function Logo({ claro = false, conNombre = true }: { claro?: boolean; conNombre?: boolean }) {
+export function Logo({ claro = false }: { claro?: boolean }) {
   return (
     <span className="flex items-center gap-2.5 font-semibold">
       <span className={cx('flex size-8 items-center justify-center rounded-[10px]', claro ? 'bg-brand text-tinta' : 'tinta bg-tinta text-brand')}>
-        <ShieldCheck size={18} strokeWidth={2} aria-hidden="true" />
+        <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" />
       </span>
-      {conNombre && 'SmartTraffic'}
+      SmartTraffic
     </span>
   )
 }

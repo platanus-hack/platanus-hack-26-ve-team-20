@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { apelarMulta, esPagable, getMulta, getVehiculos, type Multa } from '@/lib/demo/api.ts'
 import { LUZ, TIPO } from '@/lib/etiquetas.ts'
-import { diasEntre, formatBs, formatFecha, formatHora } from '@/lib/format.ts'
+import { diasEntre, enDias, formatBs, formatFecha, formatHora } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
 import { Boton, Hoja } from '@/components/ui/index.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
@@ -32,7 +32,7 @@ function Acordeon({ titulo, children, borde }: { titulo: string; children: React
 
 function textoVence(m: Multa) {
   if (m.status === 'OVERDUE') return `Venció el ${formatFecha(m.dueAt)}`
-  if (m.status === 'PENDING') return `Vence el ${formatFecha(m.dueAt)} · en ${diasEntre(new Date(), m.dueAt)} días`
+  if (m.status === 'PENDING') return `Vence el ${formatFecha(m.dueAt)} · ${enDias(diasEntre(new Date(), m.dueAt))}`
   return m.status === 'PAID' ? 'Saldada' : 'Sin cobro'
 }
 
@@ -53,6 +53,7 @@ export default function MultaDetalle() {
   const [frame, setFrame] = useState(1)
   const [jugando, setJugando] = useState(false)
   const [apelar, setApelar] = useState(false)
+  const [apelando, setApelando] = useState(false)
   const reloj = useRef<ReturnType<typeof setInterval>>(undefined)
   useEffect(() => () => clearInterval(reloj.current), [])
 
@@ -207,7 +208,11 @@ export default function MultaDetalle() {
       <Hoja abierta={apelar} modo="modal" etiqueta="Apelar multa" onCerrar={() => setApelar(false)}>
         <h2 className="text-h2 font-semibold">¿Desea apelar esta multa?</h2>
         <p className="text-texto-2">Su apelación congela el cobro hasta que un operador la revise. Le avisaremos por WhatsApp.</p>
-        <Boton onClick={async () => { setApelada(await apelarMulta(m.id)); setApelar(false) }}>Confirmar apelación</Boton>
+        <Boton disabled={apelando} aria-busy={apelando} onClick={async () => {
+          if (apelando) return
+          setApelando(true)
+          try { setApelada(await apelarMulta(m.id)) } catch { /* SESION la muestra el Shell */ } finally { setApelando(false); setApelar(false) }
+        }}>{apelando ? 'Enviando…' : 'Confirmar apelación'}</Boton>
         <Boton variante="outline" onClick={() => setApelar(false)}>Cancelar</Boton>
       </Hoja>
     </>

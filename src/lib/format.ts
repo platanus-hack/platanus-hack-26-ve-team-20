@@ -31,6 +31,9 @@ export function diasEntre(a: string | Date, b: string | Date): number {
   return Math.round((dia(b) - dia(a)) / 86_400_000)
 }
 
+/** Plazo legible: "hoy", "en 1 día", "en 5 días". */
+export const enDias = (n: number) => (n <= 0 ? 'hoy' : n === 1 ? 'en 1 día' : `en ${n} días`)
+
 /** "04120000001" → "0412-0000001". */
 export const formatTelefono = (t: string) => `${t.slice(0, 4)}-${t.slice(4)}`
 /** "04120000001" → "0412-***0001". */

@@ -28,6 +28,7 @@ export default function Creada() {
           titulo="Ir al inicio"
           onPress={async () => {
             await guardarSesion('ciudadano');
+            router.dismissAll();
             router.replace('/ciudadano');
           }}
         />

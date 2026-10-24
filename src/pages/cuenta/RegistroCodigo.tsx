@@ -64,7 +64,7 @@ export default function RegistroCodigo() {
   }
 
   const reenviar = async () => {
-    await reenviarCodigo()
+    try { await reenviarCodigo() } catch { return }
     setEspera(ESPERA_S)
     setError(null)
     setCod('')

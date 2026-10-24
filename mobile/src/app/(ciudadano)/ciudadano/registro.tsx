@@ -27,6 +27,9 @@ export default function Registro() {
     if (!e) router.push('/ciudadano/codigo');
   }
 
+  // Registro se abre desde login: volver evita apilar otro login.
+  const irAEntrar = () => (router.canGoBack() ? router.back() : router.replace('/ciudadano/login'));
+
   const claveMal = error === 'claveCorta' ? 'La contraseña debe tener al menos 8 caracteres.' : error === 'noCoinciden' ? 'Las contraseñas no coinciden.' : null;
 
   return (
@@ -40,7 +43,7 @@ export default function Registro() {
             <View style={{ gap: 4 }}>
               <T style={[tipo.pequenoFuerte, { color: color.rojoTexto }]}>Esta cédula ya tiene una cuenta.</T>
               <T style={[tipo.pequeno, { color: color.rojoTexto }]}>Entre con su contraseña o recupérela desde «¿Olvidó su contraseña?».</T>
-              <Enlace titulo="Ir a Entrar" colorTexto={color.rojoTexto} onPress={() => router.replace('/ciudadano/login')} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
+              <Enlace titulo="Ir a Entrar" colorTexto={color.rojoTexto} onPress={irAEntrar} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
             </View>
           </Aviso>
         ) : null}
@@ -96,7 +99,7 @@ export default function Registro() {
         <Boton titulo="Enviar código por WhatsApp" cargando={cargando} onPress={enviar} />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <T style={[tipo.pequeno, { color: color.texto2 }]}>¿Ya tiene cuenta?</T>
-          <Enlace titulo="Entrar" onPress={() => router.replace('/ciudadano/login')} />
+          <Enlace titulo="Entrar" onPress={irAEntrar} />
         </View>
       </View>
     </Pantalla>

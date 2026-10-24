@@ -166,7 +166,7 @@ export function ListaMultas({ multas, onAbrir, onPagar }: { multas: Multa[]; onA
   );
 }
 
-export const st = StyleSheet.create({
+const st = StyleSheet.create({
   pie: { paddingTop: 12, paddingHorizontal: 16, backgroundColor: color.tarjeta, borderTopWidth: 1, borderTopColor: color.borde },
   hojaWrap: { flex: 1, justifyContent: 'flex-end' },
   hoja: { gap: 14, paddingTop: 12, paddingHorizontal: 20, backgroundColor: color.tarjeta, borderTopLeftRadius: 16, borderTopRightRadius: 16, boxShadow: sombra.sheet },

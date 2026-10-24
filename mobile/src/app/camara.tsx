@@ -1,4 +1,4 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, PermissionStatus, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -16,6 +16,7 @@ import {
   CAMARA_DEFECTO,
   DURACION_CLIP_MS,
   SinConexionError,
+  duracionClip,
   nuevaClaveEvento,
   sendEvent,
   sincronizarReloj,
@@ -44,7 +45,6 @@ export default function Camara() {
   const [paso, setPaso] = useState(0);
   const [resultado, setResultado] = useState<DetectionResult | null>(null);
   const [reloj, setReloj] = useState(true);
-  const [offset, setOffset] = useState(0);
   const [gps, setGps] = useState<{ lat: number; lng: number; accuracyM?: number } | null>(null);
   const [sinGPS, setSinGPS] = useState(false);
   const [ajustes, setAjustes] = useState(false);
@@ -54,6 +54,10 @@ export default function Camara() {
   const iv = useRef<ReturnType<typeof setInterval> | null>(null);
   const evento = useRef<DetectionRequest | null>(null);
   const vivo = useRef(true);
+  // Refs para que el cierre automático (dentro del intervalo) lea valores actuales.
+  const inicioRef = useRef(0);
+  const offsetRef = useRef(0);
+  const gpsRef = useRef<typeof gps>(null);
 
   // Orientación horizontal solo en esta pantalla.
   useEffect(() => {
@@ -74,7 +78,7 @@ export default function Camara() {
       setCfg(c);
       const off = await sincronizarReloj(c.apiUrl);
       if (vivo.current) {
-        setOffset(off);
+        offsetRef.current = off;
         setReloj(false);
       }
     })();
@@ -82,16 +86,18 @@ export default function Camara() {
       .then(async (r) => {
         if (!r.granted) throw new Error('sin permiso');
         const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        if (vivo.current) setGps({ lat: p.coords.latitude, lng: p.coords.longitude, accuracyM: p.coords.accuracy ?? undefined });
+        if (!vivo.current) return;
+        gpsRef.current = { lat: p.coords.latitude, lng: p.coords.longitude, accuracyM: p.coords.accuracy ?? undefined };
+        setGps(gpsRef.current);
       })
       .catch(() => vivo.current && setSinGPS(true));
   }, []);
 
   useEffect(() => {
-    if (!web && permiso && !permiso.granted && permiso.canAskAgain) pedirPermiso();
+    if (!web && permiso?.status === PermissionStatus.UNDETERMINED) pedirPermiso();
   }, [permiso, pedirPermiso]);
 
-  const sinPermiso = !web && !!permiso && !permiso.granted && !permiso.canAskAgain;
+  const sinPermiso = !web && permiso?.status === PermissionStatus.DENIED;
   const ocupado = fase === 'subiendo' || fase === 'analizando' || fase === 'fallo';
 
   // ---- flujo: grabar → subir → analizar → resultado
@@ -109,16 +115,21 @@ export default function Camara() {
     setPct(0);
     setPaso(0);
     miniOp.set(0);
-    const inicio = Date.now();
+    inicioRef.current = Date.now();
     iv.current = setInterval(() => {
-      const s = Math.min(4, (Date.now() - inicio) / 1000);
+      const s = Math.min(4, (Date.now() - inicioRef.current) / 1000);
       setT(s);
-      if (s >= 4) terminar(inicio, DURACION_CLIP_MS);
+      if (s >= 4) terminar();
     }, 100);
   }
 
-  function terminar(inicio: number, durationMs: number) {
-    if (iv.current) clearInterval(iv.current);
+  function terminar() {
+    if (!iv.current) return;
+    clearInterval(iv.current);
+    iv.current = null;
+    const inicio = inicioRef.current;
+    const durationMs = duracionClip(inicio);
+    const offset = offsetRef.current;
     vibrar([20, 60, 20]);
     if (!rm) {
       flash.set(withSequence(withTiming(0.75, { duration: 0 }), withTiming(0, { duration: 120, easing: Easing.linear })));
@@ -136,7 +147,7 @@ export default function Camara() {
       type: 'RED_LIGHT',
       clip: { url: `https://blob.example/clips/${cfg.codigo}-${n}.mp4`, startedAt: new Date(inicio + offset).toISOString(), durationMs },
       clockOffsetMs: offset,
-      device: gps ?? { lat: CAMARA_DEFECTO.lat, lng: CAMARA_DEFECTO.lng },
+      device: gpsRef.current ?? { lat: CAMARA_DEFECTO.lat, lng: CAMARA_DEFECTO.lng },
       idempotencyKey: nuevaClaveEvento(n),
     };
     subir(0);
@@ -160,11 +171,12 @@ export default function Camara() {
     setFase('analizando');
     setPaso(0);
     let p = 0;
-    iv.current = setInterval(() => {
+    const id = setInterval(() => {
       p += 1;
       setPaso(p);
       if (p >= 3) {
-        if (iv.current) clearInterval(iv.current);
+        clearInterval(id);
+        if (iv.current === id) iv.current = null;
         setTimeout(() => {
           if (!vivo.current) return;
           vibrar([40]);
@@ -174,10 +186,11 @@ export default function Camara() {
         }, 300);
       }
     }, 700);
+    iv.current = id;
   }
 
   function accion() {
-    if (fase === 'grabando') terminar(Date.now() - t * 1000, Math.round(t * 1000));
+    if (fase === 'grabando') terminar();
     else if (!ocupado) grabar();
   }
 
@@ -379,7 +392,7 @@ export default function Camara() {
           </View>
         </View>
         <BotonLima titulo="Guardar" onPress={guardarAjustes} />
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={{ minHeight: 44, alignSelf: 'center', justifyContent: 'center' }}>
+        <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={{ minHeight: 44, alignSelf: 'center', justifyContent: 'center' }}>
           <T style={{ fontFamily: fuente.uiFuerte, fontSize: 14, color: cam.texto2 }}>Salir del modo cámara</T>
         </Pressable>
       </Animated.View>

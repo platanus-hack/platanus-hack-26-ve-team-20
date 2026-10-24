@@ -20,7 +20,8 @@ export default function Pago() {
   const { id } = useParams()
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { state } = useLocation()
+  const location = useLocation()
+  const { state } = location
   const desde = (state as { desde?: string } | null)?.desde
   const sesion = getSesion()
   const { data, error, cargando, recargar } = useCarga(getMultas, [])
@@ -34,22 +35,26 @@ export default function Pago() {
   const multas = (data ?? []).filter((m) => esPagable(m) && (!pedidas || pedidas.includes(m.id)))
   const total = multas.reduce((t, m) => t + m.amountCents, 0)
 
-  const telMal = intento && !TELEFONO_RE.test(f.tel)
-  const cedMal = intento && !/^\d{6,9}$/.test(f.ced)
-  const claveMal = intento && !/^\d{6,8}$/.test(f.clave)
+  const telOk = TELEFONO_RE.test(f.tel)
+  const cedOk = /^\d{6,9}$/.test(f.ced)
+  const claveOk = /^\d{6,8}$/.test(f.clave)
+  const telMal = intento && !telOk
+  const cedMal = intento && !cedOk
+  const claveMal = intento && !claveOk
 
-  const volver = () => (window.history.length > 1 ? navigate(-1) : navigate(id ? `/multas/${id}` : '/inicio'))
+  // key 'default' = se entró directo a esta URL: navigate(-1) sacaría de la app.
+  const volver = () => (location.key !== 'default' ? navigate(-1) : navigate(id ? `/multas/${id}` : '/inicio'))
 
   const pagar = async (e: FormEvent) => {
     e.preventDefault()
     if (enviando) return
     setIntento(true)
-    if (!TELEFONO_RE.test(f.tel) || !/^\d{6,9}$/.test(f.ced) || !/^\d{6,8}$/.test(f.clave)) return
+    if (!telOk || !cedOk || !claveOk) return
     setEnviando(true)
     setRechazo(null)
     try {
       const ids = multas.map((m) => m.id)
-      await pagarMultas(ids, { banco: f.banco, telefono: f.tel, cedula: f.ced, clave: f.clave })
+      await pagarMultas(ids, { banco: f.banco, telefono: f.tel, cedula: `${f.tipo}${f.ced}`, clave: f.clave })
       const destino = ids.length === 1 ? `/multas/${ids[0]}/comprobante` : `/comprobante?multas=${ids.join(',')}`
       navigate(destino, { replace: true, state: { recien: true, telefono: f.tel, desde } })
     } catch (err) {

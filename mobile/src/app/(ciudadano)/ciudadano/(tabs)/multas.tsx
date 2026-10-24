@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -15,13 +15,8 @@ const PESTANAS = ['Por pagar', 'Pagadas', 'Otras'] as const;
 export default function Multas() {
   const params = useLocalSearchParams<{ tab?: string; filtro?: string }>();
   const { multas } = useCiudadano();
-  const [tab, setTab] = useState(0);
-  const [filtro, setFiltro] = useState('todos');
-
-  useEffect(() => {
-    if (params.tab) setTab(Number(params.tab) || 0);
-    if (params.filtro) setFiltro(params.filtro);
-  }, [params.tab, params.filtro]);
+  const tab = Math.min(2, Math.max(0, Math.trunc(Number(params.tab)) || 0));
+  const filtro = params.filtro ?? 'todos';
 
   const conjuntos: Multa[][] = [
     multas.filter(esPendiente),
@@ -39,7 +34,7 @@ export default function Multas() {
       <T accessibilityRole="header" style={tipo.h1}>
         Multas
       </T>
-      <Segmentado tab={tab} onCambio={setTab} cuentas={conjuntos.map((c) => c.length)} />
+      <Segmentado tab={tab} onCambio={(i) => router.setParams({ tab: String(i) })} cuentas={conjuntos.map((c) => c.length)} />
       <View accessibilityLabel="Filtrar por vehículo" style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {['todos', ...VEHICULOS.map((v) => v.placa)].map((f) => {
           const on = filtro === f;
@@ -48,7 +43,7 @@ export default function Multas() {
               key={f}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
-              onPress={() => setFiltro(f)}
+              onPress={() => router.setParams({ filtro: f })}
               style={[s.filtro, on ? { backgroundColor: color.tinta, borderColor: color.tinta } : null]}>
               <T style={[f === 'todos' ? tipo.pequenoFuerte : { fontFamily: fuente.monoFuerte, fontSize: 13 }, { color: on ? color.tarjeta : color.tinta }]}>{f === 'todos' ? 'Todos' : f}</T>
             </Pressy>

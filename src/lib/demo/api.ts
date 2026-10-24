@@ -87,7 +87,8 @@ export function getSesion(): Sesion | null {
   return s
 }
 
-async function protegido<T>(fn: (s: Sesion) => T, latencia?: [number, number]): Promise<T> {
+// `renovar = false` para el sondeo: si no, dejar /en-vivo abierto impide que la sesión venza.
+async function protegido<T>(fn: (s: Sesion) => T, latencia?: [number, number], renovar = true): Promise<T> {
   await esperar(...(latencia ?? []))
   const fallo = falloDemo()
   if (fallo === 'red' && Date.now() - cargaInicial < 2000) throw new DemoError('RED', 'Sin conexión')
@@ -98,7 +99,7 @@ async function protegido<T>(fn: (s: Sesion) => T, latencia?: [number, number]): 
     oyentes.forEach((cb) => cb())
     throw new DemoError('SESION', 'La sesión venció')
   }
-  guardar(K.sesion, { ...s, expira: Date.now() + SESION_MS })
+  if (renovar) guardar(K.sesion, { ...s, expira: Date.now() + SESION_MS })
   return fn(s)
 }
 
@@ -216,7 +217,7 @@ export interface DatosPago { banco: string; telefono: string; cedula: string; cl
 export async function pagarMultas(ids: string[], pago: DatosPago): Promise<Multa[]> {
   // 1,2 s: coincide con el relleno del botón "Procesando pago…" del diseño.
   return protegido((s) => {
-    if (!ids.length || !TELEFONO_RE.test(pago.telefono) || !/^\d{6,9}$/.test(pago.cedula) || !/^\d{6,8}$/.test(pago.clave)) {
+    if (!ids.length || !TELEFONO_RE.test(pago.telefono) || !/^[VE]\d{6,9}$/.test(normalizeCedula(pago.cedula)) || !/^\d{6,8}$/.test(pago.clave)) {
       throw new DemoError('VALIDACION')
     }
     const todas = multasDe(s.cedula)
@@ -242,14 +243,14 @@ const referencia = () => `SIM-${String(Math.floor(Math.random() * 1e8)).padStart
 export const getCamaras = () => protegido((): Camara[] => {
   const ahora = new Date()
   const frame = Math.floor(ahora.getTime() / 4000)
-  // CAM-004 sin señal: su último fotograma fue hoy a las 09:40 (Caracas).
-  const sinSenal = `${diaCaracas(ahora)}T13:40:00Z`
+  // CAM-004 sin señal: último fotograma hoy a las 09:40 (Caracas), o hace 1 h si aún no son las 09:40.
+  const sinSenal = new Date(Math.min(Date.parse(`${diaCaracas(ahora)}T13:40:00Z`), ahora.getTime() - 3_600_000)).toISOString()
   return CAMARAS_DEMO.map((c, i) => ({
     ...c,
     capturedAt: c.light ? ahora.toISOString() : sinSenal,
     frame: c.light ? frame + i : 0,
   }))
-})
+}, undefined, false)
 
 // ---------------------------------------------------------------- estadísticas
 export interface Estadisticas {

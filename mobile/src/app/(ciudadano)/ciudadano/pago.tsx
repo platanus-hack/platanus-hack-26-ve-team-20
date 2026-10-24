@@ -1,12 +1,12 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ChevronDown, ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Hoja, Pantalla, Pie } from '@/components/extra';
 import { Aviso, Campo, SW, T, TipoCedula } from '@/components/ui';
-import { cedulaValida, claveC2PValida, getMultas, pagarMultas, telefonoValido, type RechazoPago } from '@/demo/ciudadano';
+import { cedulaValida, claveC2PValida, esPendiente, getMultas, pagarMultas, telefonoValido, type RechazoPago } from '@/demo/ciudadano';
 import { bs, fechaCaracas } from '@/demo/format';
 import { color, fuente, radio, tipo } from '@/theme';
 
@@ -16,7 +16,7 @@ export default function Pago() {
   const { ids: idsParam } = useLocalSearchParams<{ ids?: string }>();
   const ids = (idsParam ?? '').split(',').filter(Boolean);
   // Lista fija al abrir: así el total no cambia mientras se paga.
-  const [lista] = useState(() => getMultas().filter((m) => ids.includes(m.id)));
+  const [lista] = useState(() => getMultas().filter((m) => ids.includes(m.id) && esPendiente(m)));
   const total = lista.reduce((a, m) => a + m.amountCents, 0);
 
   const [banco, setBanco] = useState(BANCOS[0]);
@@ -32,13 +32,21 @@ export default function Pago() {
   const telOk = telefonoValido(tel);
   const claveOk = claveC2PValida(clave);
 
+  // Mientras se procesa el pago no se puede salir (atrás de Android).
+  useEffect(() => {
+    if (!enviando) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [enviando]);
+
   async function pagar() {
     if (enviando) return;
     setIntento(true);
     if (!telOk || !cedulaValida(ced) || !claveOk) return;
     setEnviando(true);
     setRechazo(null);
-    const r = await pagarMultas(ids, clave, fechaCaracas(new Date()));
+    const elegidas = lista.map((m) => m.id);
+    const r = await pagarMultas(elegidas, clave, fechaCaracas(new Date()));
     setEnviando(false);
     if (!r.ok) {
       setRechazo(r.rechazo);
@@ -46,11 +54,33 @@ export default function Pago() {
       setIntento(false);
       return;
     }
-    router.replace({ pathname: '/ciudadano/comprobante', params: { ids: ids.join(',') } });
+    router.replace({ pathname: '/ciudadano/comprobante', params: { ids: elegidas.join(',') } });
+  }
+
+  const volver = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: enviando }}
+      disabled={enviando}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace('/ciudadano'))}
+      style={[s.volver, enviando ? { opacity: 0.4 } : null]}>
+      <ChevronLeft size={18} color={color.tinta} strokeWidth={2} />
+      <T style={tipo.pequenoFuerte}>Volver</T>
+    </Pressable>
+  );
+
+  if (!lista.length) {
+    return (
+      <Pantalla style={{ gap: 16, paddingTop: 12, paddingHorizontal: 16, paddingBottom: 24 }}>
+        {volver}
+        <Aviso tono="azul">No hay multas pendientes por pagar.</Aviso>
+      </Pantalla>
+    );
   }
 
   return (
     <View style={{ flex: 1 }}>
+      <Stack.Screen options={{ gestureEnabled: !enviando }} />
       <Pantalla
         style={{ gap: 16, paddingTop: 12, paddingHorizontal: 16, paddingBottom: 24 }}
         pie={
@@ -58,10 +88,7 @@ export default function Pago() {
             <BotonPago texto={enviando ? 'Procesando pago…' : `Pagar ${bs(total)}`} enviando={enviando} onPress={pagar} />
           </Pie>
         }>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={s.volver}>
-          <ChevronLeft size={18} color={color.tinta} strokeWidth={2} />
-          <T style={tipo.pequenoFuerte}>Volver</T>
-        </Pressable>
+        {volver}
         <View style={s.resumen}>
           <T style={[tipo.pequeno, { color: color.sobreTinta }]}>Total a pagar · monto de ejemplo</T>
           <T style={[tipo.montoG, { color: color.tarjeta }]}>{bs(total)}</T>

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { esPagable, getMultas, getSesion, getVehiculos } from '@/lib/demo/api.ts'
 import { TIPO } from '@/lib/etiquetas.ts'
-import { diasEntre, formatBs, formatCedula, formatFecha } from '@/lib/format.ts'
+import { diasEntre, enDias, formatBs, formatCedula, formatFecha } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
 import { Boton } from '@/components/ui/index.tsx'
 import { cx, enlace, tarjeta } from '@/components/ui/estilos.ts'
@@ -63,7 +63,7 @@ export default function Inicio() {
                   </Boton>
                 </div>
                 {vencida && <Tile rojo Icono={CircleAlert} label="Vencida desde" valor={formatFecha(vencida.dueAt)} sub={`${vencida.plate} · ${TIPO[vencida.type]}`} />}
-                {proxima && <Tile Icono={Clock} label="Próximo vencimiento" valor={formatFecha(proxima.dueAt)} sub={`${proxima.plate} · en ${diasEntre(hoy, proxima.dueAt)} días`} />}
+                {proxima && <Tile Icono={Clock} label="Próximo vencimiento" valor={formatFecha(proxima.dueAt)} sub={`${proxima.plate} · ${enDias(diasEntre(hoy, proxima.dueAt))}`} />}
                 {!(vencida && proxima) && <Tile Icono={Car} label="Vehículos" valor={String(data[1].length)} sub="a su nombre" />}
               </div>
               <section aria-labelledby="pp-t" className="flex flex-col gap-3">

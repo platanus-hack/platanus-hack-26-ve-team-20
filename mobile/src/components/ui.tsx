@@ -66,15 +66,13 @@ export function Pressy({ style, onPressIn, onPressOut, disabled, ...props }: Pre
   );
 }
 
-type Variante = 'tinta' | 'pago' | 'borde' | 'peligro' | 'lima' | 'camBorde';
+type Variante = 'tinta' | 'pago' | 'borde' | 'peligro';
 
 const VAR: Record<Variante, { bg: string; fg: string; borde?: string }> = {
   tinta: { bg: color.tinta, fg: color.tarjeta },
   pago: { bg: color.rojo, fg: color.tarjeta },
   borde: { bg: color.tarjeta, fg: color.tinta, borde: color.bordeInput },
   peligro: { bg: color.tarjeta, fg: color.rojoTexto, borde: color.bordeInput },
-  lima: { bg: color.lima, fg: color.tinta },
-  camBorde: { bg: '#151C28', fg: '#F2F5F9', borde: '#4B5565' },
 };
 
 export function Boton({
@@ -222,10 +220,10 @@ export function PlacaChip({ placa, alto = 22 }: { placa: string; alto?: number }
   );
 }
 
-export function Placa({ placa, tam = 30, oscura }: { placa: string; tam?: number; oscura?: boolean }) {
+export function Placa({ placa, tam = 30 }: { placa: string; tam?: number }) {
   const fg = color.tinta;
   return (
-    <View accessibilityLabel={`Placa ${placa}`} style={[s.placa, { borderColor: oscura ? '#F2F5F9' : fg, backgroundColor: oscura ? '#F2F5F9' : color.tarjeta }]}>
+    <View accessibilityLabel={`Placa ${placa}`} style={[s.placa, { borderColor: fg, backgroundColor: color.tarjeta }]}>
       <T style={{ fontFamily: fuente.uiFuerte, fontSize: tam < 24 ? 8 : 9, lineHeight: 10, letterSpacing: 2.2, color: fg }}>VENEZUELA</T>
       <T style={[tipo.mono, { fontSize: tam, lineHeight: tam + 4, letterSpacing: tam * 0.08, color: fg }]}>{placa}</T>
     </View>

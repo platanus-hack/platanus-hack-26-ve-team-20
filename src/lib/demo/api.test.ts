@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { formatBs, formatFecha, formatHora, formatMes } from '../format.ts'
 import {
   DemoError, calcularEstadisticas, getMultas, getSesion, iniciarSesion, pagarMultas, reiniciarDemo,
@@ -7,9 +7,29 @@ import {
 import { MULTAS_DEMO } from './datos.ts'
 
 const codigo = (p: Promise<unknown>) => p.then(() => 'OK', (e: unknown) => (e instanceof DemoError ? e.code : String(e)))
-const pago = { banco: '0102', telefono: '04120000001', cedula: '99000001', clave: '123456' }
+const pago = { banco: '0102', telefono: '04120000001', cedula: 'V99000001', clave: '123456' }
 
 beforeEach(reiniciarDemo)
+afterEach(() => { vi.useRealTimers() })
+
+describe('vencimientos', () => {
+  it('la sesión vence a los 30 min sin uso', async () => {
+    vi.useFakeTimers({ now: new Date('2026-10-24T12:00:00Z'), toFake: ['Date'] })
+    await iniciarSesion('V99000001', 'demo1234')
+    vi.setSystemTime(new Date('2026-10-24T12:31:00Z'))
+    expect(await codigo(getMultas())).toBe('SESION')
+  })
+  it('el código de registro vence a los 10 min', async () => {
+    vi.useFakeTimers({ now: new Date('2026-10-24T12:00:00Z'), toFake: ['Date'] })
+    await solicitarCodigo({ cedula: 'E7654321', telefono: '04141234567', correo: null, clave: 'demo1234' })
+    vi.setSystemTime(new Date('2026-10-24T12:11:00Z'))
+    expect(await codigo(verificarCodigo('123456'))).toBe('CODIGO_VENCIDO')
+  })
+  it('el pago guarda la letra de la cédula y rechaza sin ella', async () => {
+    await iniciarSesion('V99000001', 'demo1234')
+    expect(await codigo(pagarMultas(['m1'], { ...pago, cedula: '99000001' }))).toBe('VALIDACION')
+  })
+})
 
 describe('formato', () => {
   it('monto es-VE con "Bs." antepuesto', () => {

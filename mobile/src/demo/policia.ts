@@ -37,6 +37,9 @@ export const ALERTA_DEMO: Alerta = {
 
 export const institucionValida = (codigo: string) => codigo.trim().toUpperCase() === CODIGO_INSTITUCION;
 
+// Placa de oficial y código de institución: mayúsculas, dígitos y guiones.
+export const soloCodigo = (t: string) => t.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+
 export function validarLoginOficial(correo: string, clave: string): boolean {
   return correo.includes('@') && clave.length >= 8 && clave !== 'clave-mal';
 }

@@ -5,10 +5,8 @@ import { View } from 'react-native';
 import { CabeceraTinta } from '@/components/auth';
 import { Pantalla } from '@/components/extra';
 import { Boton, Campo, Enlace } from '@/components/ui';
-import { OFICIAL, institucionValida } from '@/demo/policia';
+import { OFICIAL, institucionValida, soloCodigo } from '@/demo/policia';
 import { guardarSesion } from '@/lib/dispositivo';
-
-const soloCodigo = (t: string) => t.toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
 export default function RegistroOficial() {
   const [nombre, setNombre] = useState(OFICIAL.nombre);

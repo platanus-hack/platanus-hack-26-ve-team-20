@@ -83,9 +83,3 @@ export const tipo = {
   mono: { fontFamily: fuente.monoFuerte, fontVariant: num },
   montoG: { fontFamily: fuente.monoFuerte, fontSize: 40, lineHeight: 44, fontVariant: num },
 } satisfies Record<string, TextStyle>;
-
-// Curvas del diseño
-export const curva = {
-  sheet: [0.32, 0.72, 0, 1],
-  entrada: [0.16, 1, 0.3, 1],
-} as const;

@@ -27,7 +27,7 @@ export function Protegida() {
 
 /** ≥1024: sidebar tinta con barra lima. Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
-  const { pathname, state } = useLocation()
+  const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
   const main = useRef<HTMLElement>(null)
   const [mas, setMas] = useState(false)
@@ -134,10 +134,10 @@ function Shell() {
         <button type="button" onClick={salir} className="flex min-h-14 items-center gap-3 border-t border-borde px-2 text-left font-semibold text-rojo-osc"><LogOut size={20} strokeWidth={1.75} aria-hidden="true" />Cerrar sesión</button>
       </Hoja>
 
-      <Hoja abierta={vencida} modo="modal" etiqueta="Su sesión venció" onCerrar={() => navigate('/ingresar', { state: { vencida: true } })}>
+      <Hoja abierta={vencida} modo="modal" etiqueta="Su sesión venció" onCerrar={() => navigate('/ingresar', { state: { vencida: true, desde: pathname + search } })}>
         <h2 className="text-h2 font-semibold">Su sesión venció</h2>
         <p className="text-texto-2">Por seguridad cerramos su sesión después de un tiempo sin uso. Entre de nuevo con su cédula.</p>
-        <Boton onClick={() => navigate('/ingresar', { state: { vencida: true } })}>Entrar de nuevo</Boton>
+        <Boton onClick={() => navigate('/ingresar', { state: { vencida: true, desde: pathname + search } })}>Entrar de nuevo</Boton>
       </Hoja>
     </div>
   )

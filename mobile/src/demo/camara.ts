@@ -3,7 +3,7 @@
 import { espera } from './ciudadano';
 
 export const CAMARA_DEFECTO = {
-  apiUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.demo.smarttraffic.example',
+  apiUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.demo.smarttraffic.example',
   codigo: 'CAM-001',
   interseccion: 'Av. Demo Norte con Calle 1 (ejemplo)',
   // Ubicación registrada de CAM-001 (ejemplo); se usa cuando no hay GPS.
@@ -12,6 +12,9 @@ export const CAMARA_DEFECTO = {
 };
 
 export const DURACION_CLIP_MS = 4000;
+
+// Duración real del clip en ms: nunca 0 ni más que el máximo.
+export const duracionClip = (inicio: number, ahora = Date.now()) => Math.min(DURACION_CLIP_MS, Math.max(1, ahora - inicio));
 
 export type LightState = 'RED' | 'YELLOW' | 'GREEN' | 'UNKNOWN';
 export type Verdict = 'VIOLATION' | 'NO_VIOLATION' | 'NEEDS_REVIEW';
