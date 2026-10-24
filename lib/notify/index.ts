@@ -1,6 +1,6 @@
 // lib/notify (P3): funciones de lib/contracts/modules.ts. Con USE_MOCKS=true usa mock.ts.
 // La DB se carga al primer uso: importar este módulo no exige DATABASE_URL.
-import type { NotifyFineIssued, NotifyPaymentConfirmed } from "../contracts/index.ts";
+import type { NotifyFineIssued, NotifyOfficerAlert, NotifyPaymentConfirmed } from "../contracts/index.ts";
 import * as mock from "./mock.ts";
 import { appBaseUrlFromEnv, createNotifier } from "./notifier.ts";
 import { sendWhatsAppText } from "./whatsapp.ts";
@@ -26,5 +26,5 @@ export const notifyPaymentConfirmed = (async (fineId) =>
     ? mock.notifyPaymentConfirmed(fineId)
     : (await notifier()).notifyPaymentConfirmed(fineId)) satisfies NotifyPaymentConfirmed;
 
-// notifyOfficerAlert real llega con el paso 13 del plan de P3; mientras tanto, el mock.
-export { notifyOfficerAlert } from "./mock.ts";
+export const notifyOfficerAlert = (async (alertId) =>
+  useMocks() ? mock.notifyOfficerAlert(alertId) : (await notifier()).notifyOfficerAlert(alertId)) satisfies NotifyOfficerAlert;

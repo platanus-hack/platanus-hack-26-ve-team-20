@@ -14,13 +14,25 @@ const FINE: FineMessageData = {
 }
 
 function memoryRepo(overrides: Partial<NotificationRepo> = {}) {
-  const rows: Array<{ id: string; fineId: string; to: string; template: string; outcome?: NotificationOutcome }> = []
+  const rows: Array<{ id: string; fineId?: string; alertId?: string; to: string; template: string; outcome?: NotificationOutcome }> = []
   const repo: NotificationRepo = {
     async fineMessage(id) {
       return id === 'fine_1' ? FINE : id === 'fine_sin_dueno' ? { ...FINE, to: null } : null
     },
     async paymentMessage(id) {
       return id === 'fine_1' ? { to: FINE.to, plate: FINE.plate, reference: 'SIM-48213977' } : { to: FINE.to, plate: FINE.plate, reference: null }
+    },
+    async alertMessage(id) {
+      if (id !== 'alr_1' && id !== 'alr_sin_oficial') return null
+      return {
+        to: id === 'alr_1' ? '584120000101' : null,
+        plate: 'XY987ZT',
+        vehicle: 'Ford Explorer blanca',
+        unpaidCount: 2,
+        intersection: 'Av. Demo Norte con Calle 1 (ejemplo)',
+        seenAt: new Date(Date.now() - 2 * 60_000),
+        distanceM: 420,
+      }
     },
     async create(n) {
       rows.push({ id: `ntf_${rows.length + 1}`, ...n })
@@ -106,6 +118,29 @@ describe('notifyPaymentConfirmed', () => {
   it('sin pago aprobado no envía nada', async () => {
     const s = setup()
     expect((await s.notifier.notifyPaymentConfirmed('fine_sin_pago')).status).toBe('FAILED')
+    expect(s.send).not.toHaveBeenCalled()
+  })
+})
+
+describe('notifyOfficerAlert', () => {
+  it('avisa al oficial con placa completa, distancia y minutos, ligado a la alerta', async () => {
+    const s = setup()
+    expect((await s.notifier.notifyOfficerAlert('alr_1')).status).toBe('SENT')
+    const [msg] = s.send.mock.calls[0] as unknown as [{ to: string; body: string; callbackData: string }]
+    expect(msg.to).toBe('584120000101')
+    expect(msg.callbackData).toBe('alert:alr_1')
+    expect(msg.body).toBe(
+      'VíaClara · Alerta: vehículo XY987ZT (Ford Explorer blanca) con 2 multas impagas visto en ' +
+        'Av. Demo Norte con Calle 1 (ejemplo) hace 2 min, a 420 m de su posición. Verifique antes de actuar.',
+    )
+    expect(s.rows[0]).toMatchObject({ alertId: 'alr_1', template: 'OFFICER_ALERT', outcome: { status: 'SENT' } })
+    expect(s.rows[0]?.fineId).toBeUndefined()
+  })
+
+  it('alerta sin oficial o inexistente: FAILED sin enviar', async () => {
+    const s = setup()
+    expect((await s.notifier.notifyOfficerAlert('alr_sin_oficial')).status).toBe('FAILED')
+    expect((await s.notifier.notifyOfficerAlert('no_existe')).status).toBe('FAILED')
     expect(s.send).not.toHaveBeenCalled()
   })
 })

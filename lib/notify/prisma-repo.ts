@@ -44,8 +44,29 @@ export function createPrismaNotificationRepo(db: PrismaClient): NotificationRepo
       };
     },
 
-    async create({ fineId, to, template }) {
-      const n = await db.notification.create({ data: { fineId, to, template, channel: "WHATSAPP", status: "QUEUED" }, select: { id: true } });
+    async alertMessage(alertId) {
+      const alert = await db.alert.findUnique({
+        where: { id: alertId },
+        include: { officer: true, vehicle: true, sighting: { include: { camera: { include: { intersection: true } } } } },
+      });
+      if (!alert) return null;
+      const v = alert.vehicle;
+      return {
+        to: alert.officer?.phone ?? null,
+        plate: v.plate,
+        vehicle: `${v.make} ${v.model} ${v.color}`,
+        unpaidCount: alert.unpaidCount,
+        intersection: alert.sighting.camera.intersection.name,
+        seenAt: alert.sighting.seenAt,
+        distanceM: alert.distanceM ?? 0,
+      };
+    },
+
+    async create({ fineId, alertId, to, template }) {
+      const n = await db.notification.create({
+        data: { fineId: fineId ?? null, alertId: alertId ?? null, to, template, channel: "WHATSAPP", status: "QUEUED" },
+        select: { id: true },
+      });
       return n.id;
     },
 
@@ -64,7 +85,7 @@ export function createPrismaNotificationRepo(db: PrismaClient): NotificationRepo
           action: "NOTIFICATION_SENT",
           entity: "Notification",
           entityId: notificationId,
-          after: { template: n.template, fineId: n.fineId, status: n.status, error: n.error },
+          after: { template: n.template, fineId: n.fineId, alertId: n.alertId, status: n.status, error: n.error },
         });
       });
     },
