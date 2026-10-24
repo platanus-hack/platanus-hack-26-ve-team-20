@@ -1,0 +1,6 @@
+interface:
+  display_name: "Deliver"
+  short_description: "Take an accepted spec to a green pull request"
+
+policy:
+  allow_implicit_invocation: true

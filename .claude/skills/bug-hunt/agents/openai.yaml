@@ -1,0 +1,6 @@
+interface:
+  display_name: "Bug hunt"
+  short_description: "Find bugs, fix the easy ones, file the rest"
+
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,33 @@
+---
+name: shape
+description: "Shape a problem with the human into one accepted spec: what to build, what success means, and how to prove it, before anyone writes production code. Invoke when the user brings an issue or feature to work on, or opens its design phase."
+---
+
+# Shape
+
+Shaping decides **what**, **how we will know**, and the **one-way doors**; the rest of how to build it belongs to delivery. The result is one short spec, accepted by the human, that holds or points to everything an agent needs to deliver it without asking again.
+
+Write in the user's language.
+
+## Roles
+
+The human decides the problem, the scope, the examples that define success, and every cut. You settle facts: read the code, issues, data, and history; run experiments; prepare options. A question whose answer you could observe is yours, not the human's.
+
+## Process
+
+1. **Understand the problem.** Who has it, even when that is the owner or their agents, as with slow feedback, CI minutes, or confidence to merge; what it costs them; how they cope today; and the evidence, labeled `observed`, `reported`, or `assumed`. Read the issue, the affected code, related and duplicate issues, and where the system actually runs. Before converging, zoom out: list the options, including an existing tool or package and doing nothing. Then agree on the **outcome** with the human: what will be true for whoever has the problem when this is done. Every example and every number in the spec derives from it. Done when every claim about the problem carries a label, the options are listed, and the human has agreed on the outcome.
+2. **Size it.** The spec must fit one pull request. When it does not, propose a split into separate issues, each shippable and verifiable on its own; create them after the human agrees, then shape one.
+3. **Settle every decision the examples depend on, and every one-way door.** A one-way door is a decision the change would make that is costly to reverse: persisted data or its schema, a contract that writes (an API, CLI, or MCP operation, or a file users commit), a security boundary, or a seam an accepted ADR governs. Size each for the open issues that will share it, not only this one. Run `architect` on each one-way door: its gate closes one within minutes when evidence shows it is reversible, and only that gate decides so. Settle facts with the cheapest faithful evidence: `spike` for feasibility or tool behavior, `research` for outside facts, `prototype` for a logic model. A question whose options differ in what someone sees or does is a UI question, even when it also changes a rule or an API: answer it with a `prototype` of the options and let the human choose while looking at it. Put the remaining decisions to the human: load `grilling` and ask in its rounds. Done when its frontier is empty, every one-way door has an `architect` result, and every fact the spec depends on is observed rather than left for delivery: a risk whose failure would send the work back to design is an open question, and a `spike` settles it now.
+4. **Write the examples.** They are the definition of success. Cover the happy path, the edges, the failures, and what must never happen. When state interacts (concurrency, retries, ordering, partial failure, fields that change other fields) or the change writes data, enumerate the **state space**, the states against the operations, so the edge cases come from the table, not from memory. For a write, the operations include a lost response and its retry and a concurrent writer in every order the platform allows, and the states include what exists when the change lands: data written before it, queued work, and the previous version still running. When performance matters, add the budgets the change must hold, as counts a check can enforce, such as queries or round trips per operation; when a budget can only be a time, measure its spread on the real target, such as CI's runners, and set its margin from that spread. Every number a check imposes that costs run time or confidence, such as a budget, a margin, a repetition count, or a sample size, and every check the change adds to CI, states the outcome it protects, its evidence, what one run costs locally and in CI, measured rather than guessed, and what getting it wrong would cost. A number the evidence does not settle is the human's decision, not a default: put it in a `grilling` round with what each candidate value costs and how much confidence it buys. Mark each example `test` when it can be automated at the test boundary, or `capture` when a person or agent must look at the running product, such as fidelity to the chosen prototype.
+5. **Fix the test boundary.** Name where the acceptance tests run (UI, API, CLI, or a module seam) and the real target conditions they must hold under, in an instance isolated from the owner's own data, credentials, and session: the actual app and runtime mode, data shaped like the real data including its extremes, such as the shortest history a real user has, and the platforms CI uses. Use the project's verification method from its agent instructions; when it has none that can run these examples, `setup-verification` comes first.
+6. **Accept.** Present the spec plainly: the problem and the bet first, then the examples, then decisions and cuts. Resolve every open question. Mark it `Accepted` only after the human explicitly accepts what they saw; when a later change alters the examples or scope, present it and ask again. Publish what later work needs from it, as [the spec](#the-spec) says, then give the spec's absolute path and stop: `deliver` takes it from here.
+
+## The spec
+
+Write it from [the template](templates/spec.md) at the path the user gives, an established convention for local work files, or `.work/specs/<slug>.md`. It stays out of version control: when nothing ignores it, add its directory to the repository's exclude file, `$(git rev-parse --git-common-dir)/info/exclude`. Keep it short; point to sources instead of restating them.
+
+The spec dies with the worktree. What another issue, pull request, or worktree needs from it, such as the accepted examples and decisions a later issue builds on, goes into that issue or into durable documentation, so each issue stands on its own. Anything that outlives the worktree, such as an issue, a commit, or a pull request, cites only what outlives it too: never a `.work/` path or an unmerged branch.
+
+## Done
+
+An accepted spec states the problem with labeled evidence, the examples that define success with their test boundary and real target, the decisions with pointers to their evidence, and what is out of scope, with no open questions left. No production code was written.

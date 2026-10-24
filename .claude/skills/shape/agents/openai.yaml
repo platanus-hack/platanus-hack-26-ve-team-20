@@ -1,0 +1,6 @@
+interface:
+  display_name: "Shape"
+  short_description: "Agree what to build and how to prove it"
+
+policy:
+  allow_implicit_invocation: true

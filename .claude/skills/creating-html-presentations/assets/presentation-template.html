@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="__LANG__">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>__PRESENTATION_TITLE__</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* partners-dashboard dark mode */
+      --bg: #041518;
+      --surface: #2a272e;
+      --surface-deep: #1c191e;
+      --text: #ffffff;
+      --text-muted: #a1a1aa;
+      --accent: #5a50f9;
+      --accent-soft: rgba(90, 80, 249, 0.15);
+      --accent-secondary: #c3f678;
+      --success: #17c964;
+      --warning: #f5a524;
+      --danger: #f31260;
+      --info: #338af3;
+      --border: rgba(255, 255, 255, 0.1);
+      --grid-line: rgba(255, 255, 255, 0.035);
+      --grid-size: 48px;
+      --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --presentation-scale: 1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      position: relative;
+      display: grid;
+      place-items: center;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    .presentation-root {
+      position: relative;
+      width: calc(100vw / var(--presentation-scale));
+      height: calc(100vh / var(--presentation-scale));
+      transform: scale(var(--presentation-scale));
+      transform-origin: center center;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: var(--grid-size) var(--grid-size);
+      mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, black 15%, transparent 100%);
+    }
+
+    .deck {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template: 1fr / 1fr;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .slide {
+      grid-area: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      padding: 3.5rem 5rem 5.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(40px);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .deck.ready .slide {
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .slide-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      padding: 2rem 2.5rem;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    .slide-content::before {
+      content: "";
+      position: absolute;
+      inset: -4rem -5rem;
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse 72% 68% at 50% 48%,
+        rgba(4, 21, 24, 0.9) 0%,
+        rgba(4, 21, 24, 0.65) 35%,
+        rgba(4, 21, 24, 0.28) 58%,
+        rgba(4, 21, 24, 0.08) 72%,
+        transparent 88%
+      );
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      mask-image: radial-gradient(
+        ellipse 78% 74% at 50% 48%,
+        black 18%,
+        rgba(0, 0, 0, 0.7) 50%,
+        rgba(0, 0, 0, 0.25) 72%,
+        transparent 100%
+      );
+    }
+
+    .slide-content::after {
+      content: "";
+      position: absolute;
+      inset: -4rem -5rem;
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse 50% 40% at 50% 25%,
+        rgba(90, 80, 249, 0.06) 0%,
+        transparent 70%
+      );
+      mask-image: radial-gradient(
+        ellipse 75% 70% at 50% 48%,
+        black 10%,
+        transparent 75%
+      );
+    }
+
+    .slide-content > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .slide.opening {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(90, 80, 249, 0.14) 0%, transparent 60%);
+    }
+
+    .slide.opening .slide-content {
+      justify-content: center;
+      align-items: center;
+    }
+
+    .slide:not(.opening) {
+      justify-content: center;
+    }
+
+    .slide:not(.opening) .slide-content {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-content: center;
+      justify-content: center;
+      gap: 1.25rem 2rem;
+    }
+
+    .slide:not(.opening) .slide-content > * {
+      flex: 1 1 100%;
+    }
+
+    .slide:not(.opening) h2 {
+      flex-shrink: 0;
+    }
+
+    .eyebrow {
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.75rem;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 36rem;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    .tagline {
+      display: inline-block;
+      padding: 0.6rem 1.25rem;
+      background: var(--accent-soft);
+      border: 1px solid rgba(90, 80, 249, 0.35);
+      border-radius: 999px;
+      font-size: 1rem;
+      color: var(--accent-secondary);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .grid-2 > * {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    .slide-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      width: 100%;
+    }
+
+    .slide-stack .diagram-card {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      width: 100%;
+      height: auto;
+      min-height: auto;
+    }
+
+    .slide-stack .diagram-card h3 {
+      margin-bottom: 0.25rem;
+    }
+
+    .slide-stack .diagram-card .mermaid-wrap {
+      flex: none;
+      min-height: 7.5rem;
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: visible;
+      justify-content: center;
+      align-items: center;
+      padding: 0.15rem 0 0.35rem;
+    }
+
+    .slide-stack .diagram-card .mermaid-wrap svg {
+      display: block;
+      max-width: none;
+      max-height: 7rem;
+      height: auto;
+      width: auto;
+      margin: 0 auto;
+    }
+
+    .slide-stack .diagram-card:has(.v2-flowchart) .mermaid-wrap {
+      min-height: 9rem;
+      padding: 0.2rem 0 0.4rem;
+    }
+
+    .slide-stack .diagram-card:has(.v2-flowchart) .mermaid-wrap svg {
+      max-height: 9.5rem;
+    }
+
+    .slide-stack .diagram-card:has(.v2-flowchart) .nodeLabel,
+    .slide-stack .diagram-card:has(.v2-flowchart) .nodeLabel span,
+    .slide-stack .diagram-card:has(.v2-flowchart) .nodeLabel foreignObject div,
+    .slide-stack .diagram-card:has(.v2-flowchart) .nodeLabel foreignObject span {
+      font-size: 19px !important;
+    }
+
+    .slide-stack .diagram-card:has(.v2-flowchart) .edgeLabel span,
+    .slide-stack .diagram-card:has(.v2-flowchart) .edgeLabel foreignObject div,
+    .slide-stack .diagram-card:has(.v2-flowchart) .edgeLabel foreignObject span {
+      font-size: 15px !important;
+    }
+
+    .slide-stack .details-panel.details-below .metrics {
+      flex: none;
+      align-content: unset;
+      margin-top: 0.75rem;
+      gap: 0.75rem;
+    }
+
+    .slide-stack .details-panel .metric {
+      min-height: 5.25rem;
+      padding: 0.75rem 0.85rem;
+    }
+
+    .slide-stack .details-panel .metric .value {
+      font-size: 1.65rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .slide-stack .details-panel .metric .label {
+      font-size: 0.8rem;
+      line-height: 1.25;
+    }
+
+    .slide-stack .points-columns {
+      gap: 0.5rem 2rem;
+    }
+
+    .slide-stack .points-col {
+      gap: 0.5rem;
+    }
+
+    .details-panel.details-below {
+      height: auto;
+      min-height: auto;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .points-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 0.75rem 2.5rem;
+      width: 100%;
+    }
+
+    .points-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-width: 0;
+      list-style: none;
+    }
+
+    .points-col li {
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+
+    .details-panel.details-below .metrics {
+      flex: none;
+      align-content: unset;
+      margin-top: 1.25rem;
+    }
+
+    .details-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 100%;
+    }
+
+    .details-panel ul {
+      flex: 0 0 auto;
+    }
+
+    .details-panel .metrics {
+      flex: 1 1 auto;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      align-content: center;
+      align-items: stretch;
+      width: 100%;
+      min-height: 0;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .details-panel .metric {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 7.5rem;
+      height: 100%;
+      flex: unset;
+    }
+
+    .details-panel .metric .label {
+      line-height: 1.3;
+      max-width: 100%;
+    }
+
+    .column-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .column-panel .intro {
+      flex-shrink: 0;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .card.diagram-card {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      height: auto;
+      min-height: auto;
+    }
+
+    .card.diagram-card h3 {
+      margin-bottom: 0.65rem;
+      padding-left: 0.15rem;
+    }
+
+    .card .mermaid-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      min-height: 0;
+      width: 100%;
+      overflow: auto;
+    }
+
+    .card .mermaid-wrap .mermaid {
+      width: 100%;
+      background: transparent;
+    }
+
+    .card .mermaid-wrap svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+      background: transparent !important;
+    }
+
+    .card.diagram-card .node rect.basic.label-container,
+    .card.diagram-card .node rect {
+      rx: 10;
+      ry: 10;
+      stroke-width: 1px !important;
+      fill: var(--surface) !important;
+    }
+
+    .card.diagram-card .cluster rect {
+      fill: rgba(28, 25, 30, 0.45) !important;
+      stroke-width: 2px !important;
+      rx: 12 !important;
+      ry: 12 !important;
+    }
+
+    .card.diagram-card .cluster-label .nodeLabel,
+    .card.diagram-card .cluster-label span {
+      fill: #f4f4f5 !important;
+      color: #f4f4f5 !important;
+      font-family: var(--font-sans) !important;
+      font-weight: 700 !important;
+      font-size: 15px !important;
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .card.diagram-card .nodeLabel,
+    .card.diagram-card .nodeLabel span,
+    .card.diagram-card .nodeLabel foreignObject div,
+    .card.diagram-card .nodeLabel foreignObject span {
+      font-family: var(--font-sans) !important;
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      line-height: 1.35 !important;
+      fill: #ffffff !important;
+      color: #ffffff !important;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card.diagram-card .edgeLabel rect {
+      fill: var(--surface) !important;
+      stroke: rgba(255, 255, 255, 0.14) !important;
+      stroke-width: 1px !important;
+      rx: 8;
+      ry: 8;
+    }
+
+    .card.diagram-card .edgeLabel span,
+    .card.diagram-card .edgeLabel .labelBkg,
+    .card.diagram-card .edgeLabel foreignObject div,
+    .card.diagram-card .edgeLabel foreignObject span {
+      color: #f4f4f5 !important;
+      font-family: var(--font-sans) !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      line-height: 1.25 !important;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card.diagram-card .flowchart-link {
+      stroke: rgba(212, 212, 216, 0.75) !important;
+      stroke-width: 2px !important;
+    }
+
+    .card.diagram-card .marker path {
+      fill: rgba(161, 161, 170, 0.65) !important;
+      stroke: rgba(161, 161, 170, 0.65) !important;
+    }
+
+    .card h3 {
+      flex-shrink: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    li {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      padding-left: 1.25rem;
+      position: relative;
+      color: var(--text-muted);
+    }
+
+    li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    li.negative::before { background: var(--danger); }
+    li.positive::before { background: var(--accent-secondary); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    td:first-child { font-weight: 500; }
+
+    .legacy { color: var(--danger); }
+    .v2 { color: var(--accent-secondary); }
+
+    .metrics {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 1rem;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex: 1 1 0;
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .metric .value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric .label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .metric .value.legacy-val { color: var(--danger); }
+    .metric .value.v2-val { color: var(--accent-secondary); }
+
+    .status-grid {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 1rem;
+      flex: 1;
+      align-content: stretch;
+    }
+
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex: 1 1 calc(50% - 0.5rem);
+      gap: 0.5rem;
+      padding: 0.85rem 1rem;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      min-height: calc(50% - 0.5rem);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.active { background: var(--accent-secondary); }
+    .dot.legacy { background: var(--warning); }
+
+    .closing {
+      margin-top: 1.25rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .slide-admin .intro {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-bottom: 1.75rem;
+      line-height: 1.55;
+      max-width: 42rem;
+    }
+
+    .slide-admin .admin-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem 2rem;
+    }
+
+    .admin-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 1.75rem;
+    }
+
+    .admin-list li {
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .slide-summary table {
+      font-size: 0.88rem;
+    }
+
+    .slide-summary th,
+    .slide-summary td {
+      padding: 0.6rem 0.85rem;
+    }
+
+    .nav {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 100;
+    }
+
+    .nav button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background 0.15s;
+    }
+
+    .nav button:hover { background: rgba(255, 255, 255, 0.08); }
+    .nav button:disabled { opacity: 0.3; cursor: default; }
+
+    .progress {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-width: 3rem;
+      text-align: center;
+    }
+
+    .dots-nav {
+      position: fixed;
+      bottom: 1.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.5rem;
+      z-index: 100;
+    }
+
+    .dots-nav span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .dots-nav span.active {
+      background: var(--accent);
+      transform: scale(1.3);
+    }
+
+    @media (max-width: 900px) {
+      .slide { padding: 2rem 2rem 4rem; }
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.5rem; }
+      .grid-2, .status-grid { grid-template-columns: 1fr; }
+      .metrics { flex-direction: column; }
+      .metric { flex: 1 1 100%; }
+      .details-panel .metrics { grid-template-columns: 1fr; }
+      .points-columns { grid-template-columns: 1fr; }
+      .admin-list { grid-template-columns: 1fr; }
+      .slide-admin .admin-list { grid-template-columns: 1fr; }
+      .status-item { flex: 1 1 100%; min-height: auto; }
+    }
+  </style>
+  <script>
+    (function () {
+      const STORAGE_KEY = "__STORAGE_KEY__";
+      const SLIDE_COUNT = __SLIDE_COUNT__;
+      const storedValue = localStorage.getItem(STORAGE_KEY);
+      let initialIndex = storedValue !== null ? Number.parseInt(storedValue, 10) : 0;
+
+      if (Number.isNaN(initialIndex) || initialIndex < 0 || initialIndex >= SLIDE_COUNT) {
+        initialIndex = 0;
+      }
+
+      const style = document.createElement("style");
+      style.id = "initial-slide-style";
+      style.textContent =
+        ".slide{opacity:0!important;pointer-events:none!important;transform:translateX(0)!important;transition:none!important}" +
+        '.slide[data-index="' + initialIndex + '"]{opacity:1!important;pointer-events:auto!important}';
+      document.head.appendChild(style);
+    })();
+  </script>
+</head>
+<body>
+  <div class="presentation-root">
+  <div class="deck">
+
+    <!-- Slide 0: opening — map from MD title / executive summary -->
+    <section class="slide opening" data-index="0">
+      <div class="slide-content">
+        <p class="eyebrow">__EYEBROW__</p>
+        <h1>__PRESENTATION_TITLE__</h1>
+        <p class="subtitle">__SUBTITLE__</p>
+        <span class="tagline">__TAGLINE__</span>
+      </div>
+    </section>
+
+    <!-- Slide 1: slide-stack — mermaid + two-column bullets + metrics -->
+    <section class="slide" data-index="1">
+      <div class="slide-content">
+        <h2>__SECTION_HEADING__</h2>
+        <div class="slide-stack">
+          <div class="card diagram-card">
+            <div class="mermaid-wrap">
+              <pre class="mermaid">flowchart LR
+    A[Node A] --> B[Node B] --> C[Node C]</pre>
+            </div>
+          </div>
+          <div class="details-panel details-below">
+            <div class="points-columns">
+              <ul class="points-col">
+                <li class="negative"><strong>Point one</strong> — supporting detail</li>
+                <li class="negative">Second bullet in column A</li>
+              </ul>
+              <ul class="points-col">
+                <li class="negative">First bullet in column B</li>
+                <li class="negative">Second bullet in column B</li>
+              </ul>
+            </div>
+            <div class="metrics">
+              <div class="metric">
+                <div class="value legacy-val">3</div>
+                <div class="label">Metric label</div>
+              </div>
+              <div class="metric">
+                <div class="value legacy-val">2</div>
+                <div class="label">Metric label</div>
+              </div>
+              <div class="metric">
+                <div class="value legacy-val">1</div>
+                <div class="label">Metric label</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: grid-2 cards + closing -->
+    <section class="slide" data-index="2">
+      <div class="slide-content">
+        <h2>__SECTION_HEADING__</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Card title</h3>
+            <ul>
+              <li class="positive">Benefit or theme one</li>
+              <li class="positive">Benefit or theme two</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Card title</h3>
+            <ul>
+              <li class="positive">Benefit or theme one</li>
+              <li class="positive">Benefit or theme two</li>
+            </ul>
+          </div>
+        </div>
+        <div class="closing">Closing sentence for this section.</div>
+      </div>
+    </section>
+
+    <!-- Slide 3: status grid + checklist card -->
+    <section class="slide" data-index="3">
+      <div class="slide-content">
+        <h2>__SECTION_HEADING__</h2>
+        <div class="grid-2">
+          <div class="column-panel">
+            <p class="intro">Short intro paragraph for this slide.</p>
+            <div class="status-grid">
+              <div class="status-item"><span class="dot active"></span> Active item</div>
+              <div class="status-item"><span class="dot legacy"></span> Legacy / pending item</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Checklist or list title</h3>
+            <ul>
+              <li>List item one</li>
+              <li>List item two</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4: comparison table + closing (slide-summary) -->
+    <section class="slide slide-summary" data-index="4">
+      <div class="slide-content">
+        <h2>__SECTION_HEADING__</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Before</th>
+              <th>After</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Row label</td>
+              <td class="legacy">Legacy value</td>
+              <td class="v2">V2 value</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="closing">Final takeaway for the audience.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="dots-nav" id="dots"></div>
+
+  <nav class="nav">
+    <button id="prev" aria-label="Diapositiva anterior">←</button>
+    <span class="progress" id="progress">1 / 5</span>
+    <button id="next" aria-label="Diapositiva siguiente">→</button>
+  </nav>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    const SLIDE_STORAGE_KEY = "__STORAGE_KEY__";
+    const MERMAID_SLIDE_INDEXES = new Set(__MERMAID_SLIDE_INDEXES__);
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "loose",
+      theme: "base",
+      themeVariables: {
+        darkMode: true,
+        background: "transparent",
+        primaryColor: "#1c191e",
+        primaryTextColor: "#ffffff",
+        primaryBorderColor: "#5a50f9",
+        secondaryColor: "#1c191e",
+        tertiaryColor: "#041518",
+        lineColor: "#71717a",
+        textColor: "#ffffff",
+        mainBkg: "#1c191e",
+        nodeBorder: "#5a50f9",
+        clusterBkg: "rgba(28,25,30,0.35)",
+        clusterBorder: "rgba(255,255,255,0.12)",
+        titleColor: "#c3f678",
+        edgeLabelBackground: "rgba(4,21,24,0.9)",
+        fontFamily: "Plus Jakarta Sans, system-ui, sans-serif",
+        fontSize: "18px",
+      },
+      flowchart: {
+        htmlLabels: true,
+        curve: "basis",
+        padding: 14,
+        nodeSpacing: 52,
+        rankSpacing: 60,
+        diagramPadding: 14,
+      },
+    });
+
+    const slides = document.querySelectorAll(".slide");
+    const total = slides.length;
+
+    const dotsNav = document.getElementById("dots");
+    const progress = document.getElementById("progress");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+
+    /**
+     * Reads the last active slide index from localStorage
+     * @returns {number} A valid slide index, or 0 if none is stored
+     */
+    const readStoredSlideIndex = () => {
+      const storedValue = localStorage.getItem(SLIDE_STORAGE_KEY);
+      if (storedValue === null) return 0;
+
+      const parsedIndex = Number.parseInt(storedValue, 10);
+      if (Number.isNaN(parsedIndex) || parsedIndex < 0 || parsedIndex >= total) return 0;
+
+      return parsedIndex;
+    };
+
+    let current = 0;
+
+    slides.forEach((slide) => slide.classList.remove("active"));
+
+    slides.forEach((_, index) => {
+      const dot = document.createElement("span");
+      dot.addEventListener("click", () => goTo(index));
+      dotsNav.appendChild(dot);
+    });
+
+    const dots = dotsNav.querySelectorAll("span");
+    let hasRestoredSlide = false;
+
+    /**
+     * Removes the head-injected anti-flash styles and enables slide transitions
+     */
+    const finishInitialRestore = () => {
+      if (hasRestoredSlide) return;
+      document.getElementById("initial-slide-style")?.remove();
+      document.querySelector(".deck")?.classList.add("ready");
+      hasRestoredSlide = true;
+    };
+
+    /**
+     * Renders Mermaid diagrams inside a slide the first time it becomes visible
+     * @param {number} index The slide index to render
+     */
+    const renderMermaidForSlide = async (index) => {
+      if (!MERMAID_SLIDE_INDEXES.has(index)) return;
+
+      const slide = slides[index];
+      if (!slide || slide.dataset.mermaidRendered === "true") return;
+
+      slide.dataset.mermaidRendered = "pending";
+      const nodes = slide.querySelectorAll(".mermaid:not([data-processed])");
+      if (nodes.length === 0) {
+        slide.dataset.mermaidRendered = "true";
+        return;
+      }
+
+      await mermaid.run({ nodes: [...nodes] });
+      applyMermaidPresentationStyles(slide);
+      slide.dataset.mermaidRendered = "true";
+    };
+
+    const LEGACY_CLUSTER_STYLES = [
+      { stroke: "#5a50f9", fill: "rgba(90, 80, 249, 0.1)", label: "#d4d4ff" },
+      { stroke: "#f31260", fill: "rgba(243, 18, 96, 0.08)", label: "#fecdd3" },
+      { stroke: "#c3f678", fill: "rgba(195, 246, 120, 0.08)", label: "#ecfccb" },
+    ];
+
+    /**
+     * Applies cluster emphasis colors to legacy diagram subgraph boxes
+     * @param {SVGElement} svg The rendered Mermaid SVG
+     */
+    const applyLegacyClusterStyles = (svg) => {
+      svg.querySelectorAll(".cluster").forEach((cluster, index) => {
+        const styles = LEGACY_CLUSTER_STYLES[index];
+        if (!styles) return;
+
+        const rect = cluster.querySelector("rect");
+        if (rect) {
+          rect.style.fill = styles.fill;
+          rect.style.stroke = styles.stroke;
+          rect.style.strokeWidth = "2px";
+        }
+
+        cluster.querySelectorAll(".cluster-label foreignObject div, .cluster-label span").forEach((label) => {
+          label.style.color = styles.label;
+          label.style.fill = styles.label;
+        });
+      });
+    };
+
+    /**
+     * Applies presentation metric-style borders to rendered Mermaid node shapes
+     * @param {Element} slide The slide containing diagram cards
+     */
+    const applyMermaidPresentationStyles = (slide) => {
+      const isV2Flowchart = slide.querySelector(".v2-flowchart") !== null;
+      const nodeFontSize = isV2Flowchart ? "19px" : "18px";
+      const edgeFontSize = "15px";
+
+      slide.querySelectorAll(".diagram-card svg").forEach((svg) => {
+        svg.querySelectorAll(".node rect").forEach((rect) => {
+          rect.setAttribute("rx", "10");
+          rect.setAttribute("ry", "10");
+          rect.style.strokeWidth = "1px";
+          rect.style.fill = "#2a272e";
+        });
+
+        applyLegacyClusterStyles(svg);
+
+        svg.querySelectorAll(".cluster rect").forEach((rect) => {
+          rect.setAttribute("rx", "12");
+          rect.setAttribute("ry", "12");
+          rect.style.strokeWidth = "2px";
+        });
+
+        svg.querySelectorAll(".cluster-label foreignObject div, .cluster-label span").forEach((label) => {
+          label.style.fontSize = "15px";
+          label.style.fontWeight = "700";
+          label.style.letterSpacing = "0.02em";
+        });
+
+        svg.querySelectorAll(".edgeLabel rect").forEach((rect) => {
+          rect.setAttribute("rx", "8");
+          rect.setAttribute("ry", "8");
+          rect.style.strokeWidth = "1px";
+          rect.style.stroke = "rgba(255, 255, 255, 0.14)";
+          rect.style.fill = "#2a272e";
+        });
+
+        svg.querySelectorAll(".nodeLabel foreignObject div").forEach((label) => {
+          label.style.fontSize = nodeFontSize;
+          label.style.fontWeight = "600";
+          label.style.lineHeight = "1.35";
+          label.style.color = "#ffffff";
+        });
+
+        svg.querySelectorAll(".edgeLabel foreignObject div").forEach((label) => {
+          label.style.fontSize = edgeFontSize;
+          label.style.fontWeight = "600";
+          label.style.lineHeight = "1.25";
+          label.style.color = "#f4f4f5";
+        });
+      });
+    };
+
+    /**
+     * Navigates to the given slide and persists the index in localStorage
+     * @param {number} index The slide index to show
+     */
+    const goTo = (index) => {
+      if (index < 0 || index >= total) return;
+      finishInitialRestore();
+      slides.forEach((slide) => slide.classList.remove("active"));
+      dots.forEach((dot) => dot.classList.remove("active"));
+      current = index;
+      slides[current].classList.add("active");
+      dots[current].classList.add("active");
+      progress.textContent = `${current + 1} / ${total}`;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === total - 1;
+      localStorage.setItem(SLIDE_STORAGE_KEY, String(current));
+      requestAnimationFrame(() => {
+        void renderMermaidForSlide(index);
+      });
+    };
+
+    prevBtn.addEventListener("click", () => goTo(current - 1));
+    nextBtn.addEventListener("click", () => goTo(current + 1));
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        goTo(current + 1);
+      }
+      if (event.key === "ArrowLeft") goTo(current - 1);
+    });
+
+    goTo(readStoredSlideIndex());
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Spike"
+  short_description: "Settle technical uncertainty by experiment"
+
+policy:
+  allow_implicit_invocation: true

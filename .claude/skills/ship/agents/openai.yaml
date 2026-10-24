@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ship"
+  short_description: "Open a pull request and drive its checks to green"
+
+policy:
+  allow_implicit_invocation: true
