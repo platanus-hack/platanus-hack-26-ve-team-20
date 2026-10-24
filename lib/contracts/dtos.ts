@@ -2,7 +2,7 @@
 import type {
   AlertStatus, EvidenceKind, FineStatus, LightState, ReviewReason, ViolationStatus, ViolationType,
 } from "./common.ts";
-import type { MotionEstimate, Crossing } from "./vision.ts";
+import type { MotionEstimate, Crossing, RoadRelation } from "./vision.ts";
 import type { Verdict } from "./common.ts";
 
 // ---- §1 detecciones (P2)
@@ -25,16 +25,28 @@ export interface SightingResultDTO {
   alert: { alertId: string; status: AlertStatus; officerId?: string; distanceM?: number } | null;
 }
 
+// ---- Autenticación (P1)
+export interface AdminSessionDTO { id: string; email: string; name: string }
+
 // ---- §2 violaciones y revisión (P1)
 export interface ViolationListItemDTO {
   id: string;
   type: ViolationType;
   status: ViolationStatus;
+  /** Veredicto para la UI: NO_VIOLATION = VOID con motivo NO_VIOLATION (docs/03 §4). */
+  verdict: Verdict;
   reviewReason: ReviewReason | null;
+  voidReason: string | null;
   camera: { code: string; intersection: string };
   plateRead: string | null;
+  plateConfidence: number | null;
   confidence: number;
+  /** Estado de la luz en el instante del cruce (solo detecciones del pipeline, no del seed). */
+  lightState: LightState | null;
+  motion: { speedKmh: number | null; laneId: string | null; relation: RoadRelation | null };
   occurredAt: string;
+  /** Última modificación: el feed en vivo pagina con `since` sobre este campo. */
+  updatedAt: string;
   evidence: Array<{ kind: EvidenceKind; url: string }>;
   fine: { token: string; status: FineStatus; amountCents: number; currency: string } | null;
 }

@@ -19,6 +19,7 @@ const all = args.has("--all");
 const { db } = await import("../lib/db.ts");
 const { buildSeed } = await import("../prisma/seed-data.ts");
 const { applySeed } = await import("../prisma/seed-run.ts");
+const { ensureAdmin } = await import("../prisma/seed-admin.ts");
 
 const now = new Date();
 const caracasDay = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Caracas" }).format(now); // YYYY-MM-DD
@@ -65,6 +66,12 @@ try {
       }),
     );
     console.log("seed reaplicado:", counts);
+    const admin = await ensureAdmin(db, {
+      email: process.env["ADMIN_EMAIL"],
+      password: process.env["ADMIN_PASSWORD"],
+      name: process.env["ADMIN_NAME"],
+    });
+    console.log(`admin: ${admin}`);
   }
 } finally {
   await db.$disconnect();

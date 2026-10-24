@@ -64,6 +64,13 @@ export type CameraPatch = z.infer<typeof CameraPatchSchema>;
 export const LightRequestSchema = z.object({ state: z.enum(["RED", "GREEN", "YELLOW"]) });
 export type LightRequest = z.infer<typeof LightRequestSchema>;
 
+// ---- Autenticación de admin/operador (P1)
+export const LoginRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
+  password: z.string().min(1).max(200),
+});
+export type LoginRequest = z.infer<typeof LoginRequestSchema>;
+
 // ---- §2 revisión (P1)
 export const ReviewRequestSchema = z.discriminatedUnion("action", [
   z.object({
