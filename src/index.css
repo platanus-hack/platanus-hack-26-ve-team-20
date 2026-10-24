@@ -212,6 +212,17 @@
 /* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
 .vista { animation: entra 260ms var(--ease-entrada) both; }
 
+/* Barra lima de la sección activa: crece desde el centro (220 ms). */
+@keyframes barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.barra-activa { animation: barra 220ms var(--ease-entrada) both; }
+
+/* Latido suave del punto rojo de una multa vencida: un anillo que se expande y se apaga cada 2,4 s. */
+@keyframes latido {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 55%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+.latido { animation: latido 2.4s ease-out infinite; }
+
 /* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
 @media (prefers-reduced-motion: reduce) {
   .press:active:not(:disabled) { transform: none; }
@@ -219,6 +230,7 @@
   .check { animation: solo-fundido 120ms linear both; stroke-dashoffset: 0; }
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
   .vista { animation: solo-fundido 120ms linear both; }
+  .barra-activa, .latido { animation: none; }
   dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
   dialog.sheet[open] { opacity: 1; }
   @starting-style { dialog.sheet[open] { opacity: 0; } }

@@ -18,7 +18,7 @@ export const enlace = 'inline-flex min-h-11 items-center px-1 text-sm font-semib
 /** Input: 48 px, 16 px, borde #7D8797 (error rojo). */
 export const input = (mal = false, mono = false) =>
   cx(
-    'h-12 w-full min-w-0 rounded-control bg-card px-3.5 text-base text-tinta placeholder:text-texto-3',
+    'h-12 w-full min-w-0 rounded-control bg-card px-3.5 text-base text-tinta transition-[border-color,box-shadow] duration-150 placeholder:text-texto-3 hover:border-tinta/50',
     mal ? 'border-[1.5px] border-rojo' : 'border border-input',
     mono && 'font-mono font-medium',
   )
