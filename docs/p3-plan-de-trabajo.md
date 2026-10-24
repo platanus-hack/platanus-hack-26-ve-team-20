@@ -90,7 +90,7 @@ La respuesta trae `messages[0].id` (wamid) → `Notification.providerId`. Un err
 ## 4. Estado actual y qué no depende de nadie
 - El esqueleto de P1 ya está en `main` y en esta rama: Vite, Vercel Functions, `lib/contracts` (con las firmas de P3 en `modules.ts` y `C2PRequestSchema` en `requests.ts`), `api/_lib/respond.ts`, Vitest, oxlint y `.gitignore`. Las páginas `src/pages/Multa.tsx` y `Pagar.tsx` existen como placeholder.
 - P1 terminó su parte: dominio (`registerDetection`, `registerSighting`, `markFinePaid`, revisión), `GET /api/fines/[token]`, portal, violaciones y sesiones (`api/_lib/auth.ts`, firmadas con `SESSION_SECRET`). Las APIs del oficial y el pago usan esa sesión y el límite de intentos de P1 (`lib/domain/rate-limit.ts`).
-- Pendiente de P1: `lib/domain/index.ts` todavía conecta `registerDetection` y la revisión con los mocks de P3 (`TODO(F13)`); hay que cambiarlos por `lib/notify/index.ts` y `lib/alerts/index.ts`, que ya son reales y respetan `USE_MOCKS`.
+- **Aviso a P1 (archivo suyo tocado por P3):** en `lib/domain/index.ts` se cambiaron los mocks de P3 (`TODO(F13)`) por `lib/notify/index.ts` y `lib/alerts/index.ts`. `registerDetection` y la revisión ya envían el WhatsApp real y despachan la alerta real; con `USE_MOCKS=true` siguen usando los mocks. Son dos líneas de import, sin cambios en la lógica de P1.
 - **Ya se puede** hacer todo lo que solo usa contratos y Vitest: mocks, textos de los mensajes, cliente de WhatsApp, simulador C2P y haversine (pasos 3–7).
 - **Bloquea a otros**: tus mocks (`lib/notify/mock.ts`, `lib/alerts/mock.ts`, `lib/payments/mock.ts`) deben estar antes de h2; P1 los necesita para `registerDetection`.
 

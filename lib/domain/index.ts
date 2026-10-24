@@ -1,9 +1,10 @@
 // Punto de entrada del dominio para los handlers de `api/` (P1). Cablea las dependencias reales.
 // Importa `lib/db.ts`, así que NO debe importarse desde `src/` ni desde tests unitarios sin base.
 import { db } from "../db.ts";
-// TODO(F13): reemplazar los mocks de P3 por `lib/notify` y `lib/alerts` reales (USE_MOCKS=false).
-import { dispatchAlert } from "../alerts/mock.ts";
-import { notifyFineIssued } from "../notify/mock.ts";
+// F13: módulos reales de P3. Con USE_MOCKS=true ellos mismos delegan en sus mocks (lib/*/mock.ts).
+// Cambio hecho por P3 en su rama (Edwjon); avisado a P1 en docs/p3-plan-de-trabajo.md §4.
+import { dispatchAlert } from "../alerts/index.ts";
+import { notifyFineIssued } from "../notify/index.ts";
 import type { MarkFinePaid, RegisterDetection, RegisterSighting } from "../contracts/index.ts";
 import { createMarkFinePaid } from "./payments.ts";
 import { createReviewViolation, type ReviewViolation } from "./review.ts";
