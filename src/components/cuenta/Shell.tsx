@@ -63,7 +63,7 @@ function Shell() {
                   aria-current={on ? 'page' : undefined}
                   className={cx('relative flex h-11 items-center gap-3 rounded-control px-3 text-[15px] transition-colors duration-150', on ? 'bg-tinta-2 font-semibold text-card' : 'font-medium text-niebla hover:bg-tinta-2/60 hover:text-card')}
                 >
-                  {on && <span aria-hidden="true" className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-sm bg-brand" />}
+                  {on && <span aria-hidden="true" className="barra-activa absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-sm bg-brand" />}
                   <Icono size={20} strokeWidth={1.75} aria-hidden="true" className={on ? 'text-brand' : undefined} />
                   <span className="flex-1">{label}</span>
                   {id === 'multas' && pendientes > 0 && (

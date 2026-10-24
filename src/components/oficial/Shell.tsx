@@ -32,7 +32,7 @@ function Shell() {
           <div className="px-3 pb-5 text-card"><Logo claro /></div>
           <nav aria-label="Principal" className="flex flex-col gap-1">
             <Link to="/oficial/multas" aria-current="page" className="relative flex h-11 items-center gap-3 rounded-control bg-tinta-2 px-3 text-[15px] font-semibold text-card">
-              <span aria-hidden="true" className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-sm bg-brand" />
+              <span aria-hidden="true" className="barra-activa absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-sm bg-brand" />
               <ReceiptText size={20} strokeWidth={1.75} aria-hidden="true" className="text-brand" />
               Historial de multas
             </Link>
