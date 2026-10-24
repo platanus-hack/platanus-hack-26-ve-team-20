@@ -66,7 +66,7 @@ def sesion(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Sesion, lis
         enviados.append(p)
         return {"violationId": "vio_1", "status": "FINED", "fineId": "fine_1"}
 
-    return Sesion("CAM-001", fabrica, registrar), enviados, motores
+    return Sesion("CAM-001", fabrica, registrar, detector_placas=lambda recortes: [None] * len(recortes)), enviados, motores
 
 
 def test_multa_solo_en_rojo_y_se_registra(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
@@ -183,3 +183,34 @@ def test_cuadro_ilegible_responde_igual_para_no_desordenar(sesion: tuple[Sesion,
     s, _, _ = sesion
     r = s.procesar(b"no es un jpg")
     assert r["tipo"] == "cuadro" and r["cajas"] == [] and r["aviso"] == "Cuadro ilegible"
+
+
+def test_lupa_manda_la_placa_ampliada_relativa_al_vehiculo(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, _ = sesion
+    boxes = SimpleNamespace(xyxy=Tensor([[16, 9, 80, 45]]), id=Tensor([5]), cls=Tensor([0]))
+    vistos: list[int] = []
+
+    class ConTracker(MotorVivo):
+        def __init__(self, **kw: Any) -> None:
+            super().__init__(**kw)
+            self.nombres, self.pistas = {0: "car"}, {}
+            self.modelo = SimpleNamespace(track=lambda frame, **k: [SimpleNamespace(boxes=boxes)])
+
+        def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
+            self.modelo.track(frame)
+            return super().procesar_frame(frame, estado, t)
+
+    def detector(recortes: list[Any]) -> list[tuple[float, float, float, float] | None]:
+        vistos.append(len(recortes))
+        return [(16.0, 18.0, 48.0, 27.0) for _ in recortes]  # placa dentro del recorte de 64x36
+
+    s.fabrica, s.detector_placas = ConTracker, detector
+    r = s.procesar(_jpg())
+    placa = r["cajas"][0]["placa"]
+    assert (placa["x"], placa["y"], placa["w"], placa["h"]) == (0.25, 0.5, 0.5, 0.25)
+    assert placa["jpg"]
+    assert "placa" not in s.procesar(_jpg())["cajas"][0]  # el mismo vehículo se refresca cada LUPA_CADA cuadros
+    s.lupa = False
+    for _ in range(3):
+        assert "placa" not in s.procesar(_jpg())["cajas"][0]
+    assert vistos == [1]

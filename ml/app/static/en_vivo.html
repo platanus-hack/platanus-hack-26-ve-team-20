@@ -78,6 +78,7 @@
     </div>
     <div class="controles">
       <label>Envío <select id="resolucion"><option value="720">720 px (rápido)</option><option value="960">960 px</option><option value="1280" selected>1280 px (mejores placas)</option><option value="1920">1920 px (máxima, ideal en la Mac)</option></select></label>
+      <label><input id="lupa" type="checkbox" checked> lupa de placas</label>
       <label><input id="fluida" type="checkbox"> vista fluida (cajas con retraso)</label>
       <span class="meta" id="fps"></span>
     </div>
@@ -97,6 +98,8 @@ const MAX_EN_VUELO = 3;        // cuadros en camino a la vez: con VPN/ngrok la l
 const INTERVALO_MIN_MS = 66;   // como mucho ~15 cuadros/s al servidor
 let ws, enVuelo = 0, ultimoEnvio = 0, total = 0, ultimo = performance.now(), respuestas = 0, errorServidor = '';
 let cajas = [], estado = 'verde', zoomDigital = 1, cuadroMostrado = null, stream = null;
+const lupas = new Map();        // id de tracking → { rel, img, visto }: última placa ampliada de cada vehículo
+let nRespuesta = 0;
 const pendientes = [];         // un cuadro capturado por cada envío: el servidor responde en el mismo orden
 const tarjetas = new Map();
 
@@ -165,7 +168,14 @@ function conectar(clave, camara) {
       enVuelo = Math.max(0, enVuelo - 1);
       const cuadro = await pendientes.shift();   // el cuadro exacto que analizó el servidor
       if (cuadro) { cuadroMostrado?.close?.(); cuadroMostrado = cuadro; }
-      cajas = m.cajas || []; estado = m.estado || estado; dibujar();
+      cajas = m.cajas || []; estado = m.estado || estado; nRespuesta++;
+      for (const k of cajas) {
+        const l = lupas.get(k.id);
+        if (k.placa) { const img = new Image(); img.src = 'data:image/jpeg;base64,' + k.placa.jpg; lupas.set(k.id, { rel: k.placa, img, visto: nRespuesta }); }
+        else if (l) l.visto = nRespuesta;
+      }
+      for (const [id, l] of lupas) if (nRespuesta - l.visto > 30) lupas.delete(id);
+      dibujar();
       m.multas.forEach(agregarMulta);
       m.registros.forEach(actualizarRegistro);
       respuestas++; const ahora = performance.now();
@@ -205,6 +215,7 @@ function bucle() {
 }
 
 const sincronizada = () => !$('fluida').checked;
+$('lupa').onchange = () => { ws?.send(JSON.stringify({ tipo: 'lupa', activa: $('lupa').checked })); if (!$('lupa').checked) lupas.clear(); dibujar(); };
 $('fluida').onchange = () => { $('vista').classList.toggle('sincronizada', sincronizada()); dibujar(); };
 
 // Dónde se ve la imagen dentro de la vista (contain deja franjas). En vista fluida, el video escalado por el
@@ -239,6 +250,7 @@ function dibujar() {
     g.fillStyle = color; g.fillRect(x, Math.max(0, y - 18), tw, 18);
     g.fillStyle = '#fff'; g.fillText(texto, x + 4, Math.max(13, y - 5));
   }
+  if ($('lupa').checked) dibujarLupas(g, r);
   // semáforo
   const sx = r.x + r.w - 30, sy = r.y + 12;
   g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(sx - 4, sy - 4, 26, 48);
@@ -246,6 +258,36 @@ function dibujar() {
   g.fillStyle = rojo ? '#333' : '#2fb344'; g.beginPath(); g.arc(sx + 9, sy + 30, 8, 0, 7); g.fill();
 }
 window.addEventListener('resize', dibujar);
+
+// Lupa de placa: recuadro ampliado al costado del vehículo, esquinas verdes y líneas amarillas hasta la placa.
+function dibujarLupas(g, r) {
+  const ocupados = [];
+  const grandes = cajas.filter((k) => lupas.get(k.id)?.img.complete).sort((a, b) => b.w * b.h - a.w * a.h).slice(0, 3);
+  for (const k of grandes) {
+    const { rel, img } = lupas.get(k.id);
+    const vx = r.x + k.x * r.w, vy = r.y + k.y * r.h, vw = k.w * r.w, vh = k.h * r.h;
+    const px = vx + rel.x * vw, py = vy + rel.y * vh, pw = rel.w * vw, ph = rel.h * vh;
+    const iw = Math.min(170, r.w * 0.34), ih = Math.min(76, iw * img.height / Math.max(1, img.width));
+    // Sin texto: la placa ampliada se lee sola; la lectura del OCR va en la lista (puede venir de otro recorte).
+    const alto = ih;
+    let ix = vx - iw - 16 >= r.x ? vx - iw - 16 : Math.min(vx + vw + 16, r.x + r.w - iw);
+    let iy = Math.min(Math.max(r.y + 4, py - alto / 2), r.y + r.h - alto - 4);
+    for (const o of ocupados) if (Math.abs(o.y - iy) < alto && Math.abs(o.x - ix) < iw) iy = o.y + o.alto + 6;
+    ocupados.push({ x: ix, y: iy, alto });
+    // marco de la placa en el vehículo y líneas hasta la lupa
+    g.strokeStyle = '#39ff6a'; g.lineWidth = 2; g.strokeRect(px, py, pw, ph);
+    const lado = ix < px ? ix + iw : ix;
+    g.strokeStyle = '#ffe14d'; g.lineWidth = 2.5;
+    g.beginPath(); g.moveTo(lado, iy + 4); g.lineTo(px + pw / 2, py + ph / 2); g.lineTo(lado, iy + ih - 4); g.stroke();
+    // recuadro ampliado
+    g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(ix - 4, iy - 4, iw + 8, alto + 8);
+    g.drawImage(img, ix, iy, iw, ih);
+    g.strokeStyle = '#39ff6a'; g.lineWidth = 4; const e = 12;
+    for (const [cx, cy, dx, dy] of [[ix - 4, iy - 4, 1, 1], [ix + iw + 4, iy - 4, -1, 1], [ix - 4, iy + ih + 4, 1, -1], [ix + iw + 4, iy + ih + 4, -1, -1]]) {
+      g.beginPath(); g.moveTo(cx + dx * e, cy); g.lineTo(cx, cy); g.lineTo(cx, cy + dy * e); g.stroke();
+    }
+  }
+}
 
 // Zoom: óptico si la cámara lo permite (más nítido); si no, digital: se recorta el centro de la imagen en
 // máxima resolución, así los carros llegan más grandes al modelo (p. ej. desde un puente).
