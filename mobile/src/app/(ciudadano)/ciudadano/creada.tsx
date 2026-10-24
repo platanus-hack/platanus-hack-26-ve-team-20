@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { View } from 'react-native';
 
-import { CabeceraTinta, Pasos, Titulo } from '@/components/auth';
+import { CabeceraMarca, Pasos, Titulo } from '@/components/auth';
 import { Pantalla } from '@/components/extra';
 import { Boton, PlacaChip } from '@/components/ui';
 import { VEHICULOS } from '@/demo/ciudadano';
@@ -13,7 +13,7 @@ export default function Creada() {
   const { c } = useTema();
   return (
     <Pantalla>
-      <CabeceraTinta marca="SmartTraffic" titulo="La multa llega con la prueba, y se paga en un minuto." />
+      <CabeceraMarca />
       <View style={{ gap: 20, paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32 }}>
         <Pasos paso={3} />
         <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: c.tinta, alignItems: 'center', justifyContent: 'center' }}>

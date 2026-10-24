@@ -69,11 +69,13 @@ export function Pressy({ style, onPressIn, onPressOut, disabled, ...props }: Pre
   );
 }
 
-type Variante = 'tinta' | 'pago' | 'borde' | 'peligro';
+type Variante = 'tinta' | 'pago' | 'lima' | 'borde' | 'peligro';
 
+// 'tinta' y 'pago' son la acción principal (tinta en claro, lima en oscuro); 'lima' va sobre superficies tinta.
 const variantes = (c: Colores): Record<Variante, { bg: string; fg: string; borde?: string }> => ({
-  tinta: { bg: c.tinta, fg: c.tintaTexto, borde: c.tintaBorde },
-  pago: { bg: c.rojo, fg: c.sobreAcento },
+  tinta: { bg: c.primario, fg: c.sobrePrimario },
+  pago: { bg: c.primario, fg: c.sobrePrimario },
+  lima: { bg: c.lima, fg: temaClaro.tinta },
   borde: { bg: c.tarjeta, fg: c.texto, borde: c.bordeInput },
   peligro: { bg: c.tarjeta, fg: c.rojoTexto, borde: c.bordeInput },
 });
@@ -100,7 +102,7 @@ export function Boton({
   accessibilityLabel?: string;
 }) {
   const { c } = useTema();
-  const v = disabled ? { bg: c.borde, fg: c.texto2 } : variantes(c)[variante];
+  const v = disabled ? { bg: c.suave, fg: c.texto3 } : variantes(c)[variante];
   return (
     <Pressy
       accessibilityRole="button"
@@ -199,6 +201,8 @@ export const estados = (c: Colores): Record<EstadoMulta, { bg: string; fg: strin
   ANULADA: { bg: c.grisFondo, fg: c.texto2, icono: CircleSlash },
 });
 
+export const ETIQUETA: Record<EstadoMulta, string> = { PENDIENTE: 'Pendiente', VENCIDA: 'Vencida', PAGADA: 'Pagada', APELADA: 'Apelada', ANULADA: 'Anulada' };
+
 export function Badge({ estado, style }: { estado: EstadoMulta; style?: StyleProp<ViewStyle> }) {
   const { c } = useTema();
   const e = estados(c)[estado];
@@ -206,7 +210,7 @@ export function Badge({ estado, style }: { estado: EstadoMulta; style?: StylePro
   return (
     <View style={[s.badge, { backgroundColor: e.bg }, style]}>
       <I size={13} color={e.fg} strokeWidth={2} />
-      <T style={[tipo.captionFuerte, { fontSize: 12, color: e.fg }]}>{estado}</T>
+      <T style={[tipo.captionFuerte, { fontSize: 12, color: e.fg }]}>{ETIQUETA[estado]}</T>
     </View>
   );
 }
@@ -255,8 +259,8 @@ export function Interruptor({ valor, onCambio, etiqueta }: { valor: boolean; onC
       accessibilityState={{ checked: valor }}
       onPress={() => onCambio(!valor)}
       hitSlop={6}
-      style={[s.pista, valor ? { backgroundColor: c.tinta, borderColor: c.tintaBorde } : { backgroundColor: c.bordeInput, borderColor: c.bordeInput }]}>
-      <Animated.View style={[s.boli, { backgroundColor: valor ? c.lima : c.tarjeta }, boli]} />
+      style={[s.pista, { backgroundColor: valor ? c.primario : c.bordeInput, borderColor: valor ? c.primario : c.bordeInput }]}>
+      <Animated.View style={[s.boli, { backgroundColor: valor ? c.boliOn : c.tarjeta }, boli]} />
     </Pressable>
   );
 }
@@ -269,7 +273,7 @@ const MODOS: { modo: ModoTema; etiqueta: string }[] = [
 
 // Control segmentado de apariencia. Sin indicador animado: el cambio de tema es instantáneo también con movimiento reducido.
 export function SelectorTema() {
-  const { c, modo, setModo } = useTema();
+  const { c, sombra, modo, setModo } = useTema();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel="Apariencia" style={[s.segmentos, { backgroundColor: c.suave }]}>
       {MODOS.map((m) => {
@@ -281,8 +285,8 @@ export function SelectorTema() {
             accessibilityLabel={m.etiqueta}
             accessibilityState={{ checked: on, selected: on }}
             onPress={() => setModo(m.modo)}
-            style={[s.segmento, on ? { backgroundColor: c.tinta, borderColor: c.tintaBorde } : null]}>
-            <T style={[tipo.pequenoFuerte, { color: on ? c.tintaTexto : c.texto2 }]}>{m.etiqueta}</T>
+            style={[s.segmento, on ? { backgroundColor: c.tarjeta, boxShadow: sombra.tarjeta } : null]}>
+            <T style={[tipo.pequenoFuerte, { color: on ? c.texto : c.texto2 }]}>{m.etiqueta}</T>
           </Pressy>
         );
       })}
@@ -308,7 +312,7 @@ export function Tarjeta({ children, style }: { children: ReactNode; style?: Styl
 
 export function Aviso({ children, tono = 'ambar', icono: I, style }: { children: ReactNode; tono?: 'ambar' | 'rojo' | 'azul'; icono?: LucideIcon; style?: StyleProp<ViewStyle> }) {
   const { c } = useTema();
-  const t = { ambar: [c.ambar, c.tinta], rojo: [c.rojoFondo, c.rojoTexto], azul: [c.azulFondo, c.azulTexto] }[tono];
+  const t = { ambar: [c.ambarFondo, c.ambarTexto], rojo: [c.rojoFondo, c.rojoTexto], azul: [c.azulFondo, c.azulTexto] }[tono];
   return (
     <View accessibilityRole="alert" style={[s.aviso, { backgroundColor: t[0] }, style]}>
       {I ? <I size={18} color={t[1]} strokeWidth={2} /> : null}

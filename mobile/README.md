@@ -1,6 +1,6 @@
 # SmartTraffic · app móvil (Expo)
 
-App Expo (SDK 58, Expo Router, TypeScript estricto) para el ciudadano, con el modo cámara (operador) para la demo. El modo policía sigue en el código pero no tiene acceso en la app. Diseño: "Dirección C · Cuentas". Todo es demo: datos ficticios y pagos simulados (`src/demo/`).
+App Expo (SDK 58, Expo Router, TypeScript estricto) para el ciudadano, con el modo cámara (operador) para la demo. El modo policía sigue en el código pero no tiene acceso en la app. Diseño: "Dirección C · Cuentas", simplificado (inicio con lo esencial, filas de multa sin acciones sueltas) y con modo oscuro grafito; la acción principal es tinta en claro y lima en oscuro, el rojo queda para estados. Todo es demo: datos ficticios y pagos simulados (`src/demo/`).
 
 ```bash
 npm install

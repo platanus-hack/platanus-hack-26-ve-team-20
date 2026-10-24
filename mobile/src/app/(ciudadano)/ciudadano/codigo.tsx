@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { CabeceraTinta, Pasos, Titulo } from '@/components/auth';
+import { CabeceraMarca, Pasos, Titulo } from '@/components/auth';
 import { Pantalla } from '@/components/extra';
 import { Boton, Enlace, T } from '@/components/ui';
 import { CIUDADANO, confirmarCodigo } from '@/demo/ciudadano';
@@ -32,7 +32,7 @@ export default function Codigo() {
 
   return (
     <Pantalla>
-      <CabeceraTinta marca="SmartTraffic" titulo="La multa llega con la prueba, y se paga en un minuto." />
+      <CabeceraMarca />
       <View style={{ gap: 20, paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32 }}>
         <Pasos paso={2} />
         <View style={{ gap: 6 }}>

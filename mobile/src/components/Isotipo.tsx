@@ -7,7 +7,7 @@ export const LUCES = [[140, '#DC2626'], [178, '#F59E0B'], [216, '#16A34A']] as c
 
 export function Isotipo({ size = 32, color }: { size: number; color: string }) {
   return (
-    <Svg viewBox="0 0 356 206" width={size} height={(size * 206) / 356} accessible={false}>
+    <Svg viewBox="0 0 356 206" width={size} height={(size * 206) / 356}>
       <Path fillRule="evenodd" fill={color} d={ISOTIPO_PATH} />
       {LUCES.map(([cx, fill]) => <Circle key={cx} cx={cx} cy={150} r={11} fill={fill} />)}
     </Svg>

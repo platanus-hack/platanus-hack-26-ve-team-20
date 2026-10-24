@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { Pantalla } from '@/components/extra';
-import { Boton, Chip, Entrada, Placa, T } from '@/components/ui';
+import { Entrada, Placa, Pressy, T } from '@/components/ui';
 import { VEHICULOS, esPendiente, useCiudadano } from '@/demo/ciudadano';
 import { useEstilos, useTema, type Tema } from '@/lib/tema';
 import { radio, tipo } from '@/theme';
@@ -12,39 +13,31 @@ export default function Vehiculos() {
   const s = useEstilos(estilos);
   const { multas } = useCiudadano();
   return (
-    <Pantalla style={{ gap: 20, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 24 }}>
-      <View style={{ gap: 2 }}>
+    <Pantalla style={{ gap: 12, paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32 }}>
+      <View style={{ gap: 4, marginBottom: 12 }}>
         <T accessibilityRole="header" style={tipo.h1}>
           Vehículos
         </T>
-        <T style={{ color: c.texto2 }}>A su nombre según el registro (ejemplo).</T>
+        <T style={[tipo.pequeno, { color: c.texto2 }]}>A su nombre según el registro (ejemplo).</T>
       </View>
       {VEHICULOS.map((v, i) => {
-        const deEste = multas.filter((m) => m.placa === v.placa);
-        const pp = deEste.filter(esPendiente).length;
+        const pp = multas.filter((m) => m.placa === v.placa && esPendiente(m)).length;
+        const estado = pp ? `${pp} por pagar` : 'Al día';
         return (
-          <Entrada key={v.placa} i={i} style={s.bisel}>
-            <View style={s.tarjeta}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <Placa placa={v.placa} />
-                {pp ? <Chip texto={`${pp} por pagar`} bg={c.rojoFondo} fg={c.rojoTexto} /> : <Chip texto="Al día" bg={c.verdeFondo} fg={c.verdeTexto} />}
+          <Entrada key={v.placa} i={i}>
+            <Pressy
+              accessibilityRole="button"
+              accessibilityLabel={`${v.modelo}, placa ${v.placa}, ${estado}. Ver sus multas`}
+              onPress={() => router.navigate({ pathname: '/ciudadano/multas', params: { filtro: v.placa, tab: pp ? '0' : '1' } })}
+              style={s.tarjeta}>
+              <Placa placa={v.placa} tam={20} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T style={tipo.cuerpoFuerte}>{v.modelo}</T>
+                <T style={[tipo.caption, { color: c.texto2 }]}>{v.detalle}</T>
+                <T style={[tipo.captionFuerte, { color: pp ? c.rojoTexto : c.verdeTexto }]}>{estado}</T>
               </View>
-              <View>
-                <T style={tipo.h3}>{v.modelo}</T>
-                <T style={[tipo.pequeno, { color: c.texto2 }]}>{v.detalle}</T>
-              </View>
-              <View style={s.pie}>
-                <T style={[tipo.pequeno, { flex: 1, color: c.texto2 }]}>
-                  <T style={[tipo.mono, { fontSize: 14 }]}>{deEste.length}</T> multas registradas
-                </T>
-                <Boton
-                  titulo="Ver sus multas"
-                  variante="borde"
-                  alto={44}
-                  onPress={() => router.navigate({ pathname: '/ciudadano/multas', params: { filtro: v.placa, tab: pp ? '0' : '1' } })}
-                />
-              </View>
-            </View>
+              <ChevronRight size={18} color={c.texto3} strokeWidth={2} />
+            </Pressy>
           </Entrada>
         );
       })}
@@ -54,7 +47,5 @@ export default function Vehiculos() {
 
 const estilos = ({ c, sombra }: Tema) =>
   StyleSheet.create({
-  bisel: { padding: 6, backgroundColor: c.suave, borderRadius: radio.tarjeta },
-  tarjeta: { gap: 16, padding: 20, backgroundColor: c.tarjeta, borderRadius: 12, boxShadow: sombra.tarjeta },
-  pie: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.borde },
-});
+    tarjeta: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, backgroundColor: c.tarjeta, borderRadius: radio.tarjeta, boxShadow: sombra.tarjeta },
+  });
