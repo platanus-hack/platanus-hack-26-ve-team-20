@@ -258,6 +258,20 @@
 }
 .latido { animation: latido 2.4s ease-out infinite; }
 
+/* Resumen. "Pagado": la línea se traza (700 ms), luego aparecen los puntos y el globo del mes, uno tras otro. */
+@keyframes traza { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.traza { stroke-dasharray: 1; animation: traza 700ms var(--ease-entrada) 200ms both; }
+@keyframes aparece { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+.aparece { transform-box: fill-box; transform-origin: center; animation: aparece 260ms var(--ease-entrada) both; animation-delay: calc(200ms + var(--i, 0) * 90ms); }
+/* Barras: crecen desde la base, 40 ms de escalonado por columna. */
+@keyframes crece { from { transform: scaleY(0); } to { transform: none; } }
+.crece { transform-box: fill-box; transform-origin: bottom; animation: crece 520ms var(--ease-entrada) both; animation-delay: calc(150ms + var(--i, 0) * 40ms); }
+/* Al pasar sobre un mes, los demás se apagan y aparece su cifra de multadas. */
+.columna { transition: opacity 160ms var(--ease-press); }
+.columnas:hover > .columna:not(:hover) { opacity: 0.4; }
+.pista { opacity: 0; transform: translate(-50%, 4px); transition: opacity 140ms var(--ease-press), transform 140ms var(--ease-press); }
+.columna:hover .pista { opacity: 1; transform: translate(-50%, 0); }
+
 /* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
 @media (prefers-reduced-motion: reduce) {
   .press:active:not(:disabled) { transform: none; }
@@ -266,6 +280,9 @@
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
   .vista { animation: solo-fundido 120ms linear both; }
   .barra-activa, .latido { animation: none; }
+  .traza { animation: none; stroke-dasharray: none; }
+  .aparece, .crece { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
+  .pista { transform: translate(-50%, 0); transition: opacity 120ms linear; }
   .carro-se-aleja, .carro-se-acerca { animation: none; display: none; }
   .luz-verde, .luz-ambar, .luz-roja { animation: none; }
   .luz-verde, .luz-ambar { opacity: 0; }
