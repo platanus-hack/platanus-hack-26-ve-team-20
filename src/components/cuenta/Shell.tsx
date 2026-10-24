@@ -25,7 +25,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: riel de íconos (con el logo) + barra superior (tema, avisos, cédula). Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos (con el logo); tema, avisos y cédula van en la fila del título. Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
@@ -55,7 +55,7 @@ function Shell() {
         <aside className="hidden w-[102px] flex-none flex-col items-center rounded-[22px] bg-card pt-6 pb-6 shadow-card lg:flex">
           <Link to="/inicio" aria-label="SmartTraffic, inicio" className="flex text-tinta"><Isotipo size={60} /></Link>
           <nav aria-label="Principal" className="mt-16 flex flex-col items-center gap-4">
-            {NAV.map(({ id, label, Icono }) => {
+            {NAV.filter((n) => n.id !== 'estadisticas').map(({ id, label, Icono }) => {
               const on = seccion === id
               return (
                 <Link
@@ -87,21 +87,19 @@ function Shell() {
             </Link>
           </header>
 
-          <header className="hidden min-h-11 flex-none items-center gap-5 pb-2 lg:flex">
-            <div className="ml-auto flex items-center gap-5">
+          <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {/* ≥1024: tema, avisos y cédula arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
+            <header className="absolute top-0 right-0 z-20 hidden h-11 items-center gap-4 lg:flex">
               <InterruptorTema />
               <Link to="/multas" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
                 <Bell size={20} strokeWidth={2} aria-hidden="true" />
                 {pendientes > 0 && <span aria-hidden="true" className="absolute top-2 right-2.5 size-2 rounded-full bg-rojo" />}
               </Link>
-              <Link to="/perfil" className="group press flex min-h-11 items-center gap-2.5 text-tinta">
-                <span className="font-mono text-[15px] font-medium">{sesion && formatCedula(sesion.cedula)}</span>
-                <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-brand font-mono text-sm font-bold text-[#0e1726] transition-transform duration-150 ease-press group-hover:scale-105">{sesion?.cedula.charAt(0)}</span>
+              <Link to="/perfil" className="group press flex min-h-11 items-center gap-2 text-tinta">
+                <span className="font-mono text-sm font-medium">{sesion && formatCedula(sesion.cedula)}</span>
+                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-brand font-mono text-xs font-bold text-[#0e1726] transition-transform duration-150 ease-press group-hover:scale-105">{sesion?.cedula.charAt(0)}</span>
               </Link>
-            </div>
-          </header>
-
-          <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+            </header>
             <div key={pathname} className="vista flex flex-1 flex-col">
               <Outlet />
             </div>

@@ -12,14 +12,14 @@ import { EST } from '@/components/vc/estados.ts'
 
 /** Contenedor de cada pantalla: máx. 1160, margen 16 en móvil y 48 en desktop. */
 export function Pagina({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx('mx-auto flex w-full max-w-[1160px] flex-col gap-5 px-4 pt-5 pb-6 lg:gap-6 lg:px-12 lg:pt-8 lg:pb-12', className)}>{children}</div>
+  return <div className={cx('mx-auto flex w-full max-w-[1160px] flex-col gap-5 px-4 pt-5 pb-6 lg:gap-6 lg:px-12 lg:pt-0 lg:pb-12', className)}>{children}</div>
 }
 
 export function Titulo({ children, antes, despues }: { children: ReactNode; antes?: ReactNode; despues?: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
       {antes && <span className="text-sm text-texto-2">{antes}</span>}
-      <h1 className="font-display text-h1-m font-bold tracking-[-0.02em] lg:text-h1">{children}</h1>
+      <h1 className="font-display text-h1-m font-bold tracking-[-0.02em] lg:flex lg:min-h-11 lg:items-center lg:text-h1">{children}</h1>
       {despues && <span className="text-texto-2">{despues}</span>}
     </div>
   )
