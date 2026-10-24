@@ -202,15 +202,34 @@ def test_lupa_manda_la_placa_ampliada_relativa_al_vehiculo(sesion: tuple[Sesion,
 
     def detector(recortes: list[Any]) -> list[tuple[float, float, float, float] | None]:
         vistos.append(len(recortes))
-        return [(16.0, 18.0, 48.0, 27.0) for _ in recortes]  # placa dentro del recorte de 64x36
+        return [(16.0, 14.0, 48.0, 30.0) for _ in recortes]  # placa de 16 px de alto en el recorte de 64x36
 
     s.fabrica, s.detector_placas = ConTracker, detector
     r = s.procesar(_jpg())
     placa = r["cajas"][0]["placa"]
-    assert (placa["x"], placa["y"], placa["w"], placa["h"]) == (0.25, 0.5, 0.5, 0.25)
+    assert (placa["x"], placa["y"], placa["w"], placa["h"]) == (0.25, 0.3889, 0.5, 0.4444)
     assert placa["jpg"]
     assert "placa" not in s.procesar(_jpg())["cajas"][0]  # el mismo vehículo se refresca cada LUPA_CADA cuadros
     s.lupa = False
     for _ in range(3):
         assert "placa" not in s.procesar(_jpg())["cajas"][0]
     assert vistos == [1]
+
+
+def test_sin_lupa_para_placas_demasiado_chicas(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, _ = sesion
+    boxes = SimpleNamespace(xyxy=Tensor([[16, 9, 80, 45]]), id=Tensor([5]), cls=Tensor([0]))
+
+    class ConTracker(MotorVivo):
+        def __init__(self, **kw: Any) -> None:
+            super().__init__(**kw)
+            self.nombres, self.pistas = {0: "car"}, {}
+            self.modelo = SimpleNamespace(track=lambda frame, **k: [SimpleNamespace(boxes=boxes)])
+
+        def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
+            self.modelo.track(frame)
+            return super().procesar_frame(frame, estado, t)
+
+    s.fabrica = ConTracker
+    s.detector_placas = lambda recortes: [(16.0, 18.0, 48.0, 24.0) for _ in recortes]  # placa de 6 px de alto
+    assert "placa" not in s.procesar(_jpg())["cajas"][0]
