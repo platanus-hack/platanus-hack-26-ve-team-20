@@ -43,15 +43,21 @@ def _device() -> int | str:
 
 def crear_motor(**kwargs: Any) -> Any:
     sys.path.insert(0, str(MOTOR_DIR))
-    from motor_infracciones import MotorInfracciones  # type: ignore[import-not-found]
+    from motor_infracciones import LectorPlacas, MotorInfracciones  # type: ignore[import-not-found]
 
     placas, senales = WEIGHTS_DIR / "placas.pt", WEIGHTS_DIR / "senales.pt"
+    device = _device()
+    # La GPU de Mac (mps) no admite dos hilos a la vez y el motor lee placas y señales en un hilo aparte:
+    # con mps las placas van en CPU (los vehículos siguen en GPU).
+    # shortcut: con mps se omite senales.pt (solo agrega evidencia); habilitarlo cuando corra en NVIDIA o CPU.
+    en_mps = device == "mps"
+    lector = LectorPlacas.desde_pesos(str(placas), device="cpu" if en_mps else device) if placas.exists() else None
     return MotorInfracciones(
         pesos_vehiculos="yolo11n.pt" if USAR_COCO else str(WEIGHTS_DIR / "vehiculos.pt"),
-        pesos_placas=str(placas) if placas.exists() else None,
-        pesos_senales=str(senales) if senales.exists() else None,
+        lector_placas=lector,
+        pesos_senales=str(senales) if senales.exists() and not en_mps else None,
         usar_coco=USAR_COCO,
-        device=_device(),
+        device=device,
         **kwargs,
     )
 

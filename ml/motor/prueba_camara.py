@@ -7,6 +7,7 @@ Correr:     python prueba_camara.py                      (cámara 0 de la compu,
             python prueba_camara.py --camara http://192.168.1.20:8080/video   (celular como cámara IP)
             python prueba_camara.py --ciclo 10,3,10      (semáforo automático: verde 10 s, amarillo 3 s, rojo 10 s)
             python prueba_camara.py --coco               (prueba rápida sin modelos entrenados: vehículos con YOLO COCO, sin placas)
+            python prueba_camara.py --camara choque.mp4  (con choques.pt en la carpeta también avisa posibles choques)
 
 Si no existe camara.json, al arrancar haces 3 clics para la línea de pare (2 clics) y un punto dentro de la
 intersección (1 clic). Para contravía, PARE, giros, línea continua y velocidad usa configurar_camara.py.
@@ -80,6 +81,8 @@ def main():
     ap.add_argument("--vehiculos", default="vehiculos.pt", help="pesos del modelo de vehículos")
     ap.add_argument("--placas", default="placas.pt", help="pesos del modelo de placas")
     ap.add_argument("--senales", default="senales.pt", help="pesos del modelo de señales (opcional)")
+    ap.add_argument("--choques", default="choques.pt", help="pesos de la capa de choques (opcional)")
+    ap.add_argument("--conf-choques", type=float, default=0.5, help="confianza mínima del modelo de choques")
     ap.add_argument("--coco", action="store_true", help="usa yolo11n.pt (COCO) para vehículos")
     ap.add_argument("--ciclo", default=None, help="semáforo automático verde,amarillo,rojo en segundos, ej. 10,3,10")
     ap.add_argument("--imgsz", type=int, default=640, help="tamaño de inferencia de vehículos (baja a 480 si va lento)")
@@ -106,7 +109,8 @@ def main():
 
     def en_multa(m):
         extra = f" {m['detalle']['velocidad_kmh']} km/h" if m["tipo"] == "exceso_velocidad" else ""
-        print(f"MULTA  {m['fecha_hora']}  {m['descripcion']}{extra}  {m['clase']}  placa {m['placa']} "
+        etiqueta = "AVISO" if m["tipo"] == "choque" else "MULTA"
+        print(f"{etiqueta}  {m['fecha_hora']}  {m['descripcion']}{extra}  {m['clase']}  placa {m['placa']} "
               f"({m['confianza_placa']})  -> {m['carpeta']}")
         escritor.writerow([m["fecha_hora"], m["id"], m["clase"], m["tipo"], m["placa"], m["confianza_placa"],
                            json.dumps(m["detalle"], ensure_ascii=False), m["carpeta"]])
@@ -114,6 +118,7 @@ def main():
 
     placas = args.placas if Path(args.placas).exists() else None
     senales = args.senales if Path(args.senales).exists() else None
+    choques = args.choques if Path(args.choques).exists() else None
     if placas is None:
         print(f"Aviso: no encontré {args.placas}; se detectan infracciones pero no se leen placas.")
 
@@ -121,7 +126,7 @@ def main():
         return MotorInfracciones(
             pesos_vehiculos="yolo11n.pt" if args.coco else args.vehiculos, pesos_placas=placas, usar_coco=args.coco,
             config=cfg, pesos_senales=senales, imgsz_vehiculos=args.imgsz, carpeta_evidencias="multas",
-            en_multa=en_multa)
+            en_multa=en_multa, pesos_choques=choques, conf_choques=args.conf_choques)
 
     motor = crear_motor()
     print("Reglas activas:", motor.reglas_activas())

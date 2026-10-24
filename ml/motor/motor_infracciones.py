@@ -8,6 +8,9 @@ Infracciones (cada una se activa si su sección existe en la configuración de l
   giro_prohibido    pasar de una zona a otra que no está en movimientos_permitidos
   vuelta_en_u       salir y volver a entrar por la misma zona (si ese par no está permitido)
   linea_continua    cruzar una línea continua dibujada
+  choque            (opcional) se ve un accidente varias detecciones seguidas. Se activa solo si vehiculos.pt trae
+                    la clase "accidente" (modelo único, lo más rápido) o si se pasa un choques.pt aparte.
+                    Es un aviso para revisar, no una multa: lee la placa de los vehículos involucrados y guarda evidencia
 
 Uso desde la app:
 
@@ -35,6 +38,7 @@ import cv2
 import numpy as np
 
 CLASES_COCO_VEHICULOS = {2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
+CLASE_ACCIDENTE = "accidente"   # clase de la capa de choques (en vehiculos.pt o en un choques.pt aparte)
 COLORES = {"rojo": (0, 0, 255), "amarillo": (0, 215, 255), "verde": (0, 200, 0), "desconocido": (160, 160, 160)}
 TIPOS = {
     "semaforo_rojo": "Cruce con semáforo en rojo",
@@ -44,9 +48,10 @@ TIPOS = {
     "giro_prohibido": "Giro prohibido",
     "vuelta_en_u": "Vuelta en U prohibida",
     "linea_continua": "Cruzar línea continua",
+    "choque": "Posible choque (verificar)",
 }
 CORTOS = {"semaforo_rojo": "ROJO", "exceso_velocidad": "VEL", "contravia": "CONTRAVIA", "pare": "PARE",
-          "giro_prohibido": "GIRO", "vuelta_en_u": "U", "linea_continua": "LINEA"}
+          "giro_prohibido": "GIRO", "vuelta_en_u": "U", "linea_continua": "LINEA", "choque": "CHOQUE"}
 DEFAULTS = {
     "velocidad": {"limite_kmh": 40, "tolerancia_kmh": 5, "distancia_min_m": 8.0, "tiempo_min_s": 0.5},
     "pare": {"vel_max_kmh": 3.0, "vel_max_px_s": 15, "segundos_min": 1.0},
@@ -141,6 +146,15 @@ def dentro_segmento(p, a, b, margen=0.05):
 def dentro_poligono(p, poligono):
     poly = poligono if isinstance(poligono, np.ndarray) else np.asarray(poligono, np.float32)
     return cv2.pointPolygonTest(poly, (float(p[0]), float(p[1])), False) >= 0
+
+
+def iou(a, b):
+    """Intersección sobre unión de dos cajas (x1, y1, x2, y2)."""
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return float(inter / union) if union > 0 else 0.0
 
 
 def angulo(u, v):
@@ -440,12 +454,17 @@ class MotorInfracciones:
                  amarillo_es_rojo=False, leer_cada=3, buffer_recortes=6, frames_despues=30, max_lecturas=10,
                  plantillas=None, en_multa=None, pesos_senales=None, dibujar_reglas=True,
                  modelo_vehiculos=None, lector_placas=None, modelo_senales=None,
-                 max_correcciones=MAX_CORRECCIONES):
+                 max_correcciones=MAX_CORRECCIONES, pesos_choques=None, modelo_choques=None, conf_choques=0.5,
+                 choque_seguidas=5, choques_cada=2, choque_olvido=300):
         if modelo_vehiculos is None:
             from ultralytics import YOLO
             modelo_vehiculos = YOLO(str(pesos_vehiculos))
         self.modelo = modelo_vehiculos
         self.nombres = dict(CLASES_COCO_VEHICULOS) if usar_coco else {int(k): v for k, v in self.modelo.names.items()}
+        # Modelo único: si vehiculos.pt trae la clase "accidente", los choques salen de la misma pasada del tracker
+        self.clase_choque = next((k for k, v in self.nombres.items() if v == CLASE_ACCIDENTE), None)
+        if self.clase_choque is not None:
+            self.nombres.pop(self.clase_choque)
         if lector_placas is None and pesos_placas:
             lector_placas = LectorPlacas.desde_pesos(pesos_placas, conf=conf_placas, imgsz=imgsz_placas,
                                                      device=device, plantillas=plantillas,
@@ -455,6 +474,16 @@ class MotorInfracciones:
             from ultralytics import YOLO
             modelo_senales = YOLO(str(pesos_senales))
         self.modelo_senales = modelo_senales
+        # Capa de choques en un modelo aparte (opcional, solo si vehiculos.pt no trae la clase "accidente")
+        if modelo_choques is None and pesos_choques and self.clase_choque is None:
+            from ultralytics import YOLO
+            modelo_choques = YOLO(str(pesos_choques))
+        self.modelo_choques = modelo_choques
+        self.conf_choques = conf_choques
+        self.choque_seguidas = max(1, int(choque_seguidas))   # detecciones seguidas para confirmar
+        self.choques_cada = max(1, int(choques_cada))         # corre el modelo de choques cada N frames
+        self.choque_olvido = choque_olvido                    # detecciones sin verlo para olvidar un choque confirmado
+        self._choques, self._n_escena = [], 0
         self.cfg_base = cargar_config(config, linea_pare, punto_despues)
         self.device, self.conf, self.imgsz, self.tracker = device, conf_vehiculos, imgsz_vehiculos, tracker
         self.carpeta = Path(carpeta_evidencias)
@@ -511,6 +540,10 @@ class MotorInfracciones:
             r.append(f"línea continua ({len(cfg['lineas_continuas'])})")
         if self.modelo_senales is not None:
             r.append("detector de señales como evidencia")
+        if self.clase_choque is not None:
+            r.append(f"posibles choques (en el mismo modelo de vehículos, {self.choque_seguidas} detecciones seguidas)")
+        elif self.modelo_choques is not None:
+            r.append(f"posibles choques (modelo de choques aparte, {self.choque_seguidas} detecciones seguidas)")
         return ", ".join(r)
 
     # ------------------------------------------------------------------- bucle por frame
@@ -524,7 +557,8 @@ class MotorInfracciones:
         if self._tam != (W, H):
             self._preparar(W, H)
 
-        kw = {"persist": True, "tracker": self.tracker, "conf": self.conf, "classes": list(self.nombres),
+        clases = list(self.nombres) + ([self.clase_choque] if self.clase_choque is not None else [])
+        kw = {"persist": True, "tracker": self.tracker, "conf": self.conf, "classes": clases,
               "imgsz": self.imgsz, "verbose": False}
         if self.device is not None:
             kw["device"] = self.device
@@ -532,17 +566,23 @@ class MotorInfracciones:
         vis = frame.copy()
         if self.dibujar_reglas:
             dibujar_config(vis, self.cfg)
-        nuevas = []
+        nuevas, vistos, cajas_choque = [], [], []
         if res.boxes is not None and res.boxes.id is not None:
             cajas = res.boxes.xyxy.cpu().numpy()
             ids = res.boxes.id.int().cpu().tolist()
             clss = res.boxes.cls.int().cpu().tolist()
-            for caja, tid, c in zip(cajas, ids, clss):
+            confs = res.boxes.conf.cpu().numpy() if self.clase_choque is not None else None
+            for k, (caja, tid, c) in enumerate(zip(cajas, ids, clss)):
+                if c == self.clase_choque:   # modelo único: la caja de accidente no es un vehículo
+                    if confs[k] >= self.conf_choques:
+                        cajas_choque.append(([float(v) for v in caja], float(confs[k])))
+                    continue
                 nombre = self.nombres.get(c, str(c))
                 p = (float((caja[0] + caja[2]) / 2), float(caja[3]))   # punto de contacto con el piso
                 pm = self.Hm.a_metros(p) if self.Hm else (None, None)
                 pi = self._pista(tid, nombre, t)
                 pi["visto"] = self.idx
+                vistos.append((tid, caja, pi))
                 pi["hist"].append((t, p[0], p[1], pm[0], pm[1]))
                 while pi["hist"] and t - pi["hist"][0][0] > 5.0:
                     pi["hist"].popleft()
@@ -559,6 +599,10 @@ class MotorInfracciones:
                 self._lecturas_post(pi, frame, caja)
                 self._dibujar_vehiculo(vis, caja, p, nombre, tid, pi)
 
+        if self.modelo_choques is not None or self.clase_choque is not None:
+            nuevas += self._regla_choques(frame, vistos, estado, t,
+                                          cajas_choque if self.clase_choque is not None else None)
+            self._dibujar_choques(vis)
         self._dibujar_hud(vis, estado)
         for inf in nuevas:
             cv2.imwrite(str(Path(inf["carpeta"]) / "escena.jpg"), vis)
@@ -726,6 +770,83 @@ class MotorInfracciones:
                     return [("linea_continua", {"linea": i})]
         return []
 
+    # ------------------------------------------------------------------- capa de choques
+    def _regla_choques(self, frame, vistos, estado, t, cajas_integradas=None):
+        """Revisa choques cada choques_cada frames y confirma uno cuando su caja aparece en choque_seguidas
+        revisiones seguidas (se tolera 1 falla). Un mismo choque avisa una sola vez.
+        cajas_integradas: cajas de accidente que ya salieron del modelo de vehículos (modelo único)."""
+        if self.idx % self.choques_cada == 0:
+            if cajas_integradas is not None:
+                cajas = cajas_integradas
+            else:
+                kw = {"conf": self.conf_choques, "imgsz": self.imgsz, "verbose": False}
+                if self.device is not None:
+                    kw["device"] = self.device
+                r = self.modelo_choques.predict(frame, **kw)[0]
+                cajas = []
+                if r.boxes is not None and len(r.boxes):
+                    cajas = list(zip(r.boxes.xyxy.cpu().numpy().tolist(), r.boxes.conf.cpu().numpy().tolist()))
+            self._actualizar_choques(cajas)
+        nuevas = []
+        for ch in self._choques:
+            if ch["confirmado"] or ch["hits"] < self.choque_seguidas:
+                continue
+            ch["confirmado"] = True
+            # vehículos involucrados: los que se superponen con la caja del choque (máximo 3)
+            cand = sorted(((iou(ch["caja"], caja), tid, caja, pi) for tid, caja, pi in vistos), key=lambda x: -x[0])
+            involucrados = [c for c in cand if c[0] > 0][:3]
+            detalle = {"conf": round(ch["conf"], 3), "caja": [int(round(v)) for v in ch["caja"]],
+                       "vehiculos": [c[1] for c in involucrados], "detecciones_seguidas": ch["hits"],
+                       "nota": "aviso para revisar, no es una multa"}
+            if involucrados:
+                for _, tid, caja, pi in involucrados:
+                    if "choque" not in pi["tipos"]:
+                        pi["tipos"].add("choque")
+                        nuevas.append(self._registrar(tid, pi, frame, caja, "choque", detalle, estado, t))
+            else:   # el modelo de vehículos no ve los carros chocados: el aviso queda a nivel de escena
+                self._n_escena += 1
+                tid = -self._n_escena
+                pi = self._pista(tid, "escena", t)
+                pi["tipos"].add("choque")
+                nuevas.append(self._registrar(tid, pi, frame, ch["caja"], "choque", detalle, estado, t))
+        return nuevas
+
+    def _actualizar_choques(self, cajas):
+        usados = set()
+        for ch in self._choques:
+            mejor, j = 0.0, None
+            for k, (caja, _) in enumerate(cajas):
+                v = iou(ch["caja"], caja) if k not in usados else 0.0
+                if v > mejor:
+                    mejor, j = v, k
+            if j is not None and mejor >= 0.3:
+                usados.add(j)
+                ch["caja"], ch["conf"] = cajas[j][0], max(ch["conf"], cajas[j][1])
+                ch["hits"], ch["faltas"] = ch["hits"] + 1, 0
+            else:
+                ch["faltas"] += 1
+                if ch["faltas"] > 1 and not ch["confirmado"]:
+                    ch["hits"] = 0   # tienen que ser seguidas
+        for k, (caja, conf) in enumerate(cajas):
+            if k not in usados:
+                self._choques.append({"caja": caja, "conf": conf, "hits": 1, "faltas": 0, "confirmado": False})
+        self._choques = [ch for ch in self._choques
+                         if ch["faltas"] <= (self.choque_olvido if ch["confirmado"] else 3)]
+
+    def _dibujar_choques(self, vis):
+        for ch in self._choques:
+            if ch["faltas"] > 1:
+                continue
+            x1, y1, x2, y2 = map(int, ch["caja"])
+            if ch["confirmado"]:
+                cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 0, 255), 4)
+                cv2.putText(vis, f"POSIBLE CHOQUE {ch['conf']:.2f}", (x1, max(20, y1 - 8)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            else:
+                cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 140, 255), 2)
+                cv2.putText(vis, f"choque? {ch['hits']}/{self.choque_seguidas}", (x1, max(20, y1 - 8)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 140, 255), 2)
+
     # ------------------------------------------------------------------- multas y placas
     def _encolar(self, futuros, rc, clase):
         if self.lector is not None and len(futuros) < self.max_lecturas:
@@ -831,7 +952,8 @@ class MotorInfracciones:
         if pi["kmh"] is not None:
             txt += f" {pi['kmh']:.0f} km/h"
         if infractor:
-            txt = "MULTA " + "+".join(CORTOS[t] for t in sorted(pi["tipos"])) + " " + txt
+            prefijo = "MULTA" if pi["tipos"] - {"choque"} else "AVISO"
+            txt = prefijo + " " + "+".join(CORTOS[t] for t in sorted(pi["tipos"])) + " " + txt
         cv2.putText(vis, txt, (x1, max(18, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 2)
         cv2.circle(vis, (int(p[0]), int(p[1])), 4, col, -1)
 
