@@ -2,6 +2,7 @@
 // Solo mensajes `type: "text"` desde el número de prueba, dentro de la ventana de 24 h.
 // Nunca lanza: todo fallo vuelve como `{ status: "FAILED", error }` para guardarlo en Notification.
 // Nunca loguea el token ni el cuerpo del mensaje.
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 const DEFAULT_GRAPH_VERSION = "v23.0";
@@ -89,6 +90,25 @@ export function whatsappConfigFromEnv(env: Record<string, string | undefined> = 
     graphVersion: e.WHATSAPP_GRAPH_VERSION,
     dryRun: e.NOTIFY_DRY_RUN === "true",
   };
+}
+
+/**
+ * Huella de la configuración para diagnosticar desde fuera (GET /api/health) sin exponer el token: su largo y los
+ * primeros 8 hex de su SHA-256. Si coincide con la del `.env.local` que funciona, el token de Vercel es el mismo.
+ */
+export function whatsappFingerprint(env: Record<string, string | undefined> = process.env) {
+  try {
+    const c = whatsappConfigFromEnv(env);
+    return {
+      dryRun: c.dryRun,
+      tokenLength: c.accessToken.length,
+      tokenSha256: c.accessToken ? createHash("sha256").update(c.accessToken).digest("hex").slice(0, 8) : null,
+      phoneNumberIdEnd: c.phoneNumberId.slice(-4) || null,
+      graphVersion: c.graphVersion,
+    };
+  } catch {
+    return { error: "variables de WhatsApp inválidas" };
+  }
 }
 
 /** `+58 412-000-0001` → `584120000001`; `null` si no parece un número internacional. */
