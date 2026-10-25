@@ -227,9 +227,9 @@
 @keyframes vista-adelante { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
 @keyframes vista-atras { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
 
-/* Cambio de tema: el tema nuevo se abre en círculo desde el interruptor (useTema anima ::view-transition-new).
+/* Cambio de tema: la pantalla vieja se funde en la nueva (View Transitions, 450 ms, curva suave).
    Sin View Transitions, los colores se funden 300 ms mientras dura la clase. */
-::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 450ms; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
 html.tema-suave, html.tema-suave * { transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, fill 300ms ease, stroke 300ms ease !important; }
 
 /* Ilustración de acceso: un carro se aleja por el carril derecho y otro se acerca por el izquierdo.

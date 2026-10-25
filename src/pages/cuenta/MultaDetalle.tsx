@@ -212,7 +212,7 @@ export default function MultaDetalle() {
                 <li key={r} className="flex items-center gap-2">
                   <span aria-hidden="true" className="size-2 flex-none rounded-full bg-brand" />{r}
                   {/* La placa leída, en blanco, junto al teléfono que recibió el aviso */}
-                  {r.startsWith('Aviso por WhatsApp') && <span className="ml-2"><Placa value={m.plate} size="sm" /></span>}
+                  {r.startsWith('Aviso por WhatsApp') && <span className="ml-5"><Placa value={m.plate} size="sm" /></span>}
                 </li>
               ))}
             </ol>

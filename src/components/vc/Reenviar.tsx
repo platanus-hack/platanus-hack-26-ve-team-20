@@ -1,7 +1,7 @@
-import { Send } from 'lucide-react'
+import { CircleAlert, CircleCheck, Send } from 'lucide-react'
 import { useState } from 'react'
 import { DemoError, type DemoErrorCode } from '@/lib/demo/api.ts'
-import { Boton } from '@/components/ui/index.tsx'
+import { Boton, Hoja } from '@/components/ui/index.tsx'
 import { cx, enlace } from '@/components/ui/estilos.ts'
 
 /** Lo mínimo que devuelven los reenvíos del ciudadano y del oficial. */
@@ -30,7 +30,7 @@ export function BotonReenviar<T extends ResultadoReenvio>({ enviar, onHecho, com
   enviar: () => Promise<T>
   onHecho?: (r: T) => void
   compacto?: boolean
-  /** Botón contorneado chico que solo dice «Reenviar» (franja del detalle de multa). */
+  /** Botón contorneado chico que solo dice «Reenviar»; el resultado se confirma en un mini modal (franja del detalle de multa). */
   corto?: boolean
   /** Para lectores de pantalla en listas: qué multa se reenvía. */
   descripcion?: string
@@ -70,7 +70,17 @@ export function BotonReenviar<T extends ResultadoReenvio>({ enviar, onHecho, com
           <Send size={18} strokeWidth={1.75} aria-hidden="true" />{enviando ? 'Enviando…' : 'Reenviar notificación'}
         </Boton>
       )}
-      {aviso && <span role={aviso.error ? 'alert' : 'status'} className={cx('text-caption', aviso.error ? 'text-rojo-osc' : 'text-texto-2')}>{aviso.texto}</span>}
+      {aviso && !corto && <span role={aviso.error ? 'alert' : 'status'} className={cx('text-caption', aviso.error ? 'text-rojo-osc' : 'text-texto-2')}>{aviso.texto}</span>}
+      {corto && (
+        <Hoja abierta={Boolean(aviso)} modo="modal" etiqueta={aviso?.error ? 'No se pudo reenviar' : 'Notificación reenviada'} onCerrar={() => setAviso(null)}>
+          <span className={cx('flex size-11 items-center justify-center rounded-full', aviso?.error ? 'bg-rojo-bg text-rojo-osc' : 'bg-verde-bg text-verde-osc')}>
+            {aviso?.error ? <CircleAlert size={22} strokeWidth={2} aria-hidden="true" /> : <CircleCheck size={22} strokeWidth={2} aria-hidden="true" />}
+          </span>
+          <h2 className="text-h3 font-semibold">{aviso?.error ? 'No se pudo reenviar' : 'Notificación reenviada'}</h2>
+          <p role={aviso?.error ? 'alert' : 'status'} className="text-sm text-texto-2">{aviso?.texto}</p>
+          <Boton onClick={() => setAviso(null)}>Listo</Boton>
+        </Hoja>
+      )}
     </span>
   )
 }

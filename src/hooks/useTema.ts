@@ -24,23 +24,15 @@ let actual: Tema = 'sistema'
 const oyentes = new Set<() => void>()
 
 /**
- * Cambia el tema. Con View Transitions el tema nuevo se abre como un círculo desde `origen` (el interruptor);
- * sin soporte, los colores se funden 300 ms; con movimiento reducido, cambia de golpe.
+ * Cambia el tema con un fundido de toda la pantalla (View Transitions, 450 ms; la duración vive en index.css).
+ * Sin soporte, los colores se funden 300 ms; con movimiento reducido, cambia de golpe.
  */
-export function cambiarTema(tema: Tema, origen?: { x: number; y: number }) {
+export function cambiarTema(tema: Tema) {
   actual = tema
   const reducido = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   if (typeof document === 'undefined' || reducido) aplicarTema(tema)
-  else if (document.startViewTransition) {
-    const { x, y } = origen ?? { x: innerWidth - 80, y: 40 }
-    const radio = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))
-    document.startViewTransition(() => aplicarTema(tema)).ready.then(() => {
-      document.documentElement.animate(
-        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radio}px at ${x}px ${y}px)`] },
-        { duration: 480, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', pseudoElement: '::view-transition-new(root)' },
-      )
-    }).catch(() => {})
-  } else {
+  else if (document.startViewTransition) document.startViewTransition(() => aplicarTema(tema))
+  else {
     const raiz = document.documentElement
     raiz.classList.add('tema-suave')
     aplicarTema(tema)
