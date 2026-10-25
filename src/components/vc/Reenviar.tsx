@@ -26,10 +26,12 @@ function mensajeReenvio(r: ResultadoReenvio): string {
  * fecha, placa, monto y enlace con evidencia y pago). `compacto` es un enlace para filas de lista; si no, un botón.
  * Muestra el resultado debajo; un fallo de sesión lo avisa el Shell, no este componente.
  */
-export function BotonReenviar<T extends ResultadoReenvio>({ enviar, onHecho, compacto, descripcion, className }: {
+export function BotonReenviar<T extends ResultadoReenvio>({ enviar, onHecho, compacto, corto, descripcion, className }: {
   enviar: () => Promise<T>
   onHecho?: (r: T) => void
   compacto?: boolean
+  /** Botón contorneado chico que solo dice «Reenviar» (franja del detalle de multa). */
+  corto?: boolean
   /** Para lectores de pantalla en listas: qué multa se reenvía. */
   descripcion?: string
   className?: string
@@ -58,6 +60,10 @@ export function BotonReenviar<T extends ResultadoReenvio>({ enviar, onHecho, com
       {compacto ? (
         <button type="button" onClick={reenviar} disabled={enviando} aria-busy={enviando} aria-label={descripcion ? `Reenviar notificación: ${descripcion}` : undefined} className={enlace}>
           {enviando ? 'Enviando…' : 'Reenviar notificación'}
+        </button>
+      ) : corto ? (
+        <button type="button" onClick={reenviar} disabled={enviando} aria-busy={enviando} aria-label="Reenviar notificación por WhatsApp" className="press flex min-h-11 items-center gap-2 rounded-control border border-borde px-4 text-sm font-semibold text-tinta transition-colors duration-150 hover:bg-suave">
+          <Send size={16} strokeWidth={1.9} aria-hidden="true" />{enviando ? 'Enviando…' : 'Reenviar'}
         </button>
       ) : (
         <Boton variante="outline" onClick={reenviar} disabled={enviando} aria-busy={enviando}>
