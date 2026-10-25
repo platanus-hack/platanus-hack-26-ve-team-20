@@ -1,15 +1,18 @@
-import { LogOut, Settings, User } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router'
-import type { Sesion } from '@/lib/demo/api.ts'
+import { ChevronDown, KeyRound, LogOut, User } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { cambiarClave, type Sesion } from '@/lib/demo/api.ts'
 import { formatCedula, formatTelefono } from '@/lib/format.ts'
-import { cx } from '@/components/ui/estilos.ts'
+import { Boton, Campo } from '@/components/ui/index.tsx'
+import { cx, input } from '@/components/ui/estilos.ts'
 
 const item = 'press flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm no-underline transition-colors duration-150 hover:bg-suave focus-visible:bg-suave'
 
-/** Botón de usuario (≥1024): abre los datos de la cuenta, el acceso al perfil y la salida. Escape o un clic fuera lo cierran. */
+/** Botón de usuario: abre los datos de la cuenta, el cambio de contraseña y la salida. Escape o un clic fuera lo cierran. */
 export function MenuCuenta({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
   const [abierto, setAbierto] = useState(false)
+  const [abrirClave, setAbrirClave] = useState(false)
+  const [clave, setClave] = useState({ actual: '', nueva: '' })
+  const [estadoClave, setEstadoClave] = useState<'ok' | 'mal' | 'enviando' | null>(null)
   const caja = useRef<HTMLDivElement>(null)
   const boton = useRef<HTMLButtonElement>(null)
   const panel = useId()
@@ -20,9 +23,22 @@ export function MenuCuenta({ sesion, onSalir }: { sesion: Sesion; onSalir: () =>
     const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') { setAbierto(false); boton.current?.focus() } }
     document.addEventListener('pointerdown', fuera)
     document.addEventListener('keydown', tecla)
-    caja.current?.querySelector<HTMLElement>('a, button:not([aria-haspopup])')?.focus()
+    caja.current?.querySelector<HTMLElement>('[role=dialog] button')?.focus()
     return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', tecla) }
   }, [abierto])
+
+  const guardar = async (e: FormEvent) => {
+    e.preventDefault()
+    if (clave.nueva.length < 8 || !clave.actual) { setEstadoClave('mal'); return }
+    setEstadoClave('enviando')
+    try {
+      await cambiarClave(clave.actual, clave.nueva)
+      setClave({ actual: '', nueva: '' })
+      setEstadoClave('ok')
+    } catch {
+      setEstadoClave('mal')
+    }
+  }
 
   return (
     <div ref={caja} className="relative">
@@ -40,7 +56,7 @@ export function MenuCuenta({ sesion, onSalir }: { sesion: Sesion; onSalir: () =>
       </button>
 
       {abierto && (
-        <div id={panel} role="dialog" aria-label="Su cuenta" className="menu-entra absolute top-full right-0 mt-2 flex w-72 flex-col rounded-2xl border border-borde bg-card shadow-card">
+        <div id={panel} role="dialog" aria-label="Su cuenta" className="menu-entra absolute top-full right-0 z-30 mt-2 flex w-[min(300px,calc(100vw-24px))] flex-col rounded-2xl border border-borde bg-card shadow-card">
           <div className="flex items-center gap-3 p-4">
             <span aria-hidden="true" className="flex size-11 flex-none items-center justify-center rounded-full bg-brand text-[#0e1726]"><User size={20} strokeWidth={2.2} /></span>
             <span className="flex min-w-0 flex-col">
@@ -61,9 +77,23 @@ export function MenuCuenta({ sesion, onSalir }: { sesion: Sesion; onSalir: () =>
             )}
           </dl>
           <div className="flex flex-col border-t border-borde p-1.5">
-            <Link to="/perfil" onClick={() => setAbierto(false)} className={cx(item, 'text-tinta')}>
-              <Settings size={17} strokeWidth={2} aria-hidden="true" className="text-texto-2" />Perfil y contraseña
-            </Link>
+            <button type="button" onClick={() => { setAbrirClave(!abrirClave); setEstadoClave(null) }} aria-expanded={abrirClave} aria-controls={`${panel}-clave`} className={cx(item, 'text-tinta')}>
+              <KeyRound size={17} strokeWidth={2} aria-hidden="true" className="text-texto-2" />
+              <span className="flex-1">Cambiar contraseña</span>
+              <ChevronDown size={16} strokeWidth={2} aria-hidden="true" className={cx('text-texto-2 transition-transform duration-200 ease-sheet motion-reduce:transition-none', abrirClave && 'rotate-180')} />
+            </button>
+            {abrirClave && (
+              <form id={`${panel}-clave`} onSubmit={guardar} noValidate className="flex flex-col gap-3 px-3 pt-1 pb-3">
+                <Campo id={`${panel}-a`} label="Contraseña actual">
+                  <input id={`${panel}-a`} type="password" autoComplete="current-password" value={clave.actual} onChange={(e) => setClave({ ...clave, actual: e.target.value })} className={input(estadoClave === 'mal' && !clave.actual)} />
+                </Campo>
+                <Campo id={`${panel}-n`} label="Nueva contraseña" error={estadoClave === 'mal' && 'Escriba su contraseña actual y una nueva de al menos 8 caracteres.'}>
+                  <input id={`${panel}-n`} type="password" autoComplete="new-password" value={clave.nueva} onChange={(e) => setClave({ ...clave, nueva: e.target.value })} className={input(estadoClave === 'mal' && clave.nueva.length < 8)} />
+                </Campo>
+                {estadoClave === 'ok' && <span role="status" className="text-sm font-semibold text-verde-osc">Contraseña actualizada.</span>}
+                <Boton type="submit" disabled={estadoClave === 'enviando'} aria-busy={estadoClave === 'enviando'}>{estadoClave === 'enviando' ? 'Guardando…' : 'Guardar'}</Boton>
+              </form>
+            )}
             <button type="button" onClick={onSalir} className={cx(item, 'font-semibold text-rojo-osc')}>
               <LogOut size={17} strokeWidth={2} aria-hidden="true" />Cerrar sesión
             </button>

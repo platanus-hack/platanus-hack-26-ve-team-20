@@ -1,4 +1,4 @@
-import { Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, User, Video, type LucideIcon } from 'lucide-react'
+import { Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, Video, type LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
@@ -8,7 +8,7 @@ import { Logo } from '@/components/vc/index.tsx'
 import { Isotipo } from '@/components/vc/Isotipo.tsx'
 import { MenuCuenta } from '@/components/cuenta/MenuCuenta.tsx'
 
-type Seccion = 'inicio' | 'multas' | 'estadisticas' | 'vehiculos' | 'en-vivo' | 'perfil'
+type Seccion = 'inicio' | 'multas' | 'estadisticas' | 'vehiculos' | 'en-vivo'
 const NAV: Array<{ id: Seccion; label: string; Icono: LucideIcon }> = [
   { id: 'inicio', label: 'Resumen', Icono: LayoutGrid },
   { id: 'multas', label: 'Multas', Icono: ReceiptText },
@@ -82,9 +82,7 @@ function Shell() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex h-14 flex-none items-center gap-2.5 border-b border-borde bg-card pr-2 pl-4 lg:hidden">
             <Logo />
-            <Link to="/perfil" aria-label="Perfil" className="ml-auto flex size-11 items-center justify-center">
-              <span className="flex size-9 items-center justify-center rounded-full bg-brand text-[#0e1726]"><User size={18} strokeWidth={2.2} aria-hidden="true" /></span>
-            </Link>
+            {sesion && <div className="ml-auto"><MenuCuenta sesion={sesion} onSalir={salir} /></div>}
           </header>
 
           <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -130,7 +128,6 @@ function Shell() {
 
       <Hoja abierta={mas} onCerrar={() => setMas(false)} etiqueta="Más secciones">
         <Link to="/en-vivo" onClick={() => setMas(false)} className="flex min-h-14 items-center gap-3 px-2 font-semibold"><Video size={20} strokeWidth={1.75} aria-hidden="true" />Cámaras en vivo</Link>
-        <Link to="/perfil" onClick={() => setMas(false)} className="flex min-h-14 items-center gap-3 border-t border-borde px-2 font-semibold"><User size={20} strokeWidth={1.75} aria-hidden="true" />Perfil</Link>
         <div className="flex flex-col gap-2 border-t border-borde px-2 py-3">
           <span className="text-sm font-semibold">Apariencia</span>
           <SelectorTema />
