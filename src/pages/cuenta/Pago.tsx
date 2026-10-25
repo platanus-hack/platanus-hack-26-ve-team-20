@@ -104,7 +104,7 @@ export default function Pago() {
       <Pagina className="flex-1">
         {atras}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          <div className="tinta flex flex-col gap-1 self-start rounded-card bg-tinta p-6 shadow-card lg:col-span-5 lg:col-start-8 lg:row-start-1">
+          <div className="tinta flex flex-col gap-1 self-start rounded-card bg-tinta p-6 shadow-card lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:self-center">
             <span className="text-sm text-niebla">Total a pagar</span>
             <span className="num font-mono text-[40px] leading-[44px] font-bold text-card">{formatBs(total)}</span>
             <div className="mt-3 flex flex-col gap-2 border-t border-tinta-3 pt-3.5">
