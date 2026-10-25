@@ -2,11 +2,11 @@ import { Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, User, Video, t
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
-import { formatCedula } from '@/lib/format.ts'
 import { Boton, Hoja, InterruptorTema, SelectorTema } from '@/components/ui/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
 import { Logo } from '@/components/vc/index.tsx'
 import { Isotipo } from '@/components/vc/Isotipo.tsx'
+import { MenuCuenta } from '@/components/cuenta/MenuCuenta.tsx'
 
 type Seccion = 'inicio' | 'multas' | 'estadisticas' | 'vehiculos' | 'en-vivo' | 'perfil'
 const NAV: Array<{ id: Seccion; label: string; Icono: LucideIcon }> = [
@@ -25,7 +25,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: riel de íconos (con el logo); tema y cédula van en la fila del título. Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos (con el logo); tema y botón de cuenta van en la fila del título. Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
@@ -83,18 +83,15 @@ function Shell() {
           <header className="flex h-14 flex-none items-center gap-2.5 border-b border-borde bg-card pr-2 pl-4 lg:hidden">
             <Logo />
             <Link to="/perfil" aria-label="Perfil" className="ml-auto flex size-11 items-center justify-center">
-              <span className="flex size-8 items-center justify-center rounded-full bg-suave font-mono text-xs font-bold">{sesion?.cedula.charAt(0)}</span>
+              <span className="flex size-9 items-center justify-center rounded-full bg-brand text-[#0e1726]"><User size={18} strokeWidth={2.2} aria-hidden="true" /></span>
             </Link>
           </header>
 
           <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-            {/* ≥1024: tema y cédula arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
+            {/* ≥1024: tema y botón de cuenta arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
             <header className="absolute top-0 right-0 z-20 hidden h-11 items-center gap-4 lg:flex">
               <InterruptorTema />
-              <Link to="/perfil" className="group press flex min-h-11 items-center gap-2 text-tinta">
-                <span className="font-mono text-sm font-medium">{sesion && formatCedula(sesion.cedula)}</span>
-                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-brand font-mono text-xs font-bold text-[#0e1726] transition-shadow duration-150 ease-press group-hover:ring-4 group-hover:ring-brand/25">{sesion?.cedula.charAt(0)}</span>
-              </Link>
+              {sesion && <MenuCuenta sesion={sesion} onSalir={salir} />}
             </header>
             <div key={pathname} className="vista flex flex-1 flex-col">
               <Outlet />
