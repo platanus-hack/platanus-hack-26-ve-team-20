@@ -219,14 +219,14 @@ describe('POST /api/live/violations (modo en vivo)', () => {
     expect(mocks.assignDemoOwner).not.toHaveBeenCalled()
   })
 
-  it('placa estimada (plan B) con confianza >= 70 % → se multa aunque tenga una sola lectura', async () => {
-    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.74, votes: 1 })
+  it('placa estimada (plan B) con confianza >= 60 % → se multa aunque tenga una sola lectura', async () => {
+    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.64, votes: 1 })
     expect(body).toMatchObject({ ok: true, data: { verdict: 'VIOLATION', plate: 'XYZ12K' } })
     expect(mocks.registerDetection.mock.calls[0]![0]).toMatchObject({ aiOutput: { plateGuessed: true } })
   })
 
-  it('placa estimada con menos de 70 % → revisión humana', async () => {
-    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.65, votes: 3 })
+  it('placa estimada con menos de 60 % → revisión humana', async () => {
+    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.55, votes: 3 })
     expect(body).toMatchObject({ ok: true, data: { verdict: 'NEEDS_REVIEW' } })
   })
 
