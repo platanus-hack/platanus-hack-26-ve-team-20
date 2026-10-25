@@ -18,6 +18,13 @@ const NAV: Array<{ id: Seccion; label: string; Icono: LucideIcon }> = [
 ]
 const ABAJO: Seccion[] = ['inicio', 'multas', 'estadisticas', 'vehiculos']
 
+function direccion(antes: string, ahora: string) {
+  const a = antes.split('/').filter(Boolean)
+  const b = ahora.split('/').filter(Boolean)
+  if (a[0] !== b[0]) return 'lado'
+  return b.length > a.length ? 'adelante' : b.length < a.length ? 'atras' : 'lado'
+}
+
 /** Rutas protegidas: sin sesión vuelve al login (avisando si venció). */
 export function Protegida() {
   const location = useLocation()
@@ -45,6 +52,9 @@ function Shell() {
   useEffect(() => { main.current?.scrollTo(0, 0) }, [pathname])
 
   const salir = () => { cerrarSesion(); navigate('/ingresar') }
+  // Hacia dónde se navegó: más profundo dentro de la misma sección es "adelante"; menos, "atrás"; otra sección, de lado.
+  const [nav, setNav] = useState({ ruta: pathname, dir: 'lado' })
+  if (nav.ruta !== pathname) setNav({ ruta: pathname, dir: direccion(nav.ruta, pathname) })
   const idx = ABAJO.indexOf(seccion as Seccion)
   const iAbajo = idx < 0 ? 4 : idx
 
@@ -85,13 +95,13 @@ function Shell() {
             {sesion && <div className="ml-auto"><MenuCuenta sesion={sesion} onSalir={salir} /></div>}
           </header>
 
-          <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
             {/* ≥1024: tema y botón de cuenta arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
-            <header className="absolute top-0 right-0 z-20 hidden h-11 items-center gap-4 lg:flex">
+            <header className="absolute top-0 right-3 z-20 hidden h-11 items-center gap-4 lg:flex">
               <InterruptorTema />
               {sesion && <MenuCuenta sesion={sesion} onSalir={salir} />}
             </header>
-            <div key={pathname} className="vista flex flex-1 flex-col">
+            <div key={pathname} data-dir={nav.dir} className="vista flex flex-1 flex-col">
               <Outlet />
             </div>
           </main>

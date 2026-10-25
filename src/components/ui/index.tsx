@@ -202,7 +202,7 @@ export function SelectorTema({ className }: { className?: string }) {
           type="button"
           role="radio"
           aria-checked={tema === id}
-          onClick={() => cambiar(id)}
+          onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); cambiar(id, { x: r.left + r.width / 2, y: r.top + r.height / 2 }) }}
           className={cx('flex h-10 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold', tema === id ? 'bg-card text-tinta shadow-card' : 'text-texto-2 hover:text-tinta')}
         >
           <Icono size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -222,7 +222,7 @@ export function BotonTema({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => cambiar(siguiente.id)}
+      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); cambiar(siguiente.id, { x: r.left + r.width / 2, y: r.top + r.height / 2 }) }}
       aria-label={`Tema: ${nombre}. Cambiar a ${siguiente.nombre.toLowerCase()}`}
       title={`Tema: ${nombre}`}
       className={cx('flex size-11 items-center justify-center rounded-control text-texto-2 hover:text-tinta', className)}
@@ -252,7 +252,11 @@ export function InterruptorTema({ className }: { className?: string }) {
       aria-checked={oscuro}
       aria-label="Modo oscuro"
       title={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-      onClick={() => cambiar(oscuro ? 'claro' : 'oscuro')}
+      onClick={(e) => {
+        // El círculo del cambio de tema nace en el interruptor (con teclado, clientX/Y vienen en 0).
+        const r = e.currentTarget.getBoundingClientRect()
+        cambiar(oscuro ? 'claro' : 'oscuro', { x: r.left + r.width / 2, y: r.top + r.height / 2 })
+      }}
       className={cx('group flex h-11 items-center rounded-full', className)}
     >
       <span className="relative flex h-8 w-[60px] items-center justify-between rounded-full border border-borde bg-suave px-2 text-texto-3 transition-colors duration-200 group-hover:border-input">

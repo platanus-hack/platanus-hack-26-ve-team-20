@@ -176,8 +176,8 @@ export default function MultaDetalle() {
             </>)}
           </section>
 
-          {/* Monto: lima mientras se puede pagar; el botón tinta abajo a la derecha */}
-          <section aria-label="Monto" className={cx('entra col-span-2 flex flex-wrap items-end justify-between gap-4 rounded-[18px] p-5', pagable ? 'bg-brand text-[#0e1726]' : 'bg-card shadow-card')} style={{ '--i': 1 } as CSSProperties}>
+          {/* Monto: lima mientras se puede pagar; monto y botón juntos, al centro del bloque */}
+          <section aria-label="Monto" className={cx('entra col-span-2 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 rounded-[18px] p-5', pagable ? 'bg-brand text-[#0e1726]' : 'bg-card shadow-card')} style={{ '--i': 1 } as CSSProperties}>
             <div className="flex flex-col gap-0.5">
               <span className="text-sm">{pagable ? 'Total a pagar' : 'Monto'}</span>
               <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[clamp(30px,2.8vw,42px)] leading-tight" />
@@ -208,7 +208,13 @@ export default function MultaDetalle() {
           {/* Franja: recorrido en una línea y «Reenviar» */}
           <section aria-label="Recorrido de la multa" className="entra col-span-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[18px] bg-card px-5 py-3 shadow-card lg:col-span-4" style={{ '--i': 4 } as CSSProperties}>
             <ol className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              {recorrido.map((r) => <li key={r} className="flex items-center gap-2"><span aria-hidden="true" className="size-2 flex-none rounded-full bg-brand" />{r}</li>)}
+              {recorrido.map((r) => (
+                <li key={r} className="flex items-center gap-2">
+                  <span aria-hidden="true" className="size-2 flex-none rounded-full bg-brand" />{r}
+                  {/* La placa leída, en blanco, junto al teléfono que recibió el aviso */}
+                  {r.startsWith('Aviso por WhatsApp') && <span className="ml-2"><Placa value={m.plate} size="sm" /></span>}
+                </li>
+              ))}
             </ol>
             {pagable && <BotonReenviar corto enviar={() => reenviarNotificacion(m.id)} className="items-end" />}
           </section>
