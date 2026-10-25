@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fotosDeInfraccion, tieneFotos, type EvidenciaItem } from '../../src/components/evidencia/fotos.ts'
+import { fotosDeInfraccion, srcEvidencia, tieneFotos, type EvidenciaItem } from '../../src/components/evidencia/fotos.ts'
 
 const at = '2026-10-24T14:03:10.000Z'
 const item = (kind: EvidenciaItem['kind'], url: string): EvidenciaItem => ({ kind, url, capturedAt: at })
@@ -23,5 +23,13 @@ describe('fotosDeInfraccion', () => {
   it('un video solo no cuenta como foto', () => {
     expect(tieneFotos([item('CLIP', 'https://b/clip.mp4')])).toBe(false)
     expect(tieneFotos([])).toBe(false)
+  })
+})
+
+describe('srcEvidencia', () => {
+  it('las fotos del store privado pasan por /api/evidence; las demás se usan tal cual', () => {
+    const privada = 'https://abc.private.blob.vercel-storage.com/evidence/cam/k/escena-x.jpg'
+    expect(srcEvidencia(privada)).toBe(`/api/evidence?u=${encodeURIComponent(privada)}`)
+    expect(srcEvidencia('https://abc.public.blob.vercel-storage.com/evidence/a.jpg')).toBe('https://abc.public.blob.vercel-storage.com/evidence/a.jpg')
   })
 })
