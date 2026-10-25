@@ -2,7 +2,7 @@ import { EvidenciaInfraccion, tieneFotos } from '@/components/evidencia/Evidenci
 import { ChevronDown, ChevronLeft, Play, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { apelarMulta, esPagable, getMulta, getVehiculos, reenviarNotificacion, type Multa } from '@/lib/demo/api.ts'
+import { apelarMulta, esPagable, getMulta, reenviarNotificacion, type Multa } from '@/lib/demo/api.ts'
 import { LUZ, TIPO } from '@/lib/etiquetas.ts'
 import { formatBs, formatFecha, formatHora } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
@@ -11,7 +11,7 @@ import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Vacio } from '@/components/cuenta/piezas.tsx'
 import { EST } from '@/components/vc/estados.ts'
-import { EstadoBadge, Fotograma, Monto, PastillaTinta, Placa, PlacaChip } from '@/components/vc/index.tsx'
+import { EstadoBadge, Fotograma, Monto, PastillaTinta, Placa } from '@/components/vc/index.tsx'
 
 const FRAMES = [
   { t: 'translate(188,100) scale(1)', seg: ':11,9', momento: 'antes' },
@@ -29,15 +29,6 @@ function Acordeon({ titulo, children, borde }: { titulo: string; children: React
       </button>
       {abierto && <div className="px-4 pb-4 text-sm text-texto-2">{children}</div>}
     </>
-  )
-}
-
-function Dato({ etiqueta, children, borde }: { etiqueta: string; children: ReactNode; borde?: boolean }) {
-  return (
-    <div className={cx('flex items-start justify-between gap-4 px-4 py-3.5', borde && 'border-t border-borde')}>
-      <dt className="text-texto-2">{etiqueta}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
   )
 }
 
@@ -59,7 +50,7 @@ export default function MultaDetalle() {
   const navigate = useNavigate()
   const { state } = useLocation()
   const desde = (state as { desde?: string } | null)?.desde === 'inicio' ? 'inicio' : 'multas'
-  const { data, error, cargando, recargar } = useCarga(() => Promise.all([getMulta(id), getVehiculos()]), [id])
+  const { data, error, cargando, recargar } = useCarga(() => getMulta(id), [id])
   const [apelada, setApelada] = useState<Multa | null>(null)
   const [frame, setFrame] = useState(1)
   const [jugando, setJugando] = useState(false)
@@ -88,8 +79,7 @@ export default function MultaDetalle() {
     )
   }
 
-  const m = apelada ?? data[0]
-  const v = data[1].find((x) => x.plate === m.plate)
+  const m = apelada ?? data
   const pagable = esPagable(m)
   const fr = FRAMES[frame] ?? FRAMES[1]!
   const luz = m.type === 'SPEEDING' ? 'GREEN' : 'RED'
@@ -142,17 +132,6 @@ export default function MultaDetalle() {
               <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[40px] leading-[44px]" />
               <span className={cx('text-sm', m.status === 'OVERDUE' ? 'text-rojo-osc' : 'text-texto-2')}>{textoVence(m)}</span>
             </div>
-
-            <dl className={cx(tarjeta, 'flex flex-col text-sm')}>
-              <Dato etiqueta="Lugar">{m.intersection}</Dato>
-              <Dato etiqueta="Vehículo" borde>
-                <span className="flex flex-col items-end gap-1">
-                  <PlacaChip value={m.plate} />
-                  {v && <span className="text-caption text-texto-2">{`${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year}`}</span>}
-                </span>
-              </Dato>
-              <Dato etiqueta="Cámara" borde><span className="font-mono font-semibold">{m.cameraCode}</span></Dato>
-            </dl>
 
             <section aria-labelledby="prueba-t" className="flex flex-col gap-3">
               <h2 id="prueba-t" className="text-h3 font-semibold">Prueba</h2>

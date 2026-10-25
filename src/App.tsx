@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router'
+import { Navigate, Route, Routes } from 'react-router'
 import AuthLayout from './components/cuenta/AuthLayout.tsx'
 import { Protegida } from './components/cuenta/Shell.tsx'
 import { ProtegidaOficial } from './components/oficial/Shell.tsx'
@@ -20,7 +20,6 @@ import Login from './pages/cuenta/Login.tsx'
 import MultaDetalle from './pages/cuenta/MultaDetalle.tsx'
 import Multas from './pages/cuenta/Multas.tsx'
 import Pago from './pages/cuenta/Pago.tsx'
-import Perfil from './pages/cuenta/Perfil.tsx'
 import Registro from './pages/cuenta/Registro.tsx'
 import RegistroCodigo from './pages/cuenta/RegistroCodigo.tsx'
 import Vehiculos from './pages/cuenta/Vehiculos.tsx'
@@ -68,7 +67,7 @@ export default function App() {
         <Route path="/estadisticas" element={<Estadisticas />} />
         <Route path="/vehiculos" element={<Vehiculos />} />
         <Route path="/en-vivo" element={<EnVivo />} />
-        <Route path="/perfil" element={<Perfil />} />
+        <Route path="/perfil" element={<Navigate to="/inicio" replace />} />
       </Route>
 
       <Route path="*" element={<p className="p-6">Página no encontrada.</p>} />
