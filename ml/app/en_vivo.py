@@ -24,7 +24,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
 from . import adivinar, pipeline
-from .realce import NITIDEZ_MIN, nitidez, puntaje, realzar
+from .ocr_placas import elegir_caja
+from .realce import NITIDEZ_MIN, con_resolucion, nitidez, puntaje, realzar
 from .schemas import Calibracion
 
 router = APIRouter()
@@ -67,10 +68,12 @@ def detector_placas_yolo() -> DetectorPlacas | None:
         def detectar(recortes: list[Any], conf: float = 0.25) -> list[tuple[float, float, float, float] | None]:
             out: list[tuple[float, float, float, float] | None] = []
             for r in modelo.predict(recortes, imgsz=320, conf=conf, device=device, verbose=False):
-                if r.boxes is None or not len(r.boxes):
+                k = None if r.boxes is None or not len(r.boxes) else \
+                    elegir_caja(r.boxes.xyxy.tolist(), r.boxes.conf.tolist(), r.orig_shape[0])
+                if k is None:
                     out.append(None)
                     continue
-                x1, y1, x2, y2 = r.boxes.xyxy[int(r.boxes.conf.argmax())].tolist()
+                x1, y1, x2, y2 = r.boxes.xyxy[k].tolist()
                 out.append((float(x1), float(y1), float(x2), float(y2)))
             return out
 
@@ -257,6 +260,17 @@ class Sesion:
         ok, jpg = cv2.imencode(".jpg", mejor[1], [cv2.IMWRITE_JPEG_QUALITY, 92])
         return base64.b64encode(jpg.tobytes()).decode() if ok else None
 
+    @staticmethod
+    def _foto_con_resolucion(multa: dict[str, Any], carpeta: Path, mejor: Any) -> str | None:
+        """Con placa leída a >= ML_ADIVINAR_MIN, la foto de placa que va a la web es la agrandada y realzada."""
+        if not multa["placa"] or multa["confianza"] < adivinar.MIN_CONF:
+            return None
+        img = mejor if mejor is not None else cv2.imread(str(carpeta / "placa.jpg"))
+        if img is None or not img.size:
+            return None
+        ok, jpg = cv2.imencode(".jpg", con_resolucion(img), [cv2.IMWRITE_JPEG_QUALITY, 92])
+        return base64.b64encode(jpg.tobytes()).decode() if ok else None
+
     def _registrar(self, multa: dict[str, Any], escena: str | None, carpeta: Path, mejor: Any) -> None:
         try:
             self._estimar_placa(multa, carpeta, mejor)
@@ -264,6 +278,9 @@ class Sesion:
             print(f"[en-vivo] no se pudo estimar la placa: {e}", flush=True)
         estimada = {"placa": multa["placa"], "confianza": multa["confianza"], "votos": multa["votos"]} \
             if multa.get("estimada") else {}
+        foto_hd = self._foto_con_resolucion(multa, carpeta, mejor)
+        if foto_hd:
+            multa["fotoPlaca"] = foto_hd
         try:
             r = self.registrar({
                 "cameraCode": self.camara, "occurredAt": multa["hora"], "trackId": multa["trackId"],
@@ -273,10 +290,11 @@ class Sesion:
                 "vehicleJpegBase64": multa["fotoVehiculo"], "plateJpegBase64": multa["fotoPlaca"],
                 "plateGuessed": bool(multa.get("estimada")),
             })
-            self.registros.put({"ref": multa["ref"], "ok": True, "estimada": estimada or None, **r})
+            self.registros.put({"ref": multa["ref"], "ok": True, "estimada": estimada or None, "fotoPlaca": foto_hd, **r})
         except Exception as e:  # sin Vercel la demo en pantalla sigue funcionando
             print(f"[en-vivo] multa {multa['placa'] or 'sin placa'} NO se guardó en la base: {e}", flush=True)
-            self.registros.put({"ref": multa["ref"], "ok": False, "estimada": estimada or None, "error": str(e)[:200]})
+            self.registros.put({"ref": multa["ref"], "ok": False, "estimada": estimada or None, "fotoPlaca": foto_hd,
+                                "error": str(e)[:200]})
 
     def cerrar(self) -> None:
         if self.motor is not None:
