@@ -9,15 +9,16 @@ import { Logo, PastillaTinta } from '@/components/vc/index.tsx'
 import { Pagina, Titulo, h2 } from '@/components/cuenta/piezas.tsx'
 import { Cobertura } from '@/components/choques/Angulo.tsx'
 import { Mapa } from '@/components/choques/Mapa.tsx'
+import { adelantar, fijarDuracion, planSincronizado } from '@/components/choques/sincronizar.ts'
 import { COLOR, ETIQUETA, orientacion } from '@/components/choques/estados.ts'
 import { ESTADO_ALERTA, capturaDeAlerta, estadoEnVivo, incidenteDeRed, nodoDeRed } from '@/components/choques/vivo.ts'
 
 const REFRESCO_MS = 1000
-type Radio = '150' | '300' | '500'
+type Radio = '150' | '500' | '1000'
 const RADIOS: Array<{ id: Radio; nombre: string }> = [
   { id: '150', nombre: '150 m' },
-  { id: '300', nombre: '300 m' },
   { id: '500', nombre: '500 m' },
+  { id: '1000', nombre: 'Todo el mapa' },
 ]
 
 /** `Date.now()` en el reloj del servidor, refrescado cada cuadro mientras `activo` (la onda de alerta). */
@@ -42,10 +43,11 @@ export default function ChoquesVivo() {
   const [red, setRed] = useState<CrashNetworkDTO | null>(null)
   const [offset, setOffset] = useState(0)
   const [errorRed, setErrorRed] = useState(false)
-  const [radio, setRadio] = useState<Radio>('150')
+  const [radio, setRadio] = useState<Radio>(String(CRASH.DEFAULT_RADIUS_M) as Radio)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sincro, setSincro] = useState<number | null>(null)
+  const [preparando, setPreparando] = useState(false)
   const videos = useRef(new Map<string, HTMLVideoElement>())
   const timers = useRef<number[]>([])
   const turno = useRef(0)
@@ -97,21 +99,41 @@ export default function ChoquesVivo() {
 
   const listas = (dto?.alerts ?? []).filter((a) => a.status === 'UPLOADED' && a.clipT0S != null)
 
-  /** Arranca cada clip con un retraso tal que el choque caiga en el mismo instante en todos (sin buscar en el video). */
-  const reproducirSincronizado = () => {
+  const detener = () => {
     timers.current.forEach((t) => clearTimeout(t))
     timers.current = []
-    const m = Math.max(...listas.map((a) => a.clipT0S ?? 0))
-    for (const a of listas) {
+    videos.current.forEach((v) => v.pause())
+    setSincro(null)
+  }
+
+  /**
+   * Adelanta cada clip al mismo instante antes del choque (lo que todos tienen en común, hasta T−10 s) y los arranca
+   * juntos. Si algún video no se deja adelantar, cae al plan B: todos desde el inicio, cada uno con el retraso que
+   * alinea su choque con el de los demás.
+   */
+  const reproducirSincronizado = async () => {
+    detener()
+    setPreparando(true)
+    const clips = listas.flatMap((a) => {
       const v = videos.current.get(a.id)
-      if (!v) continue
-      v.pause()
-      v.currentTime = 0
-      timers.current.push(window.setTimeout(() => { void v.play().catch(() => undefined) }, (m - (a.clipT0S ?? 0)) * 1000))
-    }
+      return v ? [{ v, t0: a.clipT0S ?? 0 }] : []
+    })
+    const { previoS, iniciosS } = planSincronizado(clips.map((c) => c.t0), CRASH.PRE_MS / 1000)
+    const adelantados = await Promise.all(clips.map((c, i) => adelantar(c.v, iniciosS[i] ?? 0)))
     const inicio = ++turno.current
+    if (adelantados.every(Boolean)) {
+      clips.forEach((c) => { void c.v.play().catch(() => undefined) })
+    } else {
+      const m = Math.max(...clips.map((c) => c.t0))
+      for (const c of clips) {
+        c.v.currentTime = 0
+        timers.current.push(window.setTimeout(() => { void c.v.play().catch(() => undefined) }, (m - c.t0) * 1000))
+      }
+    }
+    setPreparando(false)
     setSincro(inicio)
-    timers.current.push(window.setTimeout(() => setSincro((s) => (s === inicio ? null : s)), (m + CRASH.POST_MS / 1000 + 1) * 1000))
+    const finS = adelantados.every(Boolean) ? previoS : Math.max(...clips.map((c) => c.t0))
+    timers.current.push(window.setTimeout(() => setSincro((s) => (s === inicio ? null : s)), (finS + CRASH.POST_MS / 1000 + 1) * 1000))
   }
 
   const cuenta = (s: CrashAlertDTO['status']) => (dto?.alerts ?? []).filter((a) => a.status === s).length
@@ -212,11 +234,11 @@ export default function ChoquesVivo() {
               <button
                 type="button"
                 className="press inline-flex h-12 flex-none items-center justify-center gap-2 rounded-control bg-brand px-5 font-semibold text-tinta disabled:opacity-40"
-                disabled={listas.length === 0}
-                onClick={sincro == null ? reproducirSincronizado : () => { timers.current.forEach((t) => clearTimeout(t)); videos.current.forEach((v) => v.pause()); setSincro(null) }}
+                disabled={listas.length === 0 || preparando}
+                onClick={sincro == null ? () => void reproducirSincronizado() : detener}
               >
                 {sincro == null ? <Play size={16} strokeWidth={2} aria-hidden="true" /> : <Pause size={16} strokeWidth={2} aria-hidden="true" />}
-                {sincro == null ? 'Ver todos sincronizados' : 'Detener'}
+                {preparando ? 'Preparando…' : sincro == null ? 'Ver todos sincronizados' : 'Detener'}
               </button>
             </div>
 
@@ -255,7 +277,7 @@ function ClipCard({ a, i, reportero, anguloRel, enCuadro, registrar }: {
     <article className={cx(tarjeta, 'entra flex flex-col overflow-hidden')} style={{ '--i': i } as CSSProperties}>
       <div className="tinta relative aspect-video bg-tinta-2">
         {a.clipUrl ? (
-          <video ref={registrar} src={a.clipUrl} controls muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" />
+          <video ref={registrar} src={a.clipUrl} controls muted playsInline preload="auto" onLoadedMetadata={(e) => fijarDuracion(e.currentTarget)} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-4 text-center text-card">
             {s === 'PERDIDO' ? <TriangleAlert size={22} strokeWidth={1.75} aria-hidden="true" className="text-ambar" /> : <span aria-hidden="true" className="size-3 animate-pulse rounded-full" style={{ background: COLOR[s] }} />}

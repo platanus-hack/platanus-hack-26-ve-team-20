@@ -156,7 +156,7 @@ export function Cobertura({ pos, listos }: { pos: Punto; listos: Captura[] }) {
     <svg viewBox="-60 -60 120 120" className="size-[120px] flex-none" role="img" aria-label={`${listos.filter((c) => c.enCuadro).length} ángulos con vista directa`}>
       <circle r={50} fill="none" stroke="#2A3446" strokeWidth={1} />
       <circle r={30} fill="none" stroke="#2A3446" strokeWidth={1} />
-      <text y={-52} textAnchor="middle" fontSize={9} fill="#A9B4C4" fontFamily="Geist">N</text>
+      <text y={-52} textAnchor="middle" fontSize={9} fill="#A9B4C4" fontFamily="Plus Jakarta Sans">N</text>
       {listos.map((c) => {
         const a = (rumboHacia(pos, c.pos) * Math.PI) / 180
         const x = 46 * Math.cos(a)

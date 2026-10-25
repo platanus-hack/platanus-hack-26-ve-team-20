@@ -69,7 +69,7 @@ export function buildDemoCitizen(opts: DemoCitizenOptions) {
       occurredAt,
       idempotencyKey: `${p}-vio-${r.n}`,
       voidReason: r.status === "VOID" ? "Vehículo de emergencia (ejemplo)" : null,
-      evidence: { id: `${p}_ev_${r.n}`, url: `https://example.com/seed/evidencia-demo-${r.n}.jpg`, capturedAt: occurredAt },
+      evidence: { id: `${p}_ev_${r.n}`, url: `/demo/evidencia-${(r.n % 6) + 1}.svg`, capturedAt: occurredAt },
       fine: {
         id: `${p}_fine_${r.n}`,
         status: r.fine,

@@ -9,12 +9,14 @@ const mocks = vi.hoisted(() => ({
   },
   analyze: vi.fn(),
   registerDetection: vi.fn(),
+  assignDemoOwner: vi.fn(async () => null),
   saveImage: vi.fn(async (path: string) => `https://blob.test/${path}`),
   handleUpload: vi.fn(),
 }))
 vi.mock('../../lib/db.ts', () => ({ db: mocks.db }))
 vi.mock('../../lib/vision/index.ts', () => ({ analyze: mocks.analyze }))
 vi.mock('../../lib/domain/index.ts', () => ({ registerDetection: mocks.registerDetection }))
+vi.mock('../../lib/vision/demo-owners.ts', () => ({ assignDemoOwner: mocks.assignDemoOwner }))
 vi.mock('../../lib/storage/blob.ts', () => ({ saveImage: mocks.saveImage, CLIP_PREFIX: 'evidence/clips/', CLIP_CONTENT_TYPES: ['video/mp4', 'video/quicktime'], CLIP_MAX_BYTES: 30 * 1024 * 1024 }))
 vi.mock('@vercel/blob/client', () => ({ handleUpload: mocks.handleUpload }))
 
@@ -203,6 +205,17 @@ describe('POST /api/live/violations (modo en vivo)', () => {
       plateCropUrl: 'https://blob.test/evidence/cam_1/en-vivo-0001/placa.jpg',
     })
     expect(r.frames).toHaveLength(2)
+  })
+
+  it('placa confiable nueva → se asigna a un dueño de demo antes de registrar la multa', async () => {
+    await enviar(multa)
+    expect(mocks.assignDemoOwner).toHaveBeenCalledWith(expect.anything(), 'XYZ12K')
+    expect(mocks.assignDemoOwner.mock.invocationCallOrder[0]).toBeLessThan(mocks.registerDetection.mock.invocationCallOrder[0]!)
+  })
+
+  it('placa dudosa → no se asigna dueño', async () => {
+    await enviar({ ...multa, votes: 1 })
+    expect(mocks.assignDemoOwner).not.toHaveBeenCalled()
   })
 
   it('placa no leída → NEEDS_REVIEW (NO_PLATE); se registra igual con su evidencia', async () => {

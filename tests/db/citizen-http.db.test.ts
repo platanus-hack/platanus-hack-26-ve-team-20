@@ -77,6 +77,7 @@ beforeAll(async () => {
   if (!(await db.camera.findUnique({ where: { id: 'seed_cam_1' } }))) throw new Error('Falta el seed: corre `pnpm db:seed` antes de `pnpm test:db`')
   vi.stubEnv('SESSION_SECRET', `test-secret-${RUN}-`.padEnd(48, 'h'))
   vi.stubEnv('NOTIFY_DRY_RUN', 'true') // ningún mensaje real en las pruebas
+  vi.stubEnv('CITIZEN_WHATSAPP_CODE', 'true') // estas pruebas cubren el flujo con código; el registro sin código va aparte
 })
 
 afterAll(async () => {
@@ -85,6 +86,7 @@ afterAll(async () => {
   await db.auditLog.deleteMany({ where: { OR: [{ ip: { startsWith: '192.0.2.16' } }, { ip: { startsWith: '192.0.2.17' } }, { ip: { startsWith: '192.0.2.18' } }, { entityId: { in: [...violationIds, ...fineIds, ...accounts.map((a) => a.id)] } }, { actorId: { in: accounts.map((a) => a.id) } }] } })
   await db.citizenRegistration.deleteMany({ where: { personId: { in: personIds } } })
   await db.citizenAccount.deleteMany({ where: { personId: { in: personIds } } })
+  await db.notification.deleteMany({ where: { fineId: { in: fineIds } } })
   await db.fine.deleteMany({ where: { id: { in: fineIds } } })
   await db.violation.deleteMany({ where: { id: { in: violationIds } } })
   await db.vehicle.deleteMany({ where: { id: { in: vehicleIds } } })
@@ -260,6 +262,21 @@ describe('entradas, errores y fugas', () => {
     expect(await db.citizenRegistration.count({ where: { personId: p.id } })).toBe(0)
   })
 
+  it('sin CITIZEN_WHATSAPP_CODE el registro crea la cuenta y abre la sesión en un solo paso, sin enviar nada', async () => {
+    const p = await newPerson()
+    vi.stubEnv('CITIZEN_WHATSAPP_CODE', '')
+    try {
+      const r = await http('citizen-register', { body: { cedula: p.cedula, password: PASSWORD }, ip: 14 })
+      expect(r.code).toBe(200)
+      expect(r.body.data).toMatchObject({ user: { cedula: p.cedula }, vehicles: [] })
+      expect(cookieOf(r)).toBeTruthy()
+      expect(await db.citizenAccount.count({ where: { personId: p.id } })).toBe(1)
+      expect(await db.citizenRegistration.count({ where: { personId: p.id } })).toBe(0)
+    } finally {
+      vi.stubEnv('CITIZEN_WHATSAPP_CODE', 'true')
+    }
+  })
+
   it('ninguna respuesta filtra hashes de contraseña, HMAC de códigos ni secretos', async () => {
     const p = await newPerson()
     await addFine(p.id, `${p.id}-l`)
@@ -279,5 +296,28 @@ describe('entradas, errores y fugas', () => {
       expect(dump).not.toContain(DEMO_CODE)
       expect(dump).not.toContain('SESSION_SECRET')
     }
+  })
+
+  it('reenviar la notificación de una multa propia: 200 en seco, máximo 3 por hora, y las ajenas o pagadas no se reenvían', async () => {
+    const p = await newPerson('584120004466')
+    const other = await newPerson()
+    const mine = await addFine(p.id, 'resend-mine')
+    const paid = await addFine(p.id, 'resend-paid')
+    await db.fine.update({ where: { id: paid }, data: { status: 'PAID', paidAt: new Date() } })
+    const foreign = await addFine(other.id, 'resend-foreign')
+    const { cookie } = await signUp(p.cedula, 14)
+
+    expect((await http('citizen-fine-resend', { query: { id: mine } })).code).toBe(401)
+    const ok = await http('citizen-fine-resend', { cookie, query: { id: mine }, ip: 14 })
+    expect(ok.code, JSON.stringify(ok.body)).toBe(200)
+    expect(ok.body.data).toEqual({ status: 'DRY_RUN', telefono: '0412-***4466' })
+    expect(await db.notification.count({ where: { fineId: mine } })).toBe(1)
+
+    expect((await http('citizen-fine-resend', { cookie, query: { id: foreign }, ip: 14 })).body.error.reason).toBe('NO_ENCONTRADA')
+    expect((await http('citizen-fine-resend', { cookie, query: { id: paid }, ip: 14 })).body.error.reason).toBe('NO_REENVIABLE')
+
+    for (let i = 0; i < 2; i++) expect((await http('citizen-fine-resend', { cookie, query: { id: mine }, ip: 14 })).code).toBe(200)
+    expect((await http('citizen-fine-resend', { cookie, query: { id: mine }, ip: 14 })).code).toBe(429)
+    expect(await db.notification.count({ where: { fineId: mine } })).toBe(3)
   })
 })

@@ -1,7 +1,8 @@
+import { EvidenciaInfraccion, tieneFotos } from '@/components/evidencia/EvidenciaInfraccion.tsx'
 import { ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
-import { accionesPermitidas, getMulta, type Accion, type MultaDetalle as Detalle } from '@/lib/oficial/api.ts'
+import { accionesPermitidas, getMulta, reenviarNotificacion, type Accion, type MultaDetalle as Detalle } from '@/lib/oficial/api.ts'
 import { ACCION, AUDITORIA, LUZ, TIPO } from '@/lib/etiquetas.ts'
 import { formatFecha, formatHora } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
@@ -10,6 +11,7 @@ import { cx, tarjeta } from '@/components/ui/estilos.ts'
 import { ErrorCarga, Pagina, Vacio, display, h2 } from '@/components/cuenta/piezas.tsx'
 import { CambioEstado } from '@/components/oficial/CambioEstado.tsx'
 import { EstadoBadge, Fotograma, Monto, PastillaTinta, Placa } from '@/components/vc/index.tsx'
+import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
 
 const fechaHora = (iso: string) => `${formatFecha(iso)} ${formatHora(iso)}`
 
@@ -77,11 +79,13 @@ export default function MultaDetalle() {
           {acciones.includes('VOID') && <Boton variante="pay" onClick={() => setAccion('VOID')} aria-haspopup="dialog">{ACCION.VOID}</Boton>}
           {acciones.includes('APPEAL_ACCEPT') && <Boton onClick={() => setAccion('APPEAL_ACCEPT')} aria-haspopup="dialog">{ACCION.APPEAL_ACCEPT}</Boton>}
           {acciones.includes('APPEAL_REJECT') && <Boton variante="outline" onClick={() => setAccion('APPEAL_REJECT')} aria-haspopup="dialog">{ACCION.APPEAL_REJECT}</Boton>}
+          {(m.status === 'PENDING' || m.status === 'OVERDUE') && <BotonReenviar enviar={() => reenviarNotificacion(m.id)} onHecho={(r) => setCambiada(r.fine)} />}
           {!acciones.length && <span className="rounded-control bg-gris-bg px-3.5 py-3 text-sm font-semibold text-texto-2">Estado final: no admite cambios.</span>}
         </aside>
 
         <div className="flex min-w-0 flex-col gap-4 lg:order-1 lg:col-span-7">
           <section aria-label="Evidencia" className="flex flex-col gap-2.5">
+            {tieneFotos(m.evidence) ? <EvidenciaInfraccion items={m.evidence} camara={m.cameraCode} /> : (
             <div className="relative overflow-hidden rounded-card bg-tinta-2">
               {foto
                 ? <img src={foto.url} alt={`Fotograma de la infracción, ${m.cameraCode}`} className="block aspect-video w-full object-cover" />
@@ -91,6 +95,7 @@ export default function MultaDetalle() {
               </PastillaTinta>
               <PastillaTinta className="right-2.5 h-7 font-mono font-bold">{m.cameraCode}</PastillaTinta>
             </div>
+            )}
             <span className="flex items-center gap-2 text-sm font-semibold">
               <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" className="text-verde" />
               {m.verification === 'AUTO' ? 'Verificado automáticamente' : 'Verificado por operador'}

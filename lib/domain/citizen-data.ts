@@ -3,12 +3,15 @@
 // ajena responde igual que una inexistente (404), sin revelar que existe.
 import type {
   CitizenFineDTO,
+  CitizenResendDTO,
+  NotificationResult,
   CitizenProfileDTO,
   CitizenVehicleDTO,
 } from "../contracts/index.ts";
 import type { Person, Prisma, PrismaClient } from "../generated/prisma/client.ts";
-import { phoneToLocal } from "./citizen.ts";
+import { maskPhone, phoneToLocal } from "./citizen.ts";
 import { DomainError } from "./errors.ts";
+import { consumeLimit } from "./rate-limit.ts";
 import { effectiveFineStatus, transition } from "./state-machine.ts";
 
 export function toProfile(person: Pick<Person, "cedula" | "phone" | "email">): CitizenProfileDTO {
@@ -16,7 +19,7 @@ export function toProfile(person: Pick<Person, "cedula" | "phone" | "email">): C
 }
 
 const fineInclude = {
-  violation: { include: { camera: { include: { intersection: true } }, vehicle: true } },
+  violation: { include: { camera: { include: { intersection: true } }, vehicle: true, evidence: { orderBy: { capturedAt: "asc" } } } },
   payments: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 1 },
 } satisfies Prisma.FineInclude;
 type FineRow = Prisma.FineGetPayload<{ include: typeof fineInclude }>;
@@ -43,6 +46,7 @@ export function toCitizenFine(f: FineRow, appealedAt: Date | null, now: Date = n
     paymentReference: f.payments[0]?.reference ?? null,
     voidReason: v.voidReason,
     appealedAt: appealedAt?.toISOString() ?? null,
+    evidence: v.evidence.map((e) => ({ kind: e.kind, url: e.url, capturedAt: e.capturedAt.toISOString() })),
   };
 }
 
@@ -93,4 +97,34 @@ export async function appealCitizenFine(
   }
   await transition(db, row.violationId, "APPEALED", { type: "CITIZEN", id: input.accountId, ip: input.ip });
   return getCitizenFine(db, input.personId, input.fineId, now);
+}
+
+/** Misma acción y tope que el reenvío del oficial (`officer-fines.ts`): 3 por hora por multa, entre todos. */
+const RESEND_ACTION = "FINE_NOTIFICATION_RESENT";
+
+/**
+ * El titular se reenvía a sí mismo el WhatsApp de una multa propia por pagar (pendiente o vencida), con el mismo
+ * texto de la notificación original: tipo, lugar, fecha, placa, monto y el enlace con la evidencia y el pago.
+ */
+export async function resendCitizenFine(
+  db: PrismaClient,
+  input: { personId: string; accountId: string; fineId: string; ip: string | null },
+  notify: (fineId: string) => Promise<NotificationResult>,
+  now: Date = new Date(),
+): Promise<CitizenResendDTO> {
+  const row = await db.fine.findFirst({ where: { id: input.fineId, ...ownedBy(input.personId) }, include: { ...fineInclude, violation: { include: { ...fineInclude.violation.include, vehicle: { include: { owner: true } } } } } });
+  if (!row) throw new DomainError("NOT_FOUND", "Multa no encontrada", "NO_ENCONTRADA");
+  if (!["PENDING", "OVERDUE"].includes(effectiveFineStatus(row, now))) {
+    throw new DomainError("CONFLICT", "Solo se puede reenviar la notificación de una multa pendiente o vencida.", "NO_REENVIABLE");
+  }
+  const phone = row.violation.vehicle?.owner.phone.trim();
+  if (!phone) throw new DomainError("CONFLICT", "No tenemos un teléfono registrado para enviarle la notificación.", "SIN_TELEFONO");
+  await consumeLimit(
+    db,
+    { action: RESEND_ACTION, entityId: row.id, max: 3, windowMs: 3_600_000, lockKey: `fine-resend:${row.id}` },
+    { actor: { type: "CITIZEN", id: input.accountId, ip: input.ip }, action: RESEND_ACTION, entity: "Fine", entityId: row.id },
+    now,
+  );
+  const result = await notify(row.id);
+  return { status: result.status === "SENT" || result.status === "DRY_RUN" ? result.status : "FAILED", telefono: maskPhone(phone) };
 }

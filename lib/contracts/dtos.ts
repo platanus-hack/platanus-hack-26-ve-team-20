@@ -1,6 +1,6 @@
 // DTOs de respuesta de cada endpoint (docs/04-api.md §1–§6). Solo tipos: el SPA los importa.
 import type {
-  AlertStatus, EvidenceKind, FineStatus, LightState, ReviewReason, ViolationStatus, ViolationType,
+  ActorType, AlertStatus, EvidenceKind, FineStatus, LightState, ReviewReason, ViolationStatus, ViolationType,
 } from "./common.ts";
 import type { MotionEstimate, Crossing, RoadRelation } from "./vision.ts";
 import type { Verdict } from "./common.ts";
@@ -55,6 +55,55 @@ export interface AdminOfficerDTO {
 }
 export interface OfficerSessionDTO { id: string; badge: string; name: string; email: string | null }
 
+// ---- historial de multas del oficial (docs/12)
+export type OfficerFineAction = "VOID" | "APPEAL_ACCEPT" | "APPEAL_REJECT";
+export interface OfficerFineDTO {
+  id: string;
+  type: ViolationType;
+  /** Incluye `OVERDUE` calculado. */
+  status: FineStatus;
+  occurredAt: string;
+  intersection: string;
+  cameraCode: string;
+  /** Placa completa: el oficial la necesita para identificar el vehículo. */
+  plate: string;
+  /** `V-****0001`; `null` si el vehículo no tiene titular. */
+  cedulaMasked: string | null;
+  amountCents: number;
+  currency: string;
+  dueAt: string;
+  verification: "AUTO" | "HUMAN";
+  confidence: number;
+}
+export interface OfficerAuditEntryDTO {
+  at: string;
+  actor: { type: ActorType; label: string };
+  action: string;
+  from: FineStatus | null;
+  to: FineStatus | null;
+  reason: string | null;
+}
+export interface OfficerFineDetailDTO extends OfficerFineDTO {
+  vehicle: { brand: string; model: string; color: string; year: number } | null;
+  evidence: Array<{ kind: EvidenceKind; url: string; capturedAt: string; lightState: LightState | null }>;
+  paidAt: string | null;
+  paymentReference: string | null;
+  voidReason: string | null;
+  appealedAt: string | null;
+  audit: OfficerAuditEntryDTO[];
+}
+/** Resultado de reenviarse a uno mismo el WhatsApp de una multa propia. */
+export interface CitizenResendDTO { status: "SENT" | "DRY_RUN" | "FAILED"; telefono: string }
+export interface OfficerFinePageDTO { items: OfficerFineDTO[]; nextCursor: string | null }
+/** Resultado de reenviar la notificación de una multa al titular. */
+export interface OfficerResendDTO {
+  /** `SENT` (WhatsApp enviado), `DRY_RUN` (envío desactivado en el servidor) o `FAILED`. */
+  status: "SENT" | "DRY_RUN" | "FAILED";
+  /** Teléfono del titular, enmascarado (`0412-***0001`). */
+  telefono: string;
+  fine: OfficerFineDetailDTO;
+}
+
 // ---- Cuenta del ciudadano (P1, docs/04 §0c)
 export interface CitizenProfileDTO {
   cedula: string;
@@ -84,6 +133,8 @@ export interface CitizenFineDTO {
   paymentReference: string | null;
   voidReason: string | null;
   appealedAt: string | null;
+  /** Fotos de la infracción (escena, vehículo, placa) para mostrarlas en el detalle. */
+  evidence: Array<{ kind: EvidenceKind; url: string; capturedAt: string }>;
 }
 
 export interface CitizenVehicleDTO { plate: string; brand: string; model: string; color: string; year: number | null }

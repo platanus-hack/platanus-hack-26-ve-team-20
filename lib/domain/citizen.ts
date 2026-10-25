@@ -12,6 +12,9 @@
 //    errónea y cuenta desactivada, y se verifica siempre contra un hash (falso si no hay cuenta).
 //  - Solo para demos: CITIZEN_DEMO_CODE + DEMO_CEDULA hacen válido ese código para esa cédula sin enviar
 //    nada (así la presentación no depende de la ventana de 24 h de WhatsApp). Sin esas variables no existe.
+//  - Mientras el envío por WhatsApp no funcione en producción, el código es opcional: sin
+//    `CITIZEN_WHATSAPP_CODE=true` el paso 1 crea la cuenta directamente (sin probar la posesión del teléfono).
+//    Con esa variable vuelve el flujo con código.
 import { createHash, createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { dummyHash, hashPassword, verifyPassword } from "../auth/password.ts";
 import { CITIZEN_MIN_PASSWORD } from "../contracts/index.ts";
@@ -81,6 +84,8 @@ export interface CitizenDeps {
   sendCode: (phone: string, code: string) => Promise<CodeSendResult>;
   /** Solo demos: este código vale para esa cédula y no se envía nada. */
   demo?: () => { cedula: string; code: string } | undefined;
+  /** Si el registro exige el código por WhatsApp. Por defecto sí; `false` crea la cuenta en el paso 1. */
+  requireCode?: () => boolean;
   now?: () => Date;
 }
 
@@ -105,11 +110,32 @@ export function createCitizenService(deps: CitizenDeps) {
     throw new DomainError("UPSTREAM_ERROR", sendFailureMessage(sent.reason), "ENVIO_FALLIDO");
   }
 
+  /**
+   * Crea la cuenta con la contraseña elegida. El teléfono escrito pasa a ser el del perfil solo si el titular no
+   * tiene vehículos (no era un titular conocido): a un titular real no se le cambia el teléfono al que se
+   * notifican sus multas.
+   */
+  async function createAccount(
+    tx: Pick<PrismaClient, "citizenAccount" | "vehicle" | "person" | "auditLog">,
+    person: Person,
+    data: { passwordHash: string; phone: string | null; email: string | null },
+    ip: string,
+    now: Date,
+    verifiedBy: "WHATSAPP_CODE" | "NONE",
+  ): Promise<CitizenSession> {
+    const account = await tx.citizenAccount.create({ data: { personId: person.id, passwordHash: data.passwordHash, lastLoginAt: now } });
+    const adoptPhone = data.phone && data.phone !== person.phone && (await tx.vehicle.count({ where: { ownerId: person.id } })) === 0;
+    const changes = { ...(data.email && { email: data.email }), ...(adoptPhone && { phone: data.phone as string }) };
+    const updated = Object.keys(changes).length ? await tx.person.update({ where: { id: person.id }, data: changes }) : person;
+    await audit(tx, { actor: { type: "CITIZEN", id: account.id, ip }, action: "CITIZEN_REGISTERED", entity: "CitizenAccount", entityId: account.id, after: { verifiedBy } });
+    return { account, person: updated };
+  }
+
   const personOf = (cedula: string) =>
     db.person.findUnique({ where: { cedula }, include: { citizenAccount: true, citizenRegistration: true } });
 
   /** Paso 1: valida, guarda la contraseña elegida y envía el código. Devuelve el teléfono enmascarado. */
-  async function startRegistration(input: { cedula: string; password: string; phone?: string | null | undefined; email?: string | null | undefined; ip: string | null }) {
+  async function startRegistration(input: { cedula: string; password: string; phone?: string | null | undefined; email?: string | null | undefined; ip: string | null }): Promise<{ telefono: string; session?: CitizenSession }> {
     const now = clock();
     const key = sha16(input.cedula);
     const ip = input.ip ?? "unknown";
@@ -135,6 +161,19 @@ export function createCitizenService(deps: CitizenDeps) {
       });
     }
     if (person.citizenAccount) throw new DomainError("CONFLICT", "Esa cédula ya tiene una cuenta. Inicie sesión.", "YA_REGISTRADA");
+    const target = input.phone ?? person.phone;
+
+    if (!(deps.requireCode?.() ?? true)) {
+      // Sin código: la cuenta nace ya. Se descarta cualquier registro pendiente de un intento anterior.
+      const { citizenAccount: _a, citizenRegistration: _r, ...plain } = person;
+      const passwordHash = await hashPassword(input.password, CITIZEN_MIN_PASSWORD);
+      const session = await db.$transaction(async (tx) => {
+        await tx.citizenRegistration.deleteMany({ where: { personId: person.id } });
+        return createAccount(tx, plain, { passwordHash, phone: input.phone ?? null, email: input.email ?? null }, ip, now, "NONE");
+      }, { maxWait: 10_000, timeout: 20_000 });
+      return { telefono: maskPhone(target), session };
+    }
+
     const pending = person.citizenRegistration;
     if (pending && now.getTime() - pending.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
       throw new DomainError("RATE_LIMITED", "Espere unos segundos antes de pedir otro código.", "ESPERAR");
@@ -151,7 +190,6 @@ export function createCitizenService(deps: CitizenDeps) {
       lastSentAt: now,
     };
     const reg = await db.citizenRegistration.upsert({ where: { personId: person.id }, create: { personId: person.id, ...fields }, update: fields });
-    const target = input.phone ?? person.phone;
     await deliver(target, input.cedula, code, reg.id);
     return { telefono: maskPhone(target) };
   }
@@ -214,14 +252,8 @@ export function createCitizenService(deps: CitizenDeps) {
       // Reclamar la fila: solo una verificación simultánea puede borrarla y crear la cuenta.
       const claimed = await tx.citizenRegistration.deleteMany({ where: { id: reg.id } });
       if (claimed.count === 0) throw new DomainError("CONFLICT", "Esa cédula ya tiene una cuenta. Inicie sesión.", "YA_REGISTRADA");
-      const account = await tx.citizenAccount.create({ data: { personId: person.id, passwordHash: reg.passwordHash, lastLoginAt: now } });
-      // El teléfono verificado pasa a ser el del perfil solo si el titular no tiene vehículos (no era un titular
-      // conocido): a un titular real no se le cambia el teléfono al que se notifican sus multas.
-      const adoptPhone = reg.phone && reg.phone !== person.phone && (await tx.vehicle.count({ where: { ownerId: person.id } })) === 0;
-      const data = { ...(reg.email && { email: reg.email }), ...(adoptPhone && { phone: reg.phone as string }) };
-      const updated = Object.keys(data).length ? await tx.person.update({ where: { id: person.id }, data }) : person;
-      await audit(tx, { actor: { type: "CITIZEN", id: account.id, ip }, action: "CITIZEN_REGISTERED", entity: "CitizenAccount", entityId: account.id });
-      return { account, person: updated };
+      const { citizenAccount: _a, citizenRegistration: _r, ...plain } = person;
+      return createAccount(tx, plain, { passwordHash: reg.passwordHash, phone: reg.phone, email: reg.email }, ip, now, "WHATSAPP_CODE");
     }, { maxWait: 10_000, timeout: 20_000 });
   }
 

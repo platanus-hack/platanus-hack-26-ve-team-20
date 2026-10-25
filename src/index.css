@@ -34,9 +34,16 @@
   --color-primario: light-dark(#0e1726, #c6f24e);
   --color-sobre-primario: light-dark(#fcfdfe, #0e1726);
   --color-boli-on: light-dark(#c6f24e, #0e1726);
+  /* Resumen: losas lima rayadas, barras "en revisión", barras de fondo y puntos del mapa. */
+  --color-losa: light-dark(#eef6d2, #2b3313);
+  --color-losa-texto: light-dark(#3d4a10, #e3edc0);
+  --color-revision: light-dark(#9db43a, #6f7f1e);
+  --color-fantasma: light-dark(#e6eaf0, #22252b);
+  --color-punto-mapa: light-dark(#c9ced6, #3a3e46);
 
-  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
-  --font-sans: "Geist", system-ui, sans-serif;
+  /* Una sola familia (Plus Jakarta Sans) para títulos y texto; JetBrains Mono para montos, placas y cédulas. */
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --text-display: 40px;
@@ -209,8 +216,68 @@
   to { opacity: 1; }
 }
 
+/* Rayado diagonal de las losas y barras de fondo del resumen. */
+.rayado { background-image: repeating-linear-gradient(135deg, light-dark(rgba(14, 23, 38, 0.06), rgba(255, 255, 255, 0.07)) 0 2px, transparent 2px 7px); }
+
 /* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
 .vista { animation: entra 260ms var(--ease-entrada) both; }
+
+/* Ilustración de acceso: un carro se aleja por el carril derecho y otro se acerca por el izquierdo.
+   Las posiciones siguen la perspectiva de la carretera (punto de fuga en 320,360 del dibujo). */
+@keyframes se-aleja {
+  0% { transform: translate(480px, 560px) scale(1.5); opacity: 0; }
+  6% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(333px, 363px) scale(0.052); opacity: 0; }
+}
+@keyframes se-acerca {
+  0% { transform: translate(308px, 363px) scale(0.052); opacity: 0; }
+  12% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translate(130px, 580px) scale(1.62); opacity: 0; }
+}
+.carro-se-aleja { animation: se-aleja 9s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; opacity: 0; }
+.carro-se-acerca { animation: se-acerca 7s cubic-bezier(0.6, 0, 0.8, 0.4) 3.5s infinite; opacity: 0; }
+
+/* Semáforo de la ilustración: verde 43 %, amarillo 14 %, rojo 43 % de un ciclo de 9,2 s, con cambios secos. */
+@keyframes luz-verde { 0%, 42.9% { opacity: 1; } 43%, 100% { opacity: 0; } }
+@keyframes luz-ambar { 0%, 42.9% { opacity: 0; } 43%, 56.9% { opacity: 1; } 57%, 100% { opacity: 0; } }
+@keyframes luz-roja { 0%, 56.9% { opacity: 0; } 57%, 100% { opacity: 1; } }
+.luz-verde { animation: luz-verde 9.2s infinite; }
+.luz-ambar { animation: luz-ambar 9.2s infinite; opacity: 0; }
+.luz-roja { animation: luz-roja 9.2s infinite; }
+
+/* Barra lima de la sección activa: crece desde el centro (220 ms). */
+@keyframes barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.barra-activa { animation: barra 220ms var(--ease-entrada) both; }
+
+/* Latido suave del punto rojo de una multa vencida: un anillo que se expande y se apaga cada 2,4 s. */
+@keyframes latido {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 55%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+.latido { animation: latido 2.4s ease-out infinite; }
+
+/* Resumen. "Pagado": la línea se traza (700 ms), luego aparecen los puntos y el globo del mes, uno tras otro. */
+@keyframes traza { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.traza { stroke-dasharray: 1; animation: traza 700ms var(--ease-entrada) 200ms both; }
+@keyframes aparece { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+.aparece { transform-box: fill-box; transform-origin: center; animation: aparece 260ms var(--ease-entrada) both; animation-delay: calc(200ms + var(--i, 0) * 90ms); }
+/* Barras: crecen desde la base, 40 ms de escalonado por columna. */
+@keyframes crece { from { transform: scaleY(0); } to { transform: none; } }
+.crece { transform-box: fill-box; transform-origin: bottom; animation: crece 520ms var(--ease-entrada) both; animation-delay: calc(150ms + var(--i, 0) * 40ms); }
+/* Al pasar sobre un mes, los demás se apagan y aparece su cifra de multadas. */
+.columna { transition: opacity 160ms var(--ease-press); }
+.columnas:hover > .columna:not(:hover) { opacity: 0.4; }
+.pista { opacity: 0; transform: translate(-50%, 4px); transition: opacity 140ms var(--ease-press), transform 140ms var(--ease-press); }
+.columna:hover .pista { opacity: 1; transform: translate(-50%, 0); }
+
+/* Tabla de multas: cada fila es una tarjeta. Entra escalonada (30 ms) y al pasar o con su menú abierto se eleva:
+   sube 2 px y gana sombra. La entrada no deja estado final ("backwards") para no pisar el realce. */
+.tabla-multas .fila { animation: entra 240ms var(--ease-entrada) backwards; animation-delay: calc(var(--i, 0) * 30ms); transition: transform 160ms var(--ease-press), filter 160ms var(--ease-press); }
+.tabla-multas .fila:hover, .tabla-multas .fila-activa { transform: translateY(-2px); filter: drop-shadow(0 6px 14px rgb(14 23 38 / 0.1)); z-index: 1; }
+@keyframes menu-entra { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+.menu-entra { transform-origin: top right; animation: menu-entra 140ms var(--ease-entrada) both; }
 
 /* Movimiento reducido: solo fundidos de 120 ms; nada se desplaza ni escala. */
 @media (prefers-reduced-motion: reduce) {
@@ -219,6 +286,16 @@
   .check { animation: solo-fundido 120ms linear both; stroke-dashoffset: 0; }
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
   .vista { animation: solo-fundido 120ms linear both; }
+  .barra-activa, .latido { animation: none; }
+  .traza { animation: none; stroke-dasharray: none; }
+  .aparece, .crece { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
+  .pista { transform: translate(-50%, 0); transition: opacity 120ms linear; }
+  .tabla-multas .fila { animation: solo-fundido 120ms linear backwards; animation-delay: 0ms; transition: filter 120ms linear; }
+  .tabla-multas .fila:hover, .tabla-multas .fila-activa { transform: none; }
+  .menu-entra { animation: solo-fundido 120ms linear both; }
+  .carro-se-aleja, .carro-se-acerca { animation: none; display: none; }
+  .luz-verde, .luz-ambar, .luz-roja { animation: none; }
+  .luz-verde, .luz-ambar { opacity: 0; }
   dialog.sheet, dialog.sheet[open] { transform: none; transition: opacity 120ms linear, display 120ms allow-discrete, overlay 120ms allow-discrete; opacity: 0; }
   dialog.sheet[open] { opacity: 1; }
   @starting-style { dialog.sheet[open] { opacity: 0; } }

@@ -1,5 +1,6 @@
 // /multa/:token — aterrizaje de la multa desde el WhatsApp (docs/05 §3.3, HU-04).
 // Muestra evidencia, monto y estado; nunca cédula ni teléfono (no vienen en FinePublicDTO).
+import { EvidenciaInfraccion, tieneFotos } from '@/components/evidencia/EvidenciaInfraccion.tsx'
 import { Link, useParams } from 'react-router'
 import { formatAmount, formatDate, formatDateTime, isPayable, statusLabel, VIOLATION_LABELS } from '../components/multa/format.ts'
 import { Card, Evidence, LoadingFine, MONO, Notice, PageShell, Plate, Row, SourceNote, StatusBadge } from '../components/multa/ui.tsx'
@@ -55,7 +56,7 @@ export default function Multa() {
       </p>
 
       <h2 className="mb-3 mt-6 text-[18px] font-bold">Evidencia</h2>
-      <Evidence items={fine.evidence} />
+      {tieneFotos(fine.evidence) ? <EvidenciaInfraccion items={fine.evidence} /> : <Evidence items={fine.evidence} />}
 
       <Card className="mt-6">
         <dl>

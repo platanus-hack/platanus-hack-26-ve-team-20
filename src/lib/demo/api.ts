@@ -8,7 +8,7 @@ import * as demo from './demo.ts'
 import * as real from './real.ts'
 
 export { DemoError, calcularEstadisticas, esPagable, reiniciarDemo } from './demo.ts'
-export type { Camara, DatosPago, DemoErrorCode, Estadisticas, Multa, Sesion, Vehiculo } from './demo.ts'
+export type { Camara, DatosPago, DemoErrorCode, Estadisticas, Multa, Reenvio, Sesion, Vehiculo } from './demo.ts'
 
 export const USA_API_REAL = import.meta.env?.MODE !== 'test' && import.meta.env?.VITE_CUENTA_API !== 'demo'
 const impl: typeof demo & typeof real = (USA_API_REAL ? real : demo) as typeof demo & typeof real
@@ -29,5 +29,6 @@ export const getVehiculos = impl.getVehiculos
 export const getPerfil = impl.getPerfil
 export const cambiarClave = impl.cambiarClave
 export const apelarMulta = impl.apelarMulta
+export const reenviarNotificacion = impl.reenviarNotificacion
 export const pagarMultas = impl.pagarMultas
 export const getCamaras = impl.getCamaras

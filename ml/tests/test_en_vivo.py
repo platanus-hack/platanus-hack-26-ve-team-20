@@ -29,8 +29,8 @@ def _jpg() -> bytes:
 class MotorVivo:
     """Multa en el 3er cuadro solo si el semáforo está en rojo (como la regla real del motor)."""
 
-    def __init__(self, config: dict[str, Any], carpeta_evidencias: str, en_multa: Any) -> None:
-        self.config, self.carpeta, self.en_multa = config, Path(carpeta_evidencias), en_multa
+    def __init__(self, config: dict[str, Any], carpeta_evidencias: str, en_multa: Any, **ajustes: Any) -> None:
+        self.config, self.carpeta, self.en_multa, self.ajustes = config, Path(carpeta_evidencias), en_multa, ajustes
         self.n, self.estados = 0, []
 
     def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
@@ -66,7 +66,7 @@ def sesion(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Sesion, lis
         enviados.append(p)
         return {"violationId": "vio_1", "status": "FINED", "fineId": "fine_1"}
 
-    return Sesion("CAM-001", fabrica, registrar), enviados, motores
+    return Sesion("CAM-001", fabrica, registrar, detector_placas=lambda recortes: [None] * len(recortes)), enviados, motores
 
 
 def test_multa_solo_en_rojo_y_se_registra(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
@@ -169,3 +169,67 @@ def test_cajas_salen_del_tracker_normalizadas(sesion: tuple[Sesion, list[dict[st
     s.fabrica = ConTracker
     r = s.procesar(_jpg())  # cuadro de 160x90
     assert r["cajas"] == [{"id": 5, "clase": "car", "x": 0.1, "y": 0.1, "w": 0.4, "h": 0.4, "multa": True}]
+
+
+def test_motor_en_vivo_usa_ajustes_para_pocos_cuadros(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, motores = sesion
+    s.procesar(_jpg())
+    a = motores[0].ajustes
+    assert a["leer_cada"] == 1 and a["imgsz_vehiculos"] == 960
+    assert Path(a["tracker"]).name == "bytetrack_vivo.yaml" and Path(a["tracker"]).exists()
+
+
+def test_cuadro_ilegible_responde_igual_para_no_desordenar(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, _ = sesion
+    r = s.procesar(b"no es un jpg")
+    assert r["tipo"] == "cuadro" and r["cajas"] == [] and r["aviso"] == "Cuadro ilegible"
+
+
+def test_lupa_manda_la_placa_ampliada_relativa_al_vehiculo(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, _ = sesion
+    boxes = SimpleNamespace(xyxy=Tensor([[16, 9, 80, 45]]), id=Tensor([5]), cls=Tensor([0]))
+    vistos: list[int] = []
+
+    class ConTracker(MotorVivo):
+        def __init__(self, **kw: Any) -> None:
+            super().__init__(**kw)
+            self.nombres, self.pistas = {0: "car"}, {}
+            self.modelo = SimpleNamespace(track=lambda frame, **k: [SimpleNamespace(boxes=boxes)])
+
+        def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
+            self.modelo.track(frame)
+            return super().procesar_frame(frame, estado, t)
+
+    def detector(recortes: list[Any]) -> list[tuple[float, float, float, float] | None]:
+        vistos.append(len(recortes))
+        return [(16.0, 14.0, 48.0, 30.0) for _ in recortes]  # placa de 16 px de alto en el recorte de 64x36
+
+    s.fabrica, s.detector_placas = ConTracker, detector
+    r = s.procesar(_jpg())
+    placa = r["cajas"][0]["placa"]
+    assert (placa["x"], placa["y"], placa["w"], placa["h"]) == (0.25, 0.3889, 0.5, 0.4444)
+    assert placa["jpg"]
+    assert "placa" not in s.procesar(_jpg())["cajas"][0]  # el mismo vehículo se refresca cada LUPA_CADA cuadros
+    s.lupa = False
+    for _ in range(3):
+        assert "placa" not in s.procesar(_jpg())["cajas"][0]
+    assert vistos == [1]
+
+
+def test_sin_lupa_para_placas_demasiado_chicas(sesion: tuple[Sesion, list[dict[str, Any]], list[MotorVivo]]) -> None:
+    s, _, _ = sesion
+    boxes = SimpleNamespace(xyxy=Tensor([[16, 9, 80, 45]]), id=Tensor([5]), cls=Tensor([0]))
+
+    class ConTracker(MotorVivo):
+        def __init__(self, **kw: Any) -> None:
+            super().__init__(**kw)
+            self.nombres, self.pistas = {0: "car"}, {}
+            self.modelo = SimpleNamespace(track=lambda frame, **k: [SimpleNamespace(boxes=boxes)])
+
+        def procesar_frame(self, frame: Any, estado: str, t: float | None = None) -> dict[str, Any]:
+            self.modelo.track(frame)
+            return super().procesar_frame(frame, estado, t)
+
+    s.fabrica = ConTracker
+    s.detector_placas = lambda recortes: [(16.0, 18.0, 48.0, 24.0) for _ in recortes]  # placa de 6 px de alto
+    assert "placa" not in s.procesar(_jpg())["cajas"][0]

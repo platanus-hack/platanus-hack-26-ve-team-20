@@ -264,6 +264,21 @@ export const getMulta = (id: string) => protegido(() => {
 })
 
 /** Anula o resuelve una apelación. El motivo (≥ 10 caracteres) queda en la auditoría con el oficial como actor. */
+/** Resultado de reenviar la notificación de una multa: a qué teléfono (enmascarado) y la multa con su auditoría. */
+export interface ReenvioOficial { status: 'SENT' | 'DRY_RUN' | 'FAILED'; telefono: string; fine: MultaDetalle }
+
+/** Demo: solo las multas por pagar; deja la entrada «Notificación reenviada» en la auditoría. */
+export const reenviarNotificacion = (id: string) => protegido((s): ReenvioOficial => {
+  const todas = registros()
+  const r = todas.find((x) => x.id === id)
+  if (!r) throw new DemoError('NO_ENCONTRADA')
+  const from = efectivo(r)
+  if (from !== 'PENDING' && from !== 'OVERDUE') throw new DemoError('NO_REENVIABLE')
+  const nuevo: Registro = { ...r, audit: [...r.audit, { at: new Date().toISOString(), actor: { type: 'OFFICER', label: s.name }, action: 'NOTIFICATION_RESENT', from: null, to: null, reason: null }] }
+  guardar(K.multas, todas.map((x) => (x.id === id ? nuevo : x)))
+  return { status: 'SENT', telefono: '0412-***0001', fine: aDetalle(nuevo) }
+})
+
 export const cambiarEstado = (id: string, accion: Accion, motivo: string) => protegido((s) => {
   const todas = registros()
   const r = todas.find((x) => x.id === id)

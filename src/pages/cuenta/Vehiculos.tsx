@@ -29,9 +29,9 @@ export default function Vehiculos() {
             return (
               <Link
                 key={v.plate}
-                to={`/multas?placa=${v.plate}${pp ? '' : '&tab=pagadas'}`}
+                to={`/multas?placa=${v.plate}&tab=${pp ? 'por-pagar' : 'pagadas'}`}
                 aria-label={`${v.brand} ${v.model} ${v.year}, placa ${v.plate}, ${pp ? `${pp} por pagar` : 'al día'}. Ver sus multas`}
-                className={cx(tarjeta, 'entra group flex items-center gap-4 p-4 transition-colors duration-150 hover:bg-suave lg:p-5')}
+                className={cx(tarjeta, 'entra group flex items-center gap-4 p-4 transition-[transform,box-shadow,background-color] duration-200 ease-press hover:-translate-y-0.5 hover:shadow-sheet motion-reduce:hover:translate-y-0 lg:p-5')}
                 style={{ '--i': i } as CSSProperties}
               >
                 <Placa value={v.plate} size="sm" />
