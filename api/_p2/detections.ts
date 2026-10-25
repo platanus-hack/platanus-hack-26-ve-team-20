@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { DetectionRequestSchema } from "../../lib/contracts/index.ts";
 import { db } from "../../lib/db.ts";
 import { analyze } from "../../lib/vision/index.ts";
-import { registerDetection } from "../../lib/domain/index.ts";
+import { registerDetectionDemo as registerDetection } from "../../lib/vision/registro-demo.ts";
 import { assignDemoOwner } from "../../lib/vision/demo-owners.ts";
 import { requireCameraKey } from "./camera-key.ts";
 import { ApiError, handler, sendOk } from "../_lib/respond.ts";
