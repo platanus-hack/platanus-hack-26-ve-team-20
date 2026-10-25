@@ -15,9 +15,9 @@ const mocks = vi.hoisted(() => ({
 }))
 vi.mock('../../lib/db.ts', () => ({ db: mocks.db }))
 vi.mock('../../lib/vision/index.ts', () => ({ analyze: mocks.analyze }))
-vi.mock('../../lib/domain/index.ts', () => ({ registerDetection: mocks.registerDetection }))
+vi.mock('../../lib/vision/registro-demo.ts', () => ({ registerDetectionDemo: mocks.registerDetection }))
 vi.mock('../../lib/vision/demo-owners.ts', () => ({ assignDemoOwner: mocks.assignDemoOwner }))
-vi.mock('../../lib/storage/blob.ts', () => ({ saveImage: mocks.saveImage, CLIP_PREFIX: 'evidence/clips/', CLIP_CONTENT_TYPES: ['video/mp4', 'video/quicktime'], CLIP_MAX_BYTES: 30 * 1024 * 1024 }))
+vi.mock('../../lib/storage/blob.ts', () => ({ saveImage: mocks.saveImage, isEvidenceUrl: (u: string) => u.startsWith('https://x.private.blob.vercel-storage.com/evidence/'), readEvidence: vi.fn(async () => null), CLIP_PREFIX: 'evidence/clips/', CLIP_CONTENT_TYPES: ['video/mp4', 'video/quicktime'], CLIP_MAX_BYTES: 30 * 1024 * 1024 }))
 vi.mock('@vercel/blob/client', () => ({ handleUpload: mocks.handleUpload }))
 
 const { default: time } = await import('../../api/_p2/time.ts')
@@ -25,6 +25,7 @@ const { default: upload } = await import('../../api/_p2/blob-upload.ts')
 const { default: light } = await import('../../api/_p2/camera-light.ts')
 const { default: detections } = await import('../../api/_p2/detections.ts')
 const { default: live } = await import('../../api/_p2/live-violation.ts')
+const { default: evidencia } = await import('../../api/_p2/evidence.ts')
 
 const KEY = 'clave-de-camara-de-prueba'
 process.env['CAMERA_API_KEY'] = KEY
@@ -218,6 +219,17 @@ describe('POST /api/live/violations (modo en vivo)', () => {
     expect(mocks.assignDemoOwner).not.toHaveBeenCalled()
   })
 
+  it('placa estimada (plan B) con confianza >= 60 % → se multa aunque tenga una sola lectura', async () => {
+    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.64, votes: 1 })
+    expect(body).toMatchObject({ ok: true, data: { verdict: 'VIOLATION', plate: 'XYZ12K' } })
+    expect(mocks.registerDetection.mock.calls[0]![0]).toMatchObject({ aiOutput: { plateGuessed: true } })
+  })
+
+  it('placa estimada con menos de 60 % → revisión humana', async () => {
+    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.55, votes: 3 })
+    expect(body).toMatchObject({ ok: true, data: { verdict: 'NEEDS_REVIEW' } })
+  })
+
   it('placa no leída → NEEDS_REVIEW (NO_PLATE); se registra igual con su evidencia', async () => {
     const { body } = await enviar({ ...multa, plate: null, plateConfidence: 0, votes: 0, plateJpegBase64: null })
     expect(body).toMatchObject({ ok: true, data: { verdict: 'NEEDS_REVIEW', status: 'NEEDS_REVIEW' } })
@@ -227,5 +239,17 @@ describe('POST /api/live/violations (modo en vivo)', () => {
   it('cámara desconocida → 404', async () => {
     mocks.db.camera.findUnique.mockResolvedValue(null)
     expect((await enviar(multa)).status).toBe(404)
+  })
+})
+
+describe('GET /api/evidence', () => {
+  it('rechaza URLs que no son evidencia de Vercel Blob (no es un proxy abierto)', async () => {
+    const { status } = await call(evidencia, { method: 'GET', query: { u: 'https://evil.example.com/evidence/a.jpg' }, key: null })
+    expect(status).toBe(400)
+  })
+
+  it('404 si la evidencia no existe', async () => {
+    const { status } = await call(evidencia, { method: 'GET', query: { u: 'https://x.private.blob.vercel-storage.com/evidence/a.jpg' }, key: null })
+    expect(status).toBe(404)
   })
 })

@@ -18,3 +18,8 @@ export const tieneFotos = (items: readonly EvidenciaItem[]) => {
   const f = fotosDeInfraccion(items)
   return Boolean(f.escena?.url || f.vehiculo?.url || f.placa?.url)  // los ejemplos sin foto siguen con el dibujo
 }
+
+/** Las fotos del store privado de Vercel Blob no se ven con su URL directa: pasan por GET /api/evidence. */
+export function srcEvidencia(url: string): string {
+  return /\.private\.blob\.vercel-storage\.com\//.test(url) ? `/api/evidence?u=${encodeURIComponent(url)}` : url
+}

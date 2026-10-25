@@ -112,7 +112,7 @@ function PaymentFlow({ fine, source }: { fine: FinePublicDTO; source: Source }) 
 
       <Card className="mt-4">
         <dl>
-          <Row label="Monto a pagar (ejemplo)">
+          <Row label="Monto a pagar">
             <span className={`${MONO} text-[22px]`}>{amount}</span>
           </Row>
           <Row label="Placa">

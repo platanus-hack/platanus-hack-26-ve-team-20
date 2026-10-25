@@ -6,10 +6,10 @@ import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { VisionResult } from "../../lib/contracts/index.ts";
 import { db } from "../../lib/db.ts";
-import { registerDetection } from "../../lib/domain/index.ts";
+import { registerDetectionDemo as registerDetection } from "../../lib/vision/registro-demo.ts";
 import { assignDemoOwner } from "../../lib/vision/demo-owners.ts";
 import { saveImage } from "../../lib/storage/blob.ts";
-import { judgePlate } from "../../lib/vision/rules.ts";
+import { MIN_PLATE_VOTES, judgePlate } from "../../lib/vision/rules.ts";
 import { ApiError, handler, sendOk } from "../_lib/respond.ts";
 
 const jpeg = z.string().min(1).max(4_000_000);
@@ -27,7 +27,11 @@ export const LiveViolationSchema = z.object({
   sceneJpegBase64: jpeg,
   vehicleJpegBase64: jpeg.nullish(),
   plateJpegBase64: jpeg.nullish(),
+  /** Placa del plan B (ml/app/adivinar.py: fotos realzadas); para la demo se acepta si confía >= GUESS_MIN. */
+  plateGuessed: z.boolean().default(false),
 });
+
+const GUESS_MIN = 0.6;
 
 function requireServiceToken(auth: string | undefined, env: Record<string, string | undefined> = process.env): void {
   const token = env["ML_SERVICE_TOKEN"];
@@ -45,8 +49,11 @@ export default handler(["POST"], async (req, res) => {
   if (!camera?.active) throw new ApiError("NOT_FOUND", `Cámara ${body.cameraCode} no encontrada`);
 
   const threshold = Number(process.env["VISION_CONFIDENCE_THRESHOLD"]) || 0.8;
-  const read = body.plate ? { text: body.plate, ocrConfidence: body.plateConfidence, votes: body.votes } : undefined;
-  const check = judgePlate(read, threshold);
+  // Decisión del equipo para la demo: una placa estimada con confianza alta se multa aunque pueda equivocarse.
+  const guessed = body.plateGuessed && body.plate !== null && body.plateConfidence >= GUESS_MIN;
+  const votes = guessed ? Math.max(body.votes, MIN_PLATE_VOTES) : body.votes;
+  const read = body.plate ? { text: body.plate, ocrConfidence: body.plateConfidence, votes } : undefined;
+  const check = judgePlate(read, guessed ? GUESS_MIN : threshold);
 
   const prefix = `evidence/${camera.id}/${body.idempotencyKey}`;
   const [sceneUrl, vehicleUrl, plateUrl] = await Promise.all([
@@ -74,7 +81,7 @@ export default handler(["POST"], async (req, res) => {
     motion: { speedKmh: null, laneId: null, directionDeg: null, relation: "UNKNOWN" },
     modelVersion: body.modelVersion,
     ...(plateUrl ? { plateCropUrl: plateUrl } : {}),
-    aiOutput: { source: "en-vivo", trackId: body.trackId, votes: body.votes, rawReads: body.rawReads },
+    aiOutput: { source: "en-vivo", trackId: body.trackId, votes: body.votes, rawReads: body.rawReads, plateGuessed: body.plateGuessed },
     ruleOutput: check,
     idempotencyKey: body.idempotencyKey,
   };

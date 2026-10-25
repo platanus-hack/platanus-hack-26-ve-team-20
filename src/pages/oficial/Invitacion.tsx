@@ -146,7 +146,7 @@ function Formulario({ token, inv }: { token: string; inv: Invitacion }) {
         <input id="i-c2" type={ver ? 'text' : 'password'} autoComplete="new-password" value={f.c2} onChange={set('c2')} aria-invalid={mal('c2')} aria-describedby={mal('c2') ? 'i-c2-err' : undefined} className={input(mal('c2'))} />
       </Campo>
       <Boton type="submit" disabled={enviando} aria-busy={enviando}>{enviando ? 'Creando su cuenta…' : 'Crear mi cuenta'}</Boton>
-      {!USA_AUTH_REAL && <span className="text-center text-caption text-texto-3">Prototipo: invitación de ejemplo, no se crea ninguna cuenta real.</span>}
+      {!USA_AUTH_REAL && <span className="text-center text-caption text-texto-3">Prototipo: no se crea ninguna cuenta real.</span>}
     </form>
   )
 }

@@ -5,7 +5,7 @@ import { espera } from './ciudadano';
 export const CAMARA_DEFECTO = {
   apiUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.demo.smarttraffic.example',
   codigo: 'CAM-001',
-  interseccion: 'Av. Demo Norte con Calle 1 (ejemplo)',
+  interseccion: 'Av. Demo Norte con Calle 1',
   // Ubicación registrada de CAM-001 (ejemplo); se usa cuando no hay GPS.
   lat: 10.5,
   lng: -66.9,

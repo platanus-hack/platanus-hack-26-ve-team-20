@@ -76,5 +76,5 @@ function Shell() {
   )
 }
 
-/** "Oficial Nuevo (ejemplo)" → "ON". */
+/** "Oficial Nuevo" → "ON". */
 const iniciales = (nombre: string) => nombre.split(/\s+/).filter((p) => /^\p{L}/u.test(p)).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('')

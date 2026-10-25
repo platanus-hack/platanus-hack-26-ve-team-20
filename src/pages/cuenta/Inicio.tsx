@@ -2,7 +2,7 @@ import { CornerUpRight, Gauge, Maximize2 } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { esPagable, getMultas, type Multa } from '@/lib/demo/api.ts'
-import { pagadoPorMes } from '@/lib/resumen.ts'
+import { infraccionesPorMes, pagadoPorMes } from '@/lib/resumen.ts'
 import { TIPO } from '@/lib/etiquetas.ts'
 import { formatBs, formatFecha } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
@@ -12,14 +12,6 @@ import { ErrorCarga, SkeletonLista } from '@/components/cuenta/piezas.tsx'
 
 const miles = new Intl.NumberFormat('es-VE', { maximumFractionDigits: 0 })
 
-// shortcut: actividad de la zona fija y marcada "de ejemplo"; cuando el backend exponga estadísticas por zona, se reemplaza.
-// [mes, detectadas, en revisión, multadas], en px sobre una columna de 200.
-const ZONA: Array<[string, number, number, number]> = [
-  ['Ene', 120, 52, 24], ['Feb', 110, 24, 42], ['Mar', 90, 24, 50], ['Abr', 120, 32, 34],
-  ['May', 100, 24, 58], ['Jun', 150, 36, 104], ['Jul', 110, 32, 18], ['Ago', 130, 38, 70],
-  ['Sep', 120, 70, 24], ['Oct', 110, 26, 58], ['Nov', 150, 26, 104], ['Dic', 120, 46, 72],
-]
-const pct = (px: number) => `${px / 2}%`
 
 function IconoTipo({ m }: { m: Multa }) {
   if (m.type === 'TURN_ARROW') return <CornerUpRight size={16} strokeWidth={2.2} aria-hidden="true" />
@@ -48,6 +40,11 @@ export default function Inicio() {
   const maxPagado = Math.max(1, ...curva.map((p) => p.cents))
   const puntos = curva.map((p, i) => ({ ...p, x: 26 + i * 50, y: 134 - Math.round((p.cents / maxPagado) * 56) }))
   const actual = puntos[5]!
+  const meses = infraccionesPorMes(lista, hoy.getFullYear())
+  const maxMes = Math.max(1, ...meses.map((x) => x.total))
+  // La columna más alta llega al 92 % para dejar aire a la cifra que aparece al pasar.
+  const alto = (n: number) => `${(n / maxMes) * 92}%`
+  const conMultas = meses.filter((x) => x.total > 0)
 
   return (
     <div className="absolute inset-0 flex min-h-[540px] flex-col gap-4 px-4 pt-4 pb-5 lg:min-h-[480px] lg:px-0 lg:pt-0 lg:pb-0">
@@ -115,25 +112,26 @@ export default function Inicio() {
 
           <section aria-labelledby="zona-t" className={cx(tarjeta, 'entra flex min-h-0 flex-col p-[16px_18px_12px] md:col-span-2 lg:p-[20px_26px_16px]')} style={{ '--i': 2 } as CSSProperties}>
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <h2 id="zona-t" className="text-base font-medium">Infracciones en su zona <span className="text-[13px] font-normal text-texto-2">· datos de ejemplo</span></h2>
+              <h2 id="zona-t" className="text-base font-medium">Infracciones en {hoy.getFullYear()}</h2>
               <span className="flex flex-wrap gap-x-[18px] gap-y-1 text-[13px] text-texto-2">
-                <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-fantasma" />Detectadas</span>
-                <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-revision" />En revisión</span>
-                <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-brand" />Multadas</span>
+                <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-fantasma" />Total</span>
+                <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-revision" />Por pagar</span>
+                <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-brand" />Pagadas</span>
               </span>
             </div>
-            <div role="img" aria-label="Infracciones detectadas, en revisión y multadas por mes en su zona, con datos de ejemplo" className="columnas mt-3 grid h-0 min-h-0 flex-1 grid-cols-12 items-end gap-1.5 sm:gap-3">
-              {ZONA.map(([mes, f, o, l], i) => (
-                <div key={mes} className="columna crece relative flex h-full flex-col justify-end gap-1" style={{ '--i': i } as CSSProperties}>
-                  <span aria-hidden="true" className="pista absolute left-1/2 z-10 rounded-full bg-tinta px-2 py-0.5 font-mono text-[11px] font-bold whitespace-nowrap text-fondo" style={{ bottom: `calc(${pct(Math.min(196, o + l + 4 + Math.round(f / 4)))} + 6px)` }}>{l}</span>
-                  <span className="rayado absolute inset-x-0 bottom-0 rounded-md bg-fantasma" style={{ height: pct(Math.min(196, o + l + 4 + Math.round(f / 4))) }} />
-                  <span className="relative rounded-md bg-revision" style={{ height: pct(o) }} />
-                  <span className="relative rounded-md bg-brand" style={{ height: pct(l) }} />
+            <div role="img" aria-label={conMultas.length ? `Infracciones por mes en ${hoy.getFullYear()}: ${conMultas.map((x) => `${x.mes} ${x.total} (${x.porPagar} por pagar, ${x.pagadas} pagadas)`).join('; ')}` : `Sin infracciones en ${hoy.getFullYear()}`} className="columnas relative mt-3 grid h-0 min-h-0 flex-1 grid-cols-12 items-end gap-1.5 sm:gap-3">
+              {meses.map((x, i) => (
+                <div key={x.mes} className="columna crece relative flex h-full flex-col justify-end gap-1" style={{ '--i': i } as CSSProperties}>
+                  {x.total > 0 && <span aria-hidden="true" className="pista absolute left-1/2 z-10 rounded-full bg-tinta px-2 py-0.5 font-mono text-[11px] font-bold whitespace-nowrap text-fondo" style={{ bottom: `calc(${alto(x.total)} + 6px)` }}>{x.total}</span>}
+                  {x.total > 0 && <span className="rayado absolute inset-x-0 bottom-0 rounded-md bg-fantasma" style={{ height: alto(x.total) }} />}
+                  {x.porPagar > 0 && <span className="relative rounded-md bg-revision" style={{ height: alto(x.porPagar) }} />}
+                  {x.pagadas > 0 && <span className="relative rounded-md bg-brand" style={{ height: alto(x.pagadas) }} />}
                 </div>
               ))}
+              {!conMultas.length && <p className="absolute inset-0 flex items-center justify-center text-sm text-texto-2">Sin infracciones en {hoy.getFullYear()}.</p>}
             </div>
             <div className="mt-2 grid grid-cols-12 gap-1.5 text-center text-[13px] text-texto-3 sm:gap-3">
-              {ZONA.map(([mes]) => <span key={mes}><span className="sm:hidden">{mes[0]}</span><span className="hidden sm:inline">{mes}</span></span>)}
+              {meses.map((x) => <span key={x.mes}><span className="sm:hidden">{x.mes[0]}</span><span className="hidden sm:inline">{x.mes}</span></span>)}
             </div>
           </section>
         </div>
