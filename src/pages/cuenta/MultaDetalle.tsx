@@ -140,7 +140,7 @@ export default function MultaDetalle() {
 
             <div className="flex flex-col gap-0.5 lg:hidden">
               <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[40px] leading-[44px]" />
-              <span className={cx('text-sm', m.status === 'OVERDUE' ? 'text-rojo-osc' : 'text-texto-2')}>{textoVence(m)} · monto de ejemplo</span>
+              <span className={cx('text-sm', m.status === 'OVERDUE' ? 'text-rojo-osc' : 'text-texto-2')}>{textoVence(m)}</span>
             </div>
 
             <dl className={cx(tarjeta, 'flex flex-col text-sm')}>
@@ -148,7 +148,7 @@ export default function MultaDetalle() {
               <Dato etiqueta="Vehículo" borde>
                 <span className="flex flex-col items-end gap-1">
                   <PlacaChip value={m.plate} />
-                  {v && <span className="text-caption text-texto-2">{`${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year} (ejemplo)`}</span>}
+                  {v && <span className="text-caption text-texto-2">{`${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year}`}</span>}
                 </span>
               </Dato>
               <Dato etiqueta="Cámara" borde><span className="font-mono font-semibold">{m.cameraCode}</span></Dato>
@@ -220,7 +220,7 @@ export default function MultaDetalle() {
 
           <aside className={cx(tarjeta, 'sticky top-8 hidden flex-col gap-4 self-start p-6 lg:col-span-5 lg:flex')}>
             <div className="flex flex-col gap-0.5">
-              <span className="text-caption text-texto-2">Monto de ejemplo</span>
+              <span className="text-caption text-texto-2">Monto</span>
               <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[40px] leading-[44px]" />
               <span className={cx('text-sm', m.status === 'OVERDUE' ? 'text-rojo-osc' : 'text-texto-2')}>{textoVence(m)}</span>
             </div>

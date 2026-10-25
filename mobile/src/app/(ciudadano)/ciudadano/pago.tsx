@@ -11,7 +11,7 @@ import { bs, fechaCaracas } from '@/demo/format';
 import { useEstilos, useTema, type Tema } from '@/lib/tema';
 import { fuente, radio, tipo } from '@/theme';
 
-const BANCOS = ['0102 · Banco de Venezuela (ejemplo)', '0105 · Mercantil (ejemplo)', '0134 · Banesco (ejemplo)', '0191 · BNC (ejemplo)'];
+const BANCOS = ['0102 · Banco de Venezuela', '0105 · Mercantil', '0134 · Banesco', '0191 · BNC'];
 
 export default function Pago() {
   const { c } = useTema();

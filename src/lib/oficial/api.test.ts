@@ -100,7 +100,7 @@ describe('transiciones', () => {
     const m = await cambiarEstado('o2', 'APPEAL_REJECT', `  ${MOTIVO}  `)
     expect(m.audit).toHaveLength(antes + 1)
     expect(m.audit.at(-1)).toMatchObject({
-      actor: { type: 'OFFICER', label: 'Oficial A (ejemplo)' }, action: 'APPEAL_REJECT', from: 'APPEALED', to: m.status, reason: MOTIVO,
+      actor: { type: 'OFFICER', label: 'Oficial A' }, action: 'APPEAL_REJECT', from: 'APPEALED', to: m.status, reason: MOTIVO,
     })
     // persiste
     expect((await getMulta('o2')).audit).toHaveLength(antes + 1)

@@ -4,14 +4,14 @@ import { useSyncExternalStore } from 'react';
 import { espera } from './ciudadano';
 
 export const OFICIAL = {
-  nombre: 'Oficial Ejemplo A',
+  nombre: 'Oficial A',
   iniciales: 'OA',
   placaOficial: 'OF-0001',
   correo: 'oficial.a@example.com',
 };
 
 export const CODIGO_INSTITUCION = 'TRANSITO-DEMO';
-export const POSICION_DEMO = 'Av. Demo Norte con Calle 1 (ejemplo)';
+export const POSICION_DEMO = 'Av. Demo Norte con Calle 1';
 
 export interface Alerta {
   id: string;
@@ -27,10 +27,10 @@ export interface Alerta {
 export const ALERTA_DEMO: Alerta = {
   id: 'al-1',
   placa: 'XY987ZT',
-  vehiculo: 'Camioneta blanca (ejemplo)',
+  vehiculo: 'Camioneta blanca',
   multasImpagas: 2,
   distanciaM: 420,
-  interseccion: 'Av. Demo Norte con Calle 1 (ejemplo)',
+  interseccion: 'Av. Demo Norte con Calle 1',
   cam: 'CAM-001',
   vistoA: '10:04',
 };

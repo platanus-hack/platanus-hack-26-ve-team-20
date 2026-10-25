@@ -88,7 +88,7 @@ export function MapaAlertas({ alerta, distancia }: { alerta: boolean; distancia:
       <Path d="M150 0 V240" stroke="#FCFDFE" strokeWidth={12} />
       <Path d="M280 0 V240" stroke="#FCFDFE" strokeWidth={8} />
       <SvgText x={8} y={94} fontFamily="Geist_400Regular" fontSize={9} fill="#4B5565">
-        Av. Demo Norte (ejemplo)
+        Av. Demo Norte
       </SvgText>
       <Rect x={143} y={190} width={16} height={16} rx={4} fill="#0E1726" />
       <Rect x={272} y={192} width={16} height={16} rx={4} fill="#0E1726" />

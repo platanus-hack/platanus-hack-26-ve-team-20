@@ -18,7 +18,7 @@ export default function Vehiculos() {
         <T accessibilityRole="header" style={tipo.h1}>
           Vehículos
         </T>
-        <T style={[tipo.pequeno, { color: c.texto2 }]}>A su nombre según el registro (ejemplo).</T>
+        <T style={[tipo.pequeno, { color: c.texto2 }]}>A su nombre según el registro.</T>
       </View>
       {VEHICULOS.map((v, i) => {
         const pp = multas.filter((m) => m.placa === v.placa && esPendiente(m)).length;
