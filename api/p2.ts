@@ -7,6 +7,7 @@ import blobUpload from "./_p2/blob-upload.ts";
 import cameraLight from "./_p2/camera-light.ts";
 import cameras from "./_p2/cameras.ts";
 import detections from "./_p2/detections.ts";
+import evidence from "./_p2/evidence.ts";
 import liveViolation from "./_p2/live-violation.ts";
 import time from "./_p2/time.ts";
 
@@ -19,6 +20,7 @@ export const P2_ROUTES: Record<string, Handler> = {
   "cameras": cameras, //           GET /api/cameras
   "camera-light": cameraLight, //  GET|POST /api/cameras/:id/light
   "detections": detections, //     POST /api/detections
+  "evidence": evidence, //         GET /api/evidence?u=… (fotos del store privado de Blob)
   "live-violation": liveViolation, // POST /api/live/violations (desde el servicio ML, modo en vivo)
 };
 
