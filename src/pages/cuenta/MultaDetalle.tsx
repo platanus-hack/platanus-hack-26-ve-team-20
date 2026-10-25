@@ -1,9 +1,9 @@
-import { ChevronLeft, Info, Play, ShieldCheck } from 'lucide-react'
+import { ChevronLeft, Play, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { apelarMulta, esPagable, getMulta, reenviarNotificacion, type Multa } from '@/lib/demo/api.ts'
+import { apelarMulta, esPagable, getMulta, getSesion, reenviarNotificacion, type Multa } from '@/lib/demo/api.ts'
 import { LUZ, TIPO } from '@/lib/etiquetas.ts'
-import { formatBs, formatFecha, formatHora } from '@/lib/format.ts'
+import { formatFecha, formatHora, maskTelefono } from '@/lib/format.ts'
 import { useCarga } from '@/hooks/useCarga.ts'
 import { Boton, Hoja } from '@/components/ui/index.tsx'
 import { BotonReenviar } from '@/components/vc/Reenviar.tsx'
@@ -20,7 +20,8 @@ const FRAMES = [
   { t: 'translate(178,50) scale(.7)', seg: ':12,7', momento: 'después' },
 ]
 
-const bloque = 'entra relative min-h-0 overflow-hidden rounded-[18px] bg-card shadow-card'
+const bloque = 'entra relative min-h-0 overflow-hidden rounded-[18px] bg-tinta-2 shadow-card'
+const etiqueta = 'tinta absolute bottom-3 left-3 rounded-full bg-tinta px-2.5 py-1 text-xs font-semibold text-card'
 
 function textoVence(m: Multa) {
   if (m.status === 'OVERDUE') return `Venció el ${formatFecha(m.dueAt)}`
@@ -35,11 +36,11 @@ function nota(m: Multa) {
   return null
 }
 
-/** Una foto de la prueba que llena su bloque; si no carga, lo dice en vez de dejar el hueco. */
-function FotoBloque({ item, alt, contain }: { item: EvidenciaItem; alt: string; contain?: boolean }) {
+/** Una foto de la prueba; si no carga, lo dice en vez de dejar el hueco. */
+function Foto({ item, alt, className }: { item: EvidenciaItem; alt: string; className?: string }) {
   const [rota, setRota] = useState(false)
-  if (rota) return <div className="absolute inset-0 flex items-center justify-center bg-tinta-2 text-caption text-niebla">No disponible</div>
-  return <img src={srcEvidencia(item.url)} alt={alt} loading="lazy" onError={() => setRota(true)} className={cx('absolute inset-0 h-full w-full bg-tinta-2', contain ? 'object-contain' : 'object-cover')} />
+  if (rota) return <div className="absolute inset-0 flex items-center justify-center text-caption text-niebla">No disponible</div>
+  return <img src={srcEvidencia(item.url)} alt={alt} loading="lazy" onError={() => setRota(true)} className={className} />
 }
 
 export default function MultaDetalle() {
@@ -85,7 +86,8 @@ export default function MultaDetalle() {
   const pagar = () => navigate(`/multas/${m.id}/pagar`, { state: { desde } })
   const { escena, vehiculo, placa } = fotosDeInfraccion(m.evidence ?? [])
   const enRojo = escena?.lightState !== 'GREEN'
-  const verificacion = m.verification === 'AUTO' ? 'Verificado automáticamente' : 'Verificado por operador'
+  const telefono = getSesion()?.telefono
+  const hora = formatHora(m.occurredAt)
 
   const reproducir = () => {
     clearInterval(reloj.current)
@@ -99,43 +101,63 @@ export default function MultaDetalle() {
     }, 700)
   }
 
+  // Franja inferior: el recorrido en una línea, como en la maqueta.
+  const recorrido = [
+    `Detectada ${hora}`,
+    m.verification === 'AUTO' ? 'Verificada' : 'Verificada por operador',
+    telefono ? `Aviso por WhatsApp al ${maskTelefono(telefono)}` : 'Aviso por WhatsApp',
+    ...(m.status === 'PAID' && m.paidAt ? [`Pagada ${formatFecha(m.paidAt)}`] : []),
+    ...(m.status === 'APPEALED' ? ['Apelación en revisión'] : []),
+    ...(m.status === 'VOID' ? ['Anulada'] : []),
+  ]
   const auditoria = [
-    { cuando: `${formatFecha(m.occurredAt)} ${formatHora(m.occurredAt)}`, que: `Detectada por ${m.cameraCode}` },
-    { cuando: `${formatFecha(m.occurredAt)} ${formatHora(m.occurredAt)}`, que: m.verification === 'AUTO' ? 'Verificada automáticamente' : 'Verificada por operador' },
+    { cuando: `${formatFecha(m.occurredAt)} ${hora}`, que: `Detectada por ${m.cameraCode}` },
+    { cuando: `${formatFecha(m.occurredAt)} ${hora}`, que: m.verification === 'AUTO' ? 'Verificada automáticamente' : 'Verificada por operador' },
     { cuando: formatFecha(m.occurredAt), que: 'Aviso enviado por WhatsApp' },
     ...(m.status === 'PAID' && m.paidAt ? [{ cuando: formatFecha(m.paidAt), que: `Pago simulado · ${m.paymentReference}` }] : []),
     ...(m.status === 'VOID' ? [{ cuando: formatFecha(new Date(Date.parse(m.occurredAt) + 86_400_000).toISOString()), que: `Anulada por operador: ${m.voidReason}` }] : []),
     ...(m.status === 'APPEALED' && m.appealedAt ? [{ cuando: formatFecha(m.appealedAt), que: 'Apelación recibida · cobro en pausa' }] : []),
   ]
+  const enlaceTexto = 'flex min-h-11 items-center text-sm text-texto-2 transition-colors duration-150 hover:text-tinta'
 
   return (
     <>
-      {/* ≥1024 ocupa el alto de <main> y los bloques se reparten la pantalla, sin scroll; debajo se apila. */}
+      {/* ≥1024 ocupa el alto de <main>, sin scroll: escena (2×2), monto, vehículo y placa, y la franja del recorrido. */}
       <div className="flex flex-col gap-4 px-4 pt-3 pb-6 lg:absolute lg:inset-0 lg:min-h-[560px] lg:overflow-x-clip lg:px-0 lg:pt-0 lg:pb-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 lg:h-11 lg:flex-nowrap lg:pr-36">
-          <Link to={`/${desde}`} aria-label={desde === 'inicio' ? 'Volver al resumen' : 'Volver a multas'} className="press -ml-2 flex size-11 flex-none items-center justify-center rounded-full text-tinta transition-colors duration-150 hover:bg-suave">
-            <ChevronLeft size={22} strokeWidth={2.2} aria-hidden="true" />
-          </Link>
-          <h1 className="text-[26px] leading-none font-semibold tracking-[-0.01em] lg:text-[32px]">{TIPO[m.type]}</h1>
-          <EstadoBadge status={m.status} />
-          <span className="w-full text-sm text-texto-2 lg:w-auto">{formatFecha(m.occurredAt)} · {formatHora(m.occurredAt)} · <span className="font-mono">{m.cameraCode}</span></span>
+        <Link to={`/${desde}`} className="-mb-2 flex min-h-11 items-center gap-1.5 self-start pr-2 text-sm font-semibold lg:hidden">
+          <ChevronLeft size={18} strokeWidth={2} aria-hidden="true" />{desde === 'inicio' ? 'Inicio' : 'Multas'}
+        </Link>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 lg:pr-40">
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-[28px] leading-none font-semibold tracking-[-0.01em] lg:text-[32px]">{TIPO[m.type]}</h1>
+              <EstadoBadge status={m.status} />
+            </div>
+            <span className="text-sm text-texto-2">{formatFecha(m.occurredAt)} · {hora} · <span className="font-mono">{m.cameraCode}</span></span>
+          </div>
+          <div className="flex items-center gap-5">
+            {pagable && <button type="button" onClick={() => setApelar(true)} className={enlaceTexto}>Apelar</button>}
+            <button type="button" onClick={() => setComoSe(true)} className={enlaceTexto}>Cómo se detectó</button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-4 lg:grid-rows-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          {/* Escena: la foto del cruce (o el dibujo con sus tres momentos) */}
-          <section aria-label="Escena de la infracción" className={cx(bloque, 'col-span-2 aspect-[2.1/1] bg-tinta-2 lg:col-span-3 lg:aspect-auto')}>
+        <div className="grid grid-cols-2 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-4 lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+          {/* Escena: 2×2. Las fotos van enteras (son la prueba); el fondo es la misma foto desenfocada para no dejar franjas vacías. */}
+          <section aria-label="Escena de la infracción" className={cx(bloque, 'col-span-2 aspect-[2.1/1] lg:row-span-2 lg:aspect-auto')}>
             {escena?.url ? (<>
-              <FotoBloque item={escena} alt={`Escena de la infracción, cámara ${m.cameraCode}`} contain />
-              <PastillaTinta className="left-3" punto={cx('size-2', enRojo ? 'bg-rojo' : 'bg-verde')}>
-                {enRojo ? 'Luz roja' : 'Luz verde'}{escena.capturedAt && <> · <span className="font-mono">{formatHora(escena.capturedAt)}</span></>}
+              <Foto item={escena} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl" />
+              <Foto item={escena} alt={`Escena de la infracción, cámara ${m.cameraCode}`} className="absolute inset-0 h-full w-full object-contain" />
+              <PastillaTinta className="top-3 left-3" punto={cx('size-2', enRojo ? 'bg-rojo' : 'bg-verde')}>
+                {enRojo ? 'Luz roja' : 'Luz verde'} · <span className="font-mono">{escena.capturedAt ? formatHora(escena.capturedAt) : hora}</span>
               </PastillaTinta>
-              <span className="tinta absolute bottom-3 left-3 rounded-full bg-tinta px-2.5 py-1 text-xs font-semibold text-card">Escena</span>
+              <span className={etiqueta}>Escena</span>
             </>) : (<>
-              <div className="absolute inset-0 flex items-center justify-center bg-suave">
+              <div className="absolute inset-0 flex items-center justify-center bg-[#8A929C]">
                 <Fotograma luz={luz} carro={fr.t} placa={m.plate} lineaPare alt={`Fotograma ${frame + 1} de 3, ${fr.momento} de la línea de pare, ${m.cameraCode}`} className="h-full w-full" />
               </div>
-              <PastillaTinta className="left-3" punto={luz === 'RED' ? 'size-2 bg-[#ff6b5e]' : 'size-2 bg-[#3dd68c]'}>
-                <span className="sr-only">{LUZ[luz]} · </span><span className="font-mono">{formatHora(m.occurredAt)}{fr.seg}</span>
+              <PastillaTinta className="top-3 left-3" punto={luz === 'RED' ? 'size-2 bg-[#ff6b5e]' : 'size-2 bg-[#3dd68c]'}>
+                <span className="sr-only">{LUZ[luz]} · </span>{luz === 'RED' ? 'Luz roja' : 'Luz verde'} · <span className="font-mono">{hora}{fr.seg}</span>
               </PastillaTinta>
               <div className="absolute inset-x-3 bottom-3 flex gap-2">
                 <div role="group" aria-label="Fotogramas" className="flex flex-1 gap-1 rounded-control bg-card/90 p-1">
@@ -154,49 +176,41 @@ export default function MultaDetalle() {
             </>)}
           </section>
 
-          {/* Monto: lima mientras se puede pagar; si no, el estado de la multa */}
-          <section aria-label="Monto" className={cx('entra col-span-2 flex flex-wrap items-end justify-between gap-3 rounded-[18px] p-5 lg:col-span-1 lg:flex-col lg:flex-nowrap lg:items-stretch', pagable ? 'bg-brand text-[#0e1726]' : 'bg-card shadow-card')} style={{ '--i': 1 } as CSSProperties}>
+          {/* Monto: lima mientras se puede pagar; el botón tinta abajo a la derecha */}
+          <section aria-label="Monto" className={cx('entra col-span-2 flex flex-wrap items-end justify-between gap-4 rounded-[18px] p-5', pagable ? 'bg-brand text-[#0e1726]' : 'bg-card shadow-card')} style={{ '--i': 1 } as CSSProperties}>
             <div className="flex flex-col gap-0.5">
-              <span className={cx('text-sm', pagable ? '' : 'text-texto-2')}>{pagable ? 'Total a pagar' : 'Monto'}</span>
-              <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[clamp(26px,2.2vw,34px)] leading-tight" />
-              <span className={cx('text-sm', pagable ? (m.status === 'OVERDUE' ? 'font-semibold text-rojo-osc' : '') : 'text-texto-2')}>{textoVence(m)}</span>
+              <span className="text-sm">{pagable ? 'Total a pagar' : 'Monto'}</span>
+              <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[clamp(30px,2.8vw,42px)] leading-tight" />
+              <span className={cx('text-sm', m.status === 'OVERDUE' && 'font-semibold text-rojo-osc', !pagable && 'text-texto-2')}>{textoVence(m)}</span>
             </div>
             {pagable
-              ? <button type="button" onClick={pagar} className="press flex min-h-12 items-center justify-center rounded-control bg-[#0e1726] px-6 font-semibold text-brand transition-opacity duration-150 hover:opacity-90">Pagar {formatBs(m.amountCents)}</button>
+              ? <button type="button" onClick={pagar} className="press flex min-h-12 items-center rounded-control bg-[#0e1726] px-7 font-semibold text-brand transition-opacity duration-150 hover:opacity-90">Pagar</button>
               : textoNota && <span className={cx('rounded-control px-3.5 py-2.5 text-sm font-semibold', EST[m.status === 'PAID' || m.status === 'APPEALED' ? m.status : 'VOID'].cls)}>{textoNota}</span>}
           </section>
 
-          {/* Vehículo y placa: las fotos recortadas; la placa leída y su verificación van sobre la foto de la placa */}
           {vehiculo?.url && (
-            <section aria-label="Vehículo" className={cx(bloque, 'min-h-[150px]', !placa?.url && 'col-span-2 lg:col-span-2')} style={{ '--i': 2 } as CSSProperties}>
-              <FotoBloque item={vehiculo} alt="Vehículo en el momento de la infracción" />
-              <span className="tinta absolute bottom-3 left-3 rounded-full bg-tinta px-2.5 py-1 text-xs font-semibold text-card">Vehículo</span>
+            <section aria-label="Vehículo" className={cx(bloque, 'min-h-[150px]')} style={{ '--i': 2 } as CSSProperties}>
+              <Foto item={vehiculo} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl" />
+              <Foto item={vehiculo} alt="Vehículo en el momento de la infracción" className="absolute inset-0 h-full w-full object-contain" />
+              <span className={etiqueta}>Vehículo</span>
             </section>
           )}
-          <section aria-label="Placa leída" className={cx(bloque, 'flex flex-col', !vehiculo?.url && 'col-span-2 lg:col-span-2')} style={{ '--i': 3 } as CSSProperties}>
-            {placa?.url && <div className="relative min-h-[96px] flex-1 bg-tinta-2"><FotoBloque item={placa} alt="Placa del vehículo" contain /></div>}
-            <div className={cx('flex flex-col items-start gap-2 p-3 sm:flex-row sm:items-center sm:gap-3', !placa?.url && 'flex-1 justify-center sm:justify-center')}>
-              <Placa value={m.plate} size="sm" />
-              <span className="flex min-w-0 flex-col text-sm">
-                <span className="font-semibold">Placa leída</span>
-                <span className="flex items-center gap-1.5 text-caption text-texto-2"><ShieldCheck size={14} strokeWidth={2} aria-hidden="true" className="text-verde-osc" />{verificacion}</span>
-              </span>
-            </div>
+
+          {/* Placa: la foto de la placa (o la placa leída) centrada, con la verificación debajo */}
+          <section aria-label="Placa leída" className={cx(bloque, 'flex min-h-[150px] flex-col items-center justify-center gap-2 px-3 pt-3 pb-12', !vehiculo?.url && 'col-span-2')} style={{ '--i': 3 } as CSSProperties}>
+            {placa?.url
+              ? <div className="relative h-24 w-full max-w-[260px] lg:h-[42%]"><Foto item={placa} alt={`Placa del vehículo, leída como ${m.plate}`} className="absolute inset-0 h-full w-full object-contain" /></div>
+              : <Placa value={m.plate} size="md" />}
+            <span className="flex items-center gap-1.5 text-sm font-semibold text-[#4cc38a]"><ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />{m.verification === 'AUTO' ? 'Verificada' : 'Verificada por operador'}</span>
+            <span className={etiqueta}>Placa</span>
           </section>
 
-          {/* Recorrido y acciones */}
-          <section aria-label="Recorrido de la multa" className={cx(bloque, 'col-span-2 flex flex-col gap-3 p-5', !vehiculo?.url && !placa?.url ? 'lg:col-span-2' : '')} style={{ '--i': 4 } as CSSProperties}>
-            <h2 className="text-base font-medium">Recorrido</h2>
-            <ol className="flex min-h-0 flex-col gap-2.5 overflow-y-auto text-sm">
-              {auditoria.map((a) => (
-                <li key={a.que} className="flex items-baseline gap-2.5"><span aria-hidden="true" className="size-2 flex-none translate-y-[-1px] rounded-full bg-brand" /><span className="min-w-0 flex-1">{a.que}</span><span className="text-caption whitespace-nowrap text-texto-2">{a.cuando}</span></li>
-              ))}
+          {/* Franja: recorrido en una línea y «Reenviar» */}
+          <section aria-label="Recorrido de la multa" className="entra col-span-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[18px] bg-card px-5 py-3 shadow-card lg:col-span-4" style={{ '--i': 4 } as CSSProperties}>
+            <ol className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              {recorrido.map((r) => <li key={r} className="flex items-center gap-2"><span aria-hidden="true" className="size-2 flex-none rounded-full bg-brand" />{r}</li>)}
             </ol>
-            <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-borde pt-2">
-              <button type="button" onClick={() => setComoSe(true)} className="flex min-h-11 items-center gap-1.5 text-sm font-semibold text-texto-2 transition-colors duration-150 hover:text-tinta"><Info size={16} strokeWidth={2} aria-hidden="true" />Cómo se detectó</button>
-              {pagable && <button type="button" onClick={() => setApelar(true)} className="flex min-h-11 items-center text-sm font-semibold text-texto-2 transition-colors duration-150 hover:text-tinta">Apelar</button>}
-              {pagable && <BotonReenviar compacto enviar={() => reenviarNotificacion(m.id)} />}
-            </div>
+            {pagable && <BotonReenviar corto enviar={() => reenviarNotificacion(m.id)} className="items-end" />}
           </section>
         </div>
       </div>
