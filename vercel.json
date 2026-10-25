@@ -188,6 +188,10 @@
       "destination": "/api/p1?route=officer-fines"
     },
     {
+      "source": "/api/evidence",
+      "destination": "/api/p2?route=evidence"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { PastillaTinta } from '@/components/vc/index.tsx'
 import { cx } from '@/components/ui/estilos.ts'
 import { formatHora } from '@/lib/format.ts'
-import { fotosDeInfraccion, type EvidenciaItem } from './fotos.ts'
+import { fotosDeInfraccion, srcEvidencia, type EvidenciaItem } from './fotos.ts'
 
 export { tieneFotos } from './fotos.ts'
 
@@ -15,7 +15,7 @@ function Foto({ item, titulo, alt, className, contain }: { item?: EvidenciaItem;
     <figure className={cx('flex min-w-0 flex-col gap-1.5', className)}>
       <div className="relative overflow-hidden rounded-card bg-tinta-2">
         {item?.url && !rota
-          ? <img src={item.url} alt={alt} loading="lazy" onError={() => setRota(true)} className={cx('block aspect-video w-full', contain ? 'object-contain' : 'object-cover')} />
+          ? <img src={srcEvidencia(item.url)} alt={alt} loading="lazy" onError={() => setRota(true)} className={cx('block aspect-video w-full', contain ? 'object-contain' : 'object-cover')} />
           : <div className="flex aspect-video w-full items-center justify-center text-caption text-niebla">No disponible</div>}
       </div>
       <figcaption className="text-caption font-semibold text-texto-2">{titulo}</figcaption>
