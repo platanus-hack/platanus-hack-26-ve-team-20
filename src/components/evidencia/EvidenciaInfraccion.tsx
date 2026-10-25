@@ -29,7 +29,7 @@ export function EvidenciaInfraccion({ items, camara }: { items: readonly Evidenc
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="relative col-span-2">
-        <Foto item={escena} titulo="1 · Escena: cruce de la línea con el semáforo en rojo" alt={`Escena de la infracción${camara ? `, cámara ${camara}` : ''}`} />
+        <Foto item={escena} titulo={vehiculo?.url || placa?.url ? '1 · Escena: cruce de la línea con el semáforo en rojo' : 'Escena: cruce de la línea con el semáforo en rojo'} alt={`Escena de la infracción${camara ? `, cámara ${camara}` : ''}`} />
         {escena?.capturedAt && (
           <PastillaTinta className="left-2.5" punto={cx('size-2', enRojo ? 'bg-rojo' : 'bg-verde')}>
             {enRojo ? 'Luz roja' : 'Luz verde'} · <span className="font-mono">{formatHora(escena.capturedAt)}</span>
@@ -37,8 +37,9 @@ export function EvidenciaInfraccion({ items, camara }: { items: readonly Evidenc
         )}
         {camara && <PastillaTinta className="right-2.5 font-mono font-bold">{camara}</PastillaTinta>}
       </div>
-      <Foto item={vehiculo} titulo="2 · Vehículo" alt="Vehículo en el momento de la infracción" />
-      <Foto item={placa} titulo="3 · Placa" alt="Placa del vehículo" contain />
+      {/* Solo las fotos que existen: las multas de ejemplo del seed traen una sola imagen. */}
+      {vehiculo?.url && <Foto item={vehiculo} titulo="2 · Vehículo" alt="Vehículo en el momento de la infracción" className={placa?.url ? '' : 'col-span-2'} />}
+      {placa?.url && <Foto item={placa} titulo={vehiculo?.url ? '3 · Placa' : '2 · Placa'} alt="Placa del vehículo" contain className={vehiculo?.url ? '' : 'col-span-2'} />}
     </div>
   )
 }

@@ -5,6 +5,7 @@
 # estado y lo pasa en cada procesar_frame").
 import asyncio
 import base64
+import functools
 import json
 import os
 import queue
@@ -22,7 +23,7 @@ import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
-from . import pipeline
+from . import adivinar, pipeline
 from .realce import NITIDEZ_MIN, nitidez, puntaje, realzar
 from .schemas import Calibracion
 
@@ -63,9 +64,9 @@ def detector_placas_yolo() -> DetectorPlacas | None:
 
         modelo, device = YOLO(str(pesos)), pipeline._device()
 
-        def detectar(recortes: list[Any]) -> list[tuple[float, float, float, float] | None]:
+        def detectar(recortes: list[Any], conf: float = 0.25) -> list[tuple[float, float, float, float] | None]:
             out: list[tuple[float, float, float, float] | None] = []
-            for r in modelo.predict(recortes, imgsz=320, conf=0.25, device=device, verbose=False):
+            for r in modelo.predict(recortes, imgsz=320, conf=conf, device=device, verbose=False):
                 if r.boxes is None or not len(r.boxes):
                     out.append(None)
                     continue
@@ -229,8 +230,25 @@ class Sesion:
             }
             listas.append(multa)
             escena = pipeline._b64(carpeta / "escena.jpg", pipeline.ESCENA_MAX_ANCHO)
-            threading.Thread(target=self._registrar, args=(multa, escena), daemon=True).start()
+            mejor = self._placa_mejor.get(multa["trackId"])
+            threading.Thread(target=self._registrar, args=(multa, escena, carpeta, mejor[1] if mejor else None),
+                             daemon=True).start()
         return listas
+
+    def _estimar_placa(self, multa: dict[str, Any], carpeta: Path, mejor: Any) -> None:
+        """Plan B (adivinar.py): si la lectura quedó floja, se reintenta realzando las mejores fotos del vehículo.
+        Solo se acepta con confianza >= ML_ADIVINAR_MIN y forma de placa venezolana; la multa queda "estimada"."""
+        if multa["placa"] and multa["confianza"] >= adivinar.MIN_CONF and multa["votos"] >= 2:
+            return
+        vehiculo, placa = (cv2.imread(str(f)) if f.exists() else None for f in (carpeta / "vehiculo.jpg", carpeta / "placa.jpg"))
+        with pipeline.GPU_LOCK:
+            recortes = adivinar.recortes_de_vehiculo(vehiculo, self.detector_placas or detector_placas_yolo())
+        r = adivinar.adivinar([mejor, placa, *recortes], normalizar=_normalizador())
+        if r is None:
+            return
+        multa["placa"], multa["confianza"], multa["votos"] = r
+        multa["estimada"] = True
+        print(f"[en-vivo] placa estimada {r[0]} ({r[1]:.0%}, {r[2]} lecturas)", flush=True)
 
     def _foto_placa(self, track_id: int) -> str | None:
         mejor = self._placa_mejor.get(track_id)
@@ -239,7 +257,13 @@ class Sesion:
         ok, jpg = cv2.imencode(".jpg", mejor[1], [cv2.IMWRITE_JPEG_QUALITY, 92])
         return base64.b64encode(jpg.tobytes()).decode() if ok else None
 
-    def _registrar(self, multa: dict[str, Any], escena: str | None) -> None:
+    def _registrar(self, multa: dict[str, Any], escena: str | None, carpeta: Path, mejor: Any) -> None:
+        try:
+            self._estimar_placa(multa, carpeta, mejor)
+        except Exception as e:  # el plan B nunca debe impedir que la multa se guarde
+            print(f"[en-vivo] no se pudo estimar la placa: {e}", flush=True)
+        estimada = {"placa": multa["placa"], "confianza": multa["confianza"], "votos": multa["votos"]} \
+            if multa.get("estimada") else {}
         try:
             r = self.registrar({
                 "cameraCode": self.camara, "occurredAt": multa["hora"], "trackId": multa["trackId"],
@@ -247,16 +271,22 @@ class Sesion:
                 "rawReads": multa["crudas"], "modelVersion": pipeline.MODEL_VERSION,
                 "idempotencyKey": f"en-vivo-{multa['ref']}", "sceneJpegBase64": escena,
                 "vehicleJpegBase64": multa["fotoVehiculo"], "plateJpegBase64": multa["fotoPlaca"],
+                "plateGuessed": bool(multa.get("estimada")),
             })
-            self.registros.put({"ref": multa["ref"], "ok": True, **r})
+            self.registros.put({"ref": multa["ref"], "ok": True, "estimada": estimada or None, **r})
         except Exception as e:  # sin Vercel la demo en pantalla sigue funcionando
             print(f"[en-vivo] multa {multa['placa'] or 'sin placa'} NO se guardó en la base: {e}", flush=True)
-            self.registros.put({"ref": multa["ref"], "ok": False, "error": str(e)[:200]})
+            self.registros.put({"ref": multa["ref"], "ok": False, "estimada": estimada or None, "error": str(e)[:200]})
 
     def cerrar(self) -> None:
         if self.motor is not None:
             self.motor.finalizar()  # cierra multas pendientes; se reportan en el próximo cuadro
             self.motor = None
+
+
+@functools.cache
+def _normalizador() -> Callable[[str], str | None] | None:
+    return adivinar.normalizador_del_motor()  # tarde: el motor entra al sys.path al crear el primero
 
 
 def _vaciar(q: "queue.Queue[dict[str, Any]]") -> list[dict[str, Any]]:

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { assignDemoOwner, demoOwnerCedulas, ownerFor } from './demo-owners.ts'
+import { assignDemoOwner, demoOwnerCedulas, esperaEntreWhatsappMs, notificarConTope, ownerFor } from './demo-owners.ts'
 
 // Cédulas inventadas (las reales van solo en DEMO_DUENOS_CEDULAS, fuera del repo).
 const DUENOS = ['V11111111', 'V22222222']
 
-function fakeDb(opts: { existe?: boolean; persona?: boolean; choque?: boolean; reciente?: boolean } = {}) {
+function fakeDb(opts: { existe?: boolean; persona?: boolean; choque?: boolean } = {}) {
   return {
     vehicle: {
       findUnique: vi.fn(async () => (opts.existe ? { id: 'veh_x' } : null)),
@@ -14,7 +14,7 @@ function fakeDb(opts: { existe?: boolean; persona?: boolean; choque?: boolean; r
       }),
     },
     person: { findUnique: vi.fn(async ({ where }: { where: { cedula: string } }) => (opts.persona === false ? null : { id: `per_${where.cedula}` })) },
-    auditLog: { create: vi.fn(async () => ({})), findFirst: vi.fn(async () => (opts.reciente ? { id: 'aud_1' } : null)) },
+    auditLog: { create: vi.fn(async () => ({})) },
   }
 }
 
@@ -51,7 +51,6 @@ describe('assignDemoOwner', () => {
     ['la placa ya está registrada', { existe: true }, DUENOS],
     ['el dueño no existe en la base', { persona: false }, DUENOS],
     ['otra multa la registró al mismo tiempo', { choque: true }, DUENOS],
-    ['ese dueño ya recibió una placa nueva hace menos de 2 minutos (tope anti-spam)', { reciente: true }, DUENOS],
   ] as const)('no asigna si %s', async (_caso, opts, duenos) => {
     const db = fakeDb(opts)
     expect(await assignDemoOwner(db as never, 'AB123CD', duenos)).toBeNull()
@@ -59,21 +58,39 @@ describe('assignDemoOwner', () => {
   })
 })
 
-describe('tope anti-spam', () => {
-  it('busca la última asignación de ESE dueño dentro de la ventana', async () => {
-    const db = fakeDb()
-    const antes = Date.now()
-    await assignDemoOwner(db as never, 'AB123CD', DUENOS, 120_000)
-    const where = (db.auditLog.findFirst.mock.calls[0] as unknown as [{ where: { action: string; after: unknown; createdAt: { gt: Date } } }])[0].where
-    expect(where.action).toBe('DEMO_VEHICLE_ASSIGNED')
-    expect(where.after).toEqual({ path: ['ownerId'], equals: `per_${ownerFor('AB123CD', DUENOS)}` })
-    expect(antes - where.createdAt.gt.getTime()).toBeGreaterThanOrEqual(119_000)
+describe('notificarConTope', () => {
+  function dbAvisos(cedula: string, reciente: boolean) {
+    return {
+      fine: { findUnique: vi.fn(async () => ({ violation: { vehicle: { ownerId: 'per_1', owner: { cedula } } } })) },
+      notification: { findFirst: vi.fn(async () => (reciente ? { id: 'not_1' } : null)) },
+    }
+  }
+  const enviado = { channel: 'WHATSAPP', status: 'SENT' } as const
+
+  it('manda el primer WhatsApp de un dueño de demo', async () => {
+    const notify = vi.fn(async () => enviado)
+    const db = dbAvisos('V11111111', false)
+    expect(await notificarConTope(notify, db as never, () => DUENOS, () => 3_600_000)('fin_1')).toEqual(enviado)
+    const where = (db.notification.findFirst.mock.calls[0] as unknown as [{ where: { fine: unknown } }])[0].where
+    expect(where.fine).toEqual({ violation: { vehicle: { ownerId: 'per_1' } } })
   })
 
-  it('la espera se configura en minutos con DEMO_ESPERA_MIN (2 por defecto)', async () => {
-    const { esperaEntreAsignacionesMs } = await import('./demo-owners.ts')
-    expect(esperaEntreAsignacionesMs({})).toBe(120_000)
-    expect(esperaEntreAsignacionesMs({ DEMO_ESPERA_MIN: '5' })).toBe(300_000)
-    expect(esperaEntreAsignacionesMs({ DEMO_ESPERA_MIN: '0' })).toBe(0)
+  it('no manda otro si ya recibió uno en la ventana (la multa queda igual)', async () => {
+    const notify = vi.fn(async () => enviado)
+    const r = await notificarConTope(notify, dbAvisos('V11111111', true) as never, () => DUENOS, () => 3_600_000)('fin_2')
+    expect(r).toEqual({ channel: 'WHATSAPP', status: 'DRY_RUN' })
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('a los titulares que no son de demo no les cambia nada', async () => {
+    const notify = vi.fn(async () => enviado)
+    const db = dbAvisos('V99999999', true)
+    expect(await notificarConTope(notify, db as never, () => DUENOS, () => 3_600_000)('fin_3')).toEqual(enviado)
+    expect(db.notification.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('la ventana se configura en minutos con DEMO_WHATSAPP_CADA_MIN (60 por defecto)', () => {
+    expect(esperaEntreWhatsappMs({})).toBe(3_600_000)
+    expect(esperaEntreWhatsappMs({ DEMO_WHATSAPP_CADA_MIN: '5' })).toBe(300_000)
   })
 })
