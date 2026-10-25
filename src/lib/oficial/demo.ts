@@ -67,8 +67,8 @@ export const INVITACION_DEMO = 'demo-invitacion'
 
 // ---------------------------------------------------------------- datos de ejemplo (todos ficticios)
 const L = [
-  'Av. Demo Norte con Calle 1 (ejemplo)', 'Av. Demo Sur con Calle 4 (ejemplo)',
-  'Av. Demo Este con Calle 3 (ejemplo)', 'Av. Demo Oeste con Calle 2 (ejemplo)',
+  'Av. Demo Norte con Calle 1', 'Av. Demo Sur con Calle 4',
+  'Av. Demo Este con Calle 3', 'Av. Demo Oeste con Calle 2',
 ] as const
 
 const VEHICULOS: Array<Vehiculo & { cedula: string }> = [
@@ -102,7 +102,7 @@ const OTRAS: Multa[] = [
 ]
 
 const SISTEMA = { type: 'SYSTEM', label: 'Sistema' } as const
-const OPERADOR = { type: 'OPERATOR', label: 'Operador de revisión (ejemplo)' } as const
+const OPERADOR = { type: 'OPERATOR', label: 'Operador de revisión' } as const
 const CIUDADANO = { type: 'CITIZEN', label: 'Ciudadano (titular)' } as const
 
 /** Historia con la que nace cada multa del demo: revisión (si hubo), emisión y lo que pasó después. */
@@ -165,7 +165,7 @@ export function vencerSesionOficial() {
 export async function iniciarSesionOficial(correo: string, clave: string): Promise<SesionOficial> {
   await esperar()
   if (correo.trim().toLowerCase() !== CORREO_DEMO || clave !== CLAVE_DEMO) throw new DemoError('CREDENCIALES')
-  return abrirSesionOficial({ id: 'of_demo_a', badge: 'OF-0001', name: 'Oficial A (ejemplo)', email: CORREO_DEMO })
+  return abrirSesionOficial({ id: 'of_demo_a', badge: 'OF-0001', name: 'Oficial A', email: CORREO_DEMO })
 }
 
 /** Guarda solo los campos del DTO: lo que venga de más en la respuesta no llega al storage. */
@@ -180,7 +180,7 @@ export function abrirSesionOficial({ id, badge, name, email }: OfficerSessionDTO
 export async function verificarInvitacion(token: string): Promise<Invitacion> {
   await esperar()
   if (token !== INVITACION_DEMO) throw new DemoError('NO_ENCONTRADA')
-  return { email: 'nuevo.oficial@example.com', name: 'Oficial Nuevo (ejemplo)', expiresAt: new Date(Date.now() + 24 * 3600_000).toISOString() }
+  return { email: 'nuevo.oficial@example.com', name: 'Oficial Nuevo', expiresAt: new Date(Date.now() + 24 * 3600_000).toISOString() }
 }
 
 export async function aceptarInvitacion({ token, name, phone, password }: Aceptacion): Promise<SesionOficial> {

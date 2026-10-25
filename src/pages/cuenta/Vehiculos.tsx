@@ -12,7 +12,7 @@ export default function Vehiculos() {
 
   return (
     <Pagina>
-      <Titulo despues="A su nombre según el registro (ejemplo).">Vehículos</Titulo>
+      <Titulo despues="A su nombre según el registro.">Vehículos</Titulo>
       {cargando && <div aria-busy="true" aria-label="Cargando vehículos" className="grid grid-cols-1 gap-3 lg:grid-cols-2"><span className="sk h-24 rounded-card" /><span className="sk h-24 rounded-card" /></div>}
       {error && error.code !== 'SESION' && <ErrorCarga titulo="No pudimos cargar sus vehículos" texto="Revise su conexión e intente de nuevo." onReintentar={recargar} />}
       {data && (data[0].length === 0 ? (
@@ -37,7 +37,7 @@ export default function Vehiculos() {
                 <Placa value={v.plate} size="sm" />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="font-semibold">{v.brand} {v.model} {v.year}</span>
-                  <span className="text-caption text-texto-2">{v.color} · ejemplo · {suyas.length} {suyas.length === 1 ? 'multa' : 'multas'}</span>
+                  <span className="text-caption text-texto-2">{v.color} · {suyas.length} {suyas.length === 1 ? 'multa' : 'multas'}</span>
                   <span className={cx('text-caption font-semibold', pp ? 'text-rojo-osc' : 'text-verde-osc')}>{pp ? `${pp} por pagar` : 'Al día'}</span>
                 </span>
                 <ChevronRight size={18} strokeWidth={2} aria-hidden="true" className="flex-none text-texto-3 transition-transform duration-150 group-hover:translate-x-0.5" />

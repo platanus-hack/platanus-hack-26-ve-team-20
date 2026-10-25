@@ -91,7 +91,7 @@ export default function DetalleMulta() {
 
       <View style={{ gap: 2 }}>
         <T style={[tipo.montoG, m.estado === 'ANULADA' ? { textDecorationLine: 'line-through', color: c.texto2 } : null]}>{bs(m.amountCents)}</T>
-        <T style={[tipo.pequeno, { color: m.estado === 'VENCIDA' ? c.rojoTexto : c.texto2 }]}>{venceTxt} · monto de ejemplo</T>
+        <T style={[tipo.pequeno, { color: m.estado === 'VENCIDA' ? c.rojoTexto : c.texto2 }]}>{venceTxt}</T>
       </View>
 
       <Tarjeta>

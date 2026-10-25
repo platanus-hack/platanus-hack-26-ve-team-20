@@ -39,10 +39,10 @@ export const CIUDADANO = {
 
 export const MONTO_MULTA = 125000;
 
-const L1 = 'Av. Demo Norte con Calle 1 (ejemplo)';
-const L2 = 'Av. Demo Sur con Calle 4 (ejemplo)';
-const L3 = 'Av. Demo Este con Calle 3 (ejemplo)';
-const L4 = 'Av. Demo Oeste con Calle 2 (ejemplo)';
+const L1 = 'Av. Demo Norte con Calle 1';
+const L2 = 'Av. Demo Sur con Calle 4';
+const L3 = 'Av. Demo Este con Calle 3';
+const L4 = 'Av. Demo Oeste con Calle 2';
 
 export function multasBase(): Multa[] {
   const m = MONTO_MULTA;
@@ -57,8 +57,8 @@ export function multasBase(): Multa[] {
 }
 
 export const VEHICULOS: Vehiculo[] = [
-  { placa: 'AB123CD', modelo: 'Toyota Corolla 2018', detalle: 'Gris · ejemplo', descripcion: 'Toyota Corolla gris 2018 (ejemplo)' },
-  { placa: 'CD456EF', modelo: 'Chevrolet Aveo 2012', detalle: 'Blanco · ejemplo', descripcion: 'Chevrolet Aveo blanco 2012 (ejemplo)' },
+  { placa: 'AB123CD', modelo: 'Toyota Corolla 2018', detalle: 'Gris', descripcion: 'Toyota Corolla gris 2018' },
+  { placa: 'CD456EF', modelo: 'Chevrolet Aveo 2012', detalle: 'Blanco', descripcion: 'Chevrolet Aveo blanco 2012' },
 ];
 
 export const esPendiente = (m: Multa) => m.estado === 'PENDIENTE' || m.estado === 'VENCIDA';

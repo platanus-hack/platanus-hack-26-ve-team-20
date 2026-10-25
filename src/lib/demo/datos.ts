@@ -48,10 +48,10 @@ export const CEDULA_REGISTRADA = 'V12345678'
 /** Contraseña que el prototipo trata como incorrecta. */
 export const CLAVE_INCORRECTA = 'clave-mal'
 
-const L1 = 'Av. Demo Norte con Calle 1 (ejemplo)'
-const L2 = 'Av. Demo Sur con Calle 4 (ejemplo)'
-const L3 = 'Av. Demo Este con Calle 3 (ejemplo)'
-const L4 = 'Av. Demo Oeste con Calle 2 (ejemplo)'
+const L1 = 'Av. Demo Norte con Calle 1'
+const L2 = 'Av. Demo Sur con Calle 4'
+const L3 = 'Av. Demo Este con Calle 3'
+const L4 = 'Av. Demo Oeste con Calle 2'
 
 const base = { amountCents: 125_000, currency: 'VES' as const, paidAt: null, paymentReference: null, voidReason: null, appealedAt: null }
 
@@ -78,8 +78,8 @@ export const CAMARAS_DEMO: Array<Omit<Camara, 'capturedAt' | 'frame'>> = [
 ]
 
 export const BANCOS_DEMO = [
-  { code: '0102', name: 'Banco de Venezuela (ejemplo)' },
-  { code: '0105', name: 'Mercantil (ejemplo)' },
-  { code: '0134', name: 'Banesco (ejemplo)' },
-  { code: '0191', name: 'BNC (ejemplo)' },
+  { code: '0102', name: 'Banco de Venezuela' },
+  { code: '0105', name: 'Mercantil' },
+  { code: '0134', name: 'Banesco' },
+  { code: '0191', name: 'BNC' },
 ]

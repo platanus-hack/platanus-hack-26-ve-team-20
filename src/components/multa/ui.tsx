@@ -95,7 +95,7 @@ function EvidenceItem({ item, label }: { item: FinePublicDTO['evidence'][number]
           <img src={item.url} alt={label} loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-tinta-2 text-[13px] text-niebla">
-            {item.url ? 'Imagen no disponible' : `${label} (ejemplo)`}
+            {item.url ? 'Imagen no disponible' : label}
           </div>
         )}
         <span className={`${MONO} absolute left-2 top-2 rounded-[6px] bg-black/70 px-2 py-0.5 text-[13px] text-white`}>

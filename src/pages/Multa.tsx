@@ -67,7 +67,7 @@ export default function Multa() {
           <Row label="Cámara">
             <span className={MONO}>{fine.cameraCode}</span>
           </Row>
-          <Row label="Monto (ejemplo)">
+          <Row label="Monto">
             <span className={`${MONO} text-[22px]`}>{formatAmount(fine.amountCents, fine.currency)}</span>
           </Row>
           {!paid && (

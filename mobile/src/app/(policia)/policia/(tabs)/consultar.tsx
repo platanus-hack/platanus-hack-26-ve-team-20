@@ -22,7 +22,7 @@ export default function Consultar() {
 
   const vista = res
     ? res.tipo === 'deuda'
-      ? { badge: 'CON DEUDA', bg: c.rojoFondo, fg: c.rojoTexto, titulo: `${res.multas} multas impagas`, texto: `${res.vehiculo} · ${bs(res.totalCents)} en total (monto de ejemplo). Verifique antes de actuar.` }
+      ? { badge: 'CON DEUDA', bg: c.rojoFondo, fg: c.rojoTexto, titulo: `${res.multas} multas impagas`, texto: `${res.vehiculo} · ${bs(res.totalCents)} en total. Verifique antes de actuar.` }
       : res.tipo === 'alDia'
         ? { badge: 'AL DÍA', bg: c.verdeFondo, fg: c.verdeTexto, titulo: 'Sin multas impagas', texto: 'No hay deuda registrada para esta placa.' }
         : { badge: 'REVISE', bg: c.grisFondo, fg: c.texto2, titulo: 'Formato no válido', texto: 'Use 7 caracteres, por ejemplo AB123CD.' }

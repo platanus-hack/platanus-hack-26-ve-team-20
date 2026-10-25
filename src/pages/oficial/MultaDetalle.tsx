@@ -66,12 +66,12 @@ export default function MultaDetalle() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
         <aside aria-label="Monto y acciones" className={cx(tarjeta, 'flex min-w-0 flex-col gap-3 self-start p-5 lg:order-2 lg:col-span-5 lg:p-6')}>
-          <span className="text-caption text-texto-2">Monto de ejemplo</span>
+          <span className="text-caption text-texto-2">Monto</span>
           <Monto cents={m.amountCents} anulada={m.status === 'VOID'} className="text-[32px] leading-[38px] xl:text-[40px] xl:leading-[44px]" />
           <span className="text-sm text-texto-2">{nota(m)}</span>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border-t border-borde pt-3 text-sm">
             <dt className="text-texto-2">Placa</dt><dd><Placa value={m.plate} size="sm" /></dd>
-            <dt className="text-texto-2">Vehículo</dt><dd>{v ? `${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year} (ejemplo)` : 'Sin datos'}</dd>
+            <dt className="text-texto-2">Vehículo</dt><dd>{v ? `${v.brand} ${v.model} ${v.color.toLowerCase()} ${v.year}` : 'Sin datos'}</dd>
             <dt className="text-texto-2">Cédula</dt><dd className="font-mono font-bold">{m.cedulaMasked ?? 'Sin titular'}</dd>
             <dt className="text-texto-2">Cámara</dt><dd className="font-mono font-bold">{m.cameraCode}</dd>
             <dt className="text-texto-2">Confianza</dt><dd className="font-mono font-bold">{m.confidence.toFixed(2).replace('.', ',')}</dd>
@@ -89,7 +89,7 @@ export default function MultaDetalle() {
             <div className="relative overflow-hidden rounded-card bg-tinta-2">
               {foto
                 ? <img src={foto.url} alt={`Fotograma de la infracción, ${m.cameraCode}`} className="block aspect-video w-full object-cover" />
-                : <Fotograma luz={luz} carro="translate(180,70) scale(.84)" placa={m.plate} lineaPare alt={`Fotograma de ejemplo en la línea de pare, ${m.cameraCode}`} />}
+                : <Fotograma luz={luz} carro="translate(180,70) scale(.84)" placa={m.plate} lineaPare alt={`Ilustración del cruce en la línea de pare, ${m.cameraCode}`} />}
               <PastillaTinta className="left-2.5 h-7" punto={luz === 'RED' ? 'size-2 bg-rojo' : 'size-2 bg-verde'}>
                 {LUZ[luz]} · <span className="font-mono">{formatHora(m.occurredAt)}</span>
               </PastillaTinta>
