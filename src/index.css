@@ -219,8 +219,18 @@
 /* Rayado diagonal de las losas y barras de fondo del resumen. */
 .rayado { background-image: repeating-linear-gradient(135deg, light-dark(rgba(14, 23, 38, 0.06), rgba(255, 255, 255, 0.07)) 0 2px, transparent 2px 7px); }
 
-/* Cambio de vista: la página nueva entra con un fundido y una subida corta (260 ms). */
+/* Cambio de vista. Entre secciones: fundido y subida corta (260 ms). Hacia adentro (lista → detalle → pago) la página
+   entra desde la derecha; de vuelta, desde la izquierda (320 ms), así se entiende hacia dónde se fue. */
 .vista { animation: entra 260ms var(--ease-entrada) both; }
+.vista[data-dir="adelante"] { animation: vista-adelante 320ms var(--ease-entrada) both; }
+.vista[data-dir="atras"] { animation: vista-atras 320ms var(--ease-entrada) both; }
+@keyframes vista-adelante { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+@keyframes vista-atras { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
+
+/* Cambio de tema: el tema nuevo se abre en círculo desde el interruptor (useTema anima ::view-transition-new).
+   Sin View Transitions, los colores se funden 300 ms mientras dura la clase. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.tema-suave, html.tema-suave * { transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, fill 300ms ease, stroke 300ms ease !important; }
 
 /* Ilustración de acceso: un carro se aleja por el carril derecho y otro se acerca por el izquierdo.
    Las posiciones siguen la perspectiva de la carretera (punto de fuga en 320,360 del dibujo). */
@@ -285,7 +295,7 @@
   .sk { animation: none; }
   .check { animation: solo-fundido 120ms linear both; stroke-dashoffset: 0; }
   .entra { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
-  .vista { animation: solo-fundido 120ms linear both; }
+  .vista, .vista[data-dir] { animation: solo-fundido 120ms linear both; }
   .barra-activa, .latido { animation: none; }
   .traza { animation: none; stroke-dasharray: none; }
   .aparece, .crece { animation: solo-fundido 120ms linear both; animation-delay: 0ms; }
