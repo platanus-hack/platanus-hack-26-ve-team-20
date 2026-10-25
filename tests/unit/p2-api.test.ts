@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 }))
 vi.mock('../../lib/db.ts', () => ({ db: mocks.db }))
 vi.mock('../../lib/vision/index.ts', () => ({ analyze: mocks.analyze }))
-vi.mock('../../lib/domain/index.ts', () => ({ registerDetection: mocks.registerDetection }))
+vi.mock('../../lib/vision/registro-demo.ts', () => ({ registerDetectionDemo: mocks.registerDetection }))
 vi.mock('../../lib/vision/demo-owners.ts', () => ({ assignDemoOwner: mocks.assignDemoOwner }))
 vi.mock('../../lib/storage/blob.ts', () => ({ saveImage: mocks.saveImage, isEvidenceUrl: (u: string) => u.startsWith('https://x.private.blob.vercel-storage.com/evidence/'), readEvidence: vi.fn(async () => null), CLIP_PREFIX: 'evidence/clips/', CLIP_CONTENT_TYPES: ['video/mp4', 'video/quicktime'], CLIP_MAX_BYTES: 30 * 1024 * 1024 }))
 vi.mock('@vercel/blob/client', () => ({ handleUpload: mocks.handleUpload }))
@@ -217,6 +217,17 @@ describe('POST /api/live/violations (modo en vivo)', () => {
   it('placa dudosa → no se asigna dueño', async () => {
     await enviar({ ...multa, votes: 1 })
     expect(mocks.assignDemoOwner).not.toHaveBeenCalled()
+  })
+
+  it('placa estimada (plan B) con confianza >= 70 % → se multa aunque tenga una sola lectura', async () => {
+    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.74, votes: 1 })
+    expect(body).toMatchObject({ ok: true, data: { verdict: 'VIOLATION', plate: 'XYZ12K' } })
+    expect(mocks.registerDetection.mock.calls[0]![0]).toMatchObject({ aiOutput: { plateGuessed: true } })
+  })
+
+  it('placa estimada con menos de 70 % → revisión humana', async () => {
+    const { body } = await enviar({ ...multa, plateGuessed: true, plateConfidence: 0.65, votes: 3 })
+    expect(body).toMatchObject({ ok: true, data: { verdict: 'NEEDS_REVIEW' } })
   })
 
   it('placa no leída → NEEDS_REVIEW (NO_PLATE); se registra igual con su evidencia', async () => {
