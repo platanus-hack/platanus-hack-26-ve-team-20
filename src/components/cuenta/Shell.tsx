@@ -1,4 +1,4 @@
-import { Bell, Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, User, Video, type LucideIcon } from 'lucide-react'
+import { Car, ChartColumn, LayoutGrid, LogOut, Menu, ReceiptText, User, Video, type LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { alVencerSesion, cerrarSesion, contarPendientes, getSesion, sesionVencio } from '@/lib/demo/api.ts'
@@ -25,7 +25,7 @@ export function Protegida() {
   return <Shell />
 }
 
-/** ≥1024: riel de íconos (con el logo); tema, avisos y cédula van en la fila del título. Debajo: barra superior + navegación inferior con "Más". */
+/** ≥1024: riel de íconos (con el logo); tema y cédula van en la fila del título. Debajo: barra superior + navegación inferior con "Más". */
 function Shell() {
   const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
@@ -88,16 +88,12 @@ function Shell() {
           </header>
 
           <main ref={main} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-            {/* ≥1024: tema, avisos y cédula arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
+            {/* ≥1024: tema y cédula arriba a la derecha, en la fila del título de cada página (se desplazan con ella). */}
             <header className="absolute top-0 right-0 z-20 hidden h-11 items-center gap-4 lg:flex">
               <InterruptorTema />
-              <Link to="/multas?tab=por-pagar" aria-label={pendientes > 0 ? `Avisos: ${pendientes} multas por pagar` : 'Avisos'} className="relative flex size-11 items-center justify-center rounded-full text-tinta">
-                <Bell size={20} strokeWidth={2} aria-hidden="true" />
-                {pendientes > 0 && <span aria-hidden="true" className="absolute top-2 right-2.5 size-2 rounded-full bg-rojo" />}
-              </Link>
               <Link to="/perfil" className="group press flex min-h-11 items-center gap-2 text-tinta">
                 <span className="font-mono text-sm font-medium">{sesion && formatCedula(sesion.cedula)}</span>
-                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-brand font-mono text-xs font-bold text-[#0e1726] transition-transform duration-150 ease-press group-hover:scale-105">{sesion?.cedula.charAt(0)}</span>
+                <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-brand font-mono text-xs font-bold text-[#0e1726] transition-shadow duration-150 ease-press group-hover:ring-4 group-hover:ring-brand/25">{sesion?.cedula.charAt(0)}</span>
               </Link>
             </header>
             <div key={pathname} className="vista flex flex-1 flex-col">
