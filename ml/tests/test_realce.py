@@ -48,3 +48,12 @@ def test_con_realce_solo_actua_en_placas_borrosas_y_se_queda_con_la_mejor_lectur
     # borrosa y la original no sirve: se prueba la realzada y se queda con la mejor
     assert realce.con_realce(Lector(0.1, 0.9)).leer_texto(borrosa) == ("REAL", 0.9)
     assert realce.con_realce(Lector(0.2, 0.1)).leer_texto(borrosa) == ("ORIG", 0.2)
+
+
+def test_con_resolucion_agranda_la_placa_para_la_web() -> None:
+    from app.realce import con_resolucion
+
+    chica = np.random.default_rng(0).integers(0, 255, (24, 70, 3), dtype=np.uint8)
+    grande = con_resolucion(chica)
+    assert grande.shape[0] == 144 and grande.shape[1] == 420
+    assert con_resolucion(np.zeros((300, 600, 3), np.uint8)).shape[:2] == (300, 600)  # ya grande: no se agranda

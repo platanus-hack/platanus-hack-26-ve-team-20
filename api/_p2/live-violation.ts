@@ -31,7 +31,7 @@ export const LiveViolationSchema = z.object({
   plateGuessed: z.boolean().default(false),
 });
 
-const GUESS_MIN = 0.7;
+const GUESS_MIN = 0.6;
 
 function requireServiceToken(auth: string | undefined, env: Record<string, string | undefined> = process.env): void {
   const token = env["ML_SERVICE_TOKEN"];
