@@ -34,3 +34,21 @@ def test_sin_texto_o_sin_imagen_confianza_cero(monkeypatch: pytest.MonkeyPatch) 
 def test_reemplaza_el_ocr_del_lector() -> None:
     lector = SimpleNamespace(leer_texto=lambda img: ("EASY", 1.0))
     assert ocr_placas.con_ocr_de_placas(lector).leer_texto is ocr_placas.leer_placa
+
+
+def _bloque(bgr: tuple[int, int, int]) -> np.ndarray:
+    return np.full((30, 90, 3), bgr, np.uint8)
+
+
+def test_no_lee_lo_que_no_parece_placa(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr_placas, "_reconocedor", Reconocedor("ZCA44A", [0.99] * 6))
+    assert ocr_placas.leer_placa(_bloque((60, 140, 40))) == ("", 0.0)   # verde de bolso de delivery
+    assert ocr_placas.leer_placa(_bloque((20, 20, 220))) == ("", 0.0)   # luz de freno
+    assert ocr_placas.leer_placa(_bloque((230, 230, 230)))[0] == "ZCA44A"  # placa blanca
+    assert ocr_placas.leer_placa(_bloque((150, 90, 30)))[0] == "ZCA44A"   # azul
+
+
+def test_elige_la_caja_de_la_parte_baja_del_vehiculo() -> None:
+    cajas = [(10, 5, 60, 25), (12, 70, 50, 85)]  # bolso arriba (más confiable) y placa abajo, en un vehículo de 100 px
+    assert ocr_placas.elegir_caja(cajas, [0.9, 0.5], 100) == 1
+    assert ocr_placas.elegir_caja(cajas[:1], [0.9], 100) is None

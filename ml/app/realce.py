@@ -1,6 +1,6 @@
 # Nitidez de placas: medir lo borroso de un recorte y realzarlo solo cuando hace falta. Dueño: P2.
 # No inventa detalle (no es súper resolución): reduce ruido y acentúa bordes. La evidencia guardada sigue
-# siendo la foto original; el realce solo se usa para leer (OCR) y para mostrar la lupa.
+# siendo la foto original en ml/evidencias; el realce se usa para leer (OCR), la lupa y la foto de placa en la web.
 import os
 from typing import Any
 
@@ -28,6 +28,14 @@ def realzar(img: Any) -> Any:
     limpia = cv2.fastNlMeansDenoisingColored(img, None, 3, 3, 5, 15) if img.ndim == 3 else cv2.fastNlMeansDenoising(img, None, 3, 5, 15)
     suave = cv2.GaussianBlur(limpia, (0, 0), 1.2)
     return cv2.addWeighted(limpia, 1.8, suave, -0.8, 0)
+
+
+def con_resolucion(img: Any, alto: int = 144) -> Any:
+    """Foto de la placa para la web: agrandada (Lanczos, hasta 6x) y realzada, para que se lea a simple vista."""
+    f = min(6.0, alto / max(1, img.shape[0]))
+    if f > 1:
+        img = cv2.resize(img, (max(1, round(img.shape[1] * f)), round(img.shape[0] * f)), interpolation=cv2.INTER_LANCZOS4)
+    return realzar(img)
 
 
 # La lectura original "no sirve" si casi no trae caracteres o el OCR casi no confía en ella.

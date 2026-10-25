@@ -378,6 +378,7 @@ function agregarMulta(m) {
 // Si no se pudo guardar en el sistema, la tarjeta lo dice (ámbar) y el motivo queda en el title.
 function actualizarRegistro(r) {
   const el = tarjetas.get(r.ref), chip = el?.querySelector('.chip'); if (!chip) return;
+  if (r.fotoPlaca) el.querySelector('img').src = 'data:image/jpeg;base64,' + r.fotoPlaca;  // con resolución
   if (r.estimada) {  // plan B: placa leída de las fotos realzadas (puede equivocarse)
     const p = el.querySelector('.placa'); p.textContent = `${r.estimada.placa} (estimada)`; p.classList.remove('nula');
     el.querySelector('.meta').textContent = el.querySelector('.meta').textContent

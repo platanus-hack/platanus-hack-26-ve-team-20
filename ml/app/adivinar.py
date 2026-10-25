@@ -1,6 +1,6 @@
 # Plan B de lectura (demo): si una multa cierra sin placa o con una lectura floja, se reintenta con las mejores
 # imágenes de ese vehículo, cada una en varias versiones (original, realzada, agrandada y realzada), con el OCR
-# de placas. Gana el texto con más lecturas coincidentes; solo se acepta con confianza >= ML_ADIVINAR_MIN (0,70).
+# de placas. Gana el texto con más lecturas coincidentes; solo se acepta con confianza >= ML_ADIVINAR_MIN (0,60).
 # Puede equivocarse: la multa queda marcada como "placa estimada" (decisión del equipo para la demo). Dueño: P2.
 import os
 from collections.abc import Callable, Iterator
@@ -11,7 +11,7 @@ import cv2
 from .ocr_placas import leer_placa
 from .realce import realzar
 
-MIN_CONF = float(os.getenv("ML_ADIVINAR_MIN", "0.70"))
+MIN_CONF = float(os.getenv("ML_ADIVINAR_MIN", "0.60"))
 DetectorPlacas = Callable[..., list[tuple[float, float, float, float] | None]]
 
 
